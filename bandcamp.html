@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #e0f7fa;
+            color: #000;
+        }
+        .widget-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #0288d1;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .header {
+            background-color: #0277bd;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 1.5em;
+            text-align: center;
+        }
+        .content {
+            padding: 20px;
+        }
+        .content form {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .content label {
+            margin: 10px 0 5px;
+        }
+        .content input[type="text"],
+        .content select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+        }
+        .content input[type="submit"] {
+            background-color: #01579b;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .content input[type="submit"]:hover {
+            background-color: #013f78;
+        }
+        .music-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .music-toolbar a {
+            background-color: #03a9f4;
+            color: #fff;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+        .music-toolbar a:hover {
+            background-color: #0288d1;
+        }
+    </style>
+</head>
+<body>
+    <div class="widget-container">
+        <div class="header">
+            Search Assasinan's Music
+        </div>
+        <div class="content">
+            <form action="/misc/searchredir" method="get">
+                <input type="hidden" name="user" value="assasinan">
+                <label for="q">Search for:</label>
+                <input type="text" size="20" id="q" name="q">
+                <label for="type">in:</label>
+                <select name="type" id="type">
+                    <option value="a">Artist</option>
+                    <option value="l">Release</option>
+                    <option value="q">Review</option>
+                    <option value="g">Tag</option>
+                    <option value="b">Label</option>
+                    <option value="h">Genres</option>
+                    <option value="relyear">Release Year</option>
+                </select>
+                <input type="submit" value="Search">
+            </form>
+            <div class="music-toolbar">
+                <a href="#musicrecent" onclick="viewmusic('musicrecent');return false;">Recent</a>
+                <a href="#musicrating" onclick="viewmusic('musicrating');return false;">Ratings</a>
+                <a href="#musictrackratings" onclick="viewmusic('musictrackratings');return false;">Track Ratings</a>
+                <a href="#musicownership" onclick="viewmusic('musicownership');return false;">Collection</a>
+                <a href="#musicreview" onclick="viewmusic('musicreview');return false;">Reviews</a>
+                <a href="#musicwanted" onclick="viewmusic('musicwanted');return false;">Wishlist</a>
+                <a href="#musictag" onclick="viewmusic('musictag');return false;">Tags</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var music_ids = ['musicrecent', 'musicrating', 'musictrackratings', 'musicownership', 'musicreview', 'musicwanted', 'musictag'];
+        function viewmusic(name) {
+            for (var i = 0; i < music_ids.length; i++) {
+                if (name === music_ids[i]) {
+                    document.getElementById(music_ids[i]).style.display = 'block';
+                } else {
+                    if (document.getElementById(music_ids[i])) {
+                        document.getElementById(music_ids[i]).style.display = 'none';
+                    }
+                }
+            }
+            return false;
+        }
+        viewmusic('musicrecent');
+    </script>
+</body>
+</html>
