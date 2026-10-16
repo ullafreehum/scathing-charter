@@ -84,6 +84,7 @@ export function applyHistory(s: GameState, rng: Rng): void {
       }
     }
     if (!s.codex.includes(`event:${ev.id}`)) s.codex.push(`event:${ev.id}`);
+    for (const u of ev.unlocks ?? []) if (C.codex[u] && !s.codex.includes(u)) s.codex.push(u);
     for (const d of ev.disputes ?? []) if (!s.codex.includes(`dispute:${d}`)) s.codex.push(`dispute:${d}`);
     s.log.push({ day: s.day, text: `${shortDate(s.day)} — ${ev.title}`, tone: 'history' });
     // The history card comes before any personal consequences it caused.
@@ -98,5 +99,6 @@ export function catchUpHistory(s: GameState, rng: Rng): void {
     s.world.fired.push(ev.id);
     for (const e of ev.effects) if (e.type !== 'disaster' && e.type !== 'price') applyEffect(s, e, rng, ev);
     if (!s.codex.includes(`event:${ev.id}`)) s.codex.push(`event:${ev.id}`);
+    for (const u of ev.unlocks ?? []) if (C.codex[u] && !s.codex.includes(u)) s.codex.push(u);
   }
 }

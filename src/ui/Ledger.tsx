@@ -19,7 +19,7 @@ export function Ledger({ g }: { g: GameState }) {
             <li>Journeys: {g.stats.journeys} · Road events: {g.stats.encounters} · Fights won: {g.stats.fightsWon}</li>
             <li>Contracts done: {g.stats.contractsDone} · Relief runs: {g.stats.reliefDelivered}</li>
             <li>Contraband sold: {g.stats.smuggled} · Places seen: {g.stats.visited.length}/{C.locList.length}</li>
-            <li>Codex: {g.codex.length}/{Object.keys(C.codex).length} · Seed <span className="num text-gold">{g.seed}</span></li>
+            <li>Codex: {g.codex.filter(id => C.codex[id]).length}/{Object.keys(C.codex).length} · Seed <span className="num text-gold">{g.seed}</span></li>
           </ul>
         </Section>
         <Section title={`Achievements ${g.achievements.length}/${C.achievements.length}`}>

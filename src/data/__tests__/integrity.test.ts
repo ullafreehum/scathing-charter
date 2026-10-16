@@ -46,5 +46,14 @@ describe('content integrity', () => {
       expect(C.codex[id], id).toBeDefined(); expect(C.codex[id].claims!.length).toBeGreaterThanOrEqual(2);
     }
   });
+  it('place and history unlocks point at real codex entries', () => {
+    for (const L of C.locList) for (const u of L.codex ?? []) expect(C.codex[u], `${L.id}→${u}`).toBeDefined();
+    for (const h of C.history) for (const u of h.unlocks ?? []) expect(C.codex[u], `${h.id}→${u}`).toBeDefined();
+  });
+  it('codex pages once unlocked by lore-only books still have a way in', () => {
+    const hooks = new Set([...C.locList.flatMap(L => L.codex ?? []), ...C.history.flatMap(h => h.unlocks ?? []), ...C.books.flatMap(b => b.unlocks)]);
+    for (const id of ['topic:slavery', 'person:nerevarine', 'person:helseth', 'topic:commerce-road', 'faction:anxileel', 'topic:ancestors', 'topic:scathing-bay', 'person:melis-ravel', 'person:brara-morvayn']) expect(hooks.has(id), id).toBe(true);
+    expect(C.books.every(b => b.perk !== 'none')).toBe(true);
+  });
   it('book unlocks point at real codex entries', () => { for (const b of C.books) for (const u of b.unlocks) expect(C.codex[u], `${b.id}→${u}`).toBeDefined(); });
 });

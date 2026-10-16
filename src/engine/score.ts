@@ -42,7 +42,7 @@ export function checkAchievements(s: GameState): void {
     unbowed: () => s.note.cleared && !s.world.fired.includes('red-year-eruption'),
     'five-provinces': () => provinces.size >= 5,
     licensed: () => s.player.licence && s.player.backgroundId !== 'lukiul',
-    bookworm: () => s.player.books.length >= 5,
+    bookworm: () => C.books.every(b => s.player.books.includes(b.id)),
     lorekeeper: () => s.codex.length >= 60,
     loremaster: () => s.codex.length >= 140,
     frostmoth: () => s.stats.visited.includes('fort-frostmoth'),

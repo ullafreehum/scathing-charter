@@ -366,7 +366,7 @@ armour, scrolls, reputations, Mercy, Lilmoth licence, codex unlocks, achievement
   - *Witness at Scathing Bay* — in Vvardenfell on 3 Sun's Dawn 4E 5 and lived;
   - *Smuggler of the Bitter Coast*.
 - **Achievements** (~25): first profit, clear the note, hedge every deposit before the eruption, visit
-  all six provinces, buy the Lilmoth licence, read 10 books, codex completion tiers, survive an Argonian
+  all six provinces, buy the Lilmoth licence, own all three books, codex completion tiers, survive an Argonian
   war-band, reach Fort Frostmoth before it falls, and more.
 - **Chronicle**: the end screen narrates your journey with dated entries, sources and the seed for replay.
 
@@ -377,13 +377,12 @@ armour, scrolls, reputations, Mercy, Lilmoth licence, codex unlocks, achievement
   Historians Disagree · Books · Invented for this game.
 - **Entries**: unlock on contact; a locked entry shows a teaser. Every entry has a body, a status badge,
   clickable sources and related links.
-- **Books**: bought from booksellers. Reading one unlocks codex entries and sometimes a perk; for
-  example *Pocket Guide to the Empire* reveals regional price tendencies, and *The Red Year* heightens
-  foreshadowing. Books are written as **summaries with at most a short quote**, never full in-game texts.
-
----
-
-## 11. UI / UX & art direction
+- **Books**: three, bought from booksellers, each with a perk: *Pocket Guide to the Empire* (shows where
+  goods are usually cheap or expensive), *Moon-Sugar: A Report* (customs searches ×0.7) and *Progress of
+  Truth* (more warning rumours). Lore-only books were removed; the codex pages they used to unlock now
+  unlock on arriving somewhere fitting (`Location.codex`) or when a history event happens
+  (`HistoryEvent.unlocks`). Books are written as **summaries with at most a short quote**, never full
+  in-game texts.
 - **Look**: five colour themes, each drawn from a Vvardenfell region (`src/ui/themes.ts`):
   *Ashlands* (charcoal and ember, the default), *Bitter Coast* (mangrove green and amber), *Azura's Coast*
   (twilight blue and dawn pink), *Ascadian Isles* (light: cream, paddy green, lake blue) and *West Gash*

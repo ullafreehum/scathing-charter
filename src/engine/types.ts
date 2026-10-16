@@ -40,6 +40,8 @@ export interface Merchant {
 export interface Location extends Sourced {
   id: string; name: string; region: Region; jurisdiction: Jurisdiction;
   x: number; y: number; faction: string; blurb: string; laws: string;
+  /** codex entries unlocked on arriving here */
+  codex?: readonly string[];
   /** 0–5: customs vigilance */
   enforcement: number;
   /** duty on sales (0–0.15) */
@@ -77,6 +79,8 @@ export interface HistoryEvent extends Sourced {
   effects: readonly Effect[];
   /** rumour ids that start circulating `lead` days early */
   foreshadow?: { lead: number; rumors: readonly string[] };
+  /** codex entries unlocked when this event happens */
+  unlocks?: readonly string[];
 }
 
 export type EncounterKind = 'hostile' | 'enforcer' | 'customs' | 'mercy' | 'hazard' | 'opportunity';
