@@ -91,16 +91,21 @@ You're now in **Balmora**. The screen has three parts:
 A good first loop:
 1. **Tavern → Buy a round & hear rumours.** It's the New Life Festival, so rumours are free tonight. Rumours give price
    tips and warnings.
-2. **Market.** A green **▼** next to a price means it's cheap here; a red **▲** means it's dear. Buy
-   something cheap (type a quantity, then **Buy**, or **Max**).
+2. **Market.** A green **▼** next to a price means it's cheap here; a red **▲** means it's expensive.
+   Pick an **Amount** (1, 5, 10, 25 or Max) at the top, then press **Buy** on a cheap good.
    - Avoid goods marked **CONTRABAND** at first: customs can seize them.
-3. **Travel.** Click a glowing town on the map, or pick from **Departures**, then **Go**. Each trip costs
+3. **Travel.** Click a glowing town on the map, or pick from **Destinations**, then **Go**. Once you have
+   visited a town, Travel shows what your cargo would sell for there and which goods are worth carrying. Each trip costs
    days and a fare. On the road you may meet trouble; read the card and choose.
-4. **Market** in the new town: **Sell** what you carried if it's worth more here.
+4. You arrive on the **Market** tab: **Sell** what you carried if it's worth more here (each good you
+   carry shows its profit per unit, and **Sell all at a profit** does it in one click).
 5. When you have a few hundred spare septims, go back to Balmora's **Bank** tab and **Pay** some of the
    debt. The longer you leave it, the more the Camonna Tong's collectors come looking for you.
 
-> 💡 Read the rumours, and keep an eye on the ash falling on screen. History in this game happens on
+> 💡 The strip under the top bar suggests your next step (debt deadline, contracts, closed markets).
+> Rumours and achievements pop up briefly in the bottom-left corner; click to dismiss.
+>
+> Read the rumours, and keep an eye on the ash falling on screen. History in this game happens on
 > real dates, and it does not care where you keep your money.
 
 ---
@@ -159,14 +164,19 @@ what's wrong.
 
 ## 📖 How to play (reference)
 
-- **Market:** buy where a good is cheap (▼) and sell where it is dear (▲). Big trades move the price
-  against you.
+- **Market:** buy where a good is cheap (▼) and sell where it is expensive (▲). One **Amount** setting
+  drives every Buy/Sell button and is capped by your cash and cargo space. **Best seen elsewhere** is
+  your own price book: the highest price you saw in another town, and how long ago. Filters, sorting
+  and **Sell all at a profit** are above the table. Big trades move the price against you.
   - **Contraband** sells only to fences (merchants marked *fence*), and customs may search you on arrival.
   - **EEC** goods (ebony, glass, stalhrim) sell openly only to East Empire Company factors.
-- **Travel:** every route costs days, a fare (plus freight for heavy loads) and some danger. If you're
+- **Travel:** every route costs days, a fare (plus freight for heavy loads) and some danger. Each
+  destination shows what your price book says about it, plus warnings (contraband there, market closed
+  on arrival, siege, missed contract deadline). If you're
   broke, you can **work your passage** instead: free, but slower.
 - **Bank:** money is deposited in a *particular town's branch* and can only be used there. A
   *transfer* (writ of coin) moves it between branches of the same bank. Branches can be destroyed by history.
+- **Road events:** each choice shows its real chance of success.
 - **Tavern:** rumours (tips, omens, and historians arguing), contracts, hired porters (+12 stone) and
   sellswords, books, and rest.
 - **Shop & Temple:** bigger carts and holds, weapons and armour, scrolls (Chameleon, Almsivi and

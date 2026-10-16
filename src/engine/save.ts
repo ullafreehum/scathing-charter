@@ -1,7 +1,7 @@
 // Save serialisation with schema versioning and ordered migrations. Storage itself lives in src/save/.
 import type { GameState } from './types';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 /** MIGRATIONS[n] upgrades a save from version n to n+1. */
 export const MIGRATIONS: Record<number, Migration> = {
@@ -10,6 +10,8 @@ export const MIGRATIONS: Record<number, Migration> = {
     const world = (raw.world ?? {}) as Record<string, unknown>;
     return { ...raw, world: { news: [], ...world }, heard: raw.heard ?? [], schemaVersion: 1 };
   },
+  // 1 → 2: the player's price book. Old saves start with it empty; it fills as you visit markets.
+  1: raw => ({ ...raw, seen: raw.seen ?? {}, schemaVersion: 2 }),
 };
 
 export class SaveError extends Error {}

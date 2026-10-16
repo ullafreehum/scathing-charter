@@ -410,6 +410,16 @@ armour, scrolls, reputations, Mercy, Lilmoth licence, codex unlocks, achievement
 - **Settings** (⚙ in the top bar and on the title screen; saved per browser in `meta.settings`, old
   `motion`/`largeText` switches are migrated): sound on/off and volume, theme, font, text size (90–140%,
   scales the root font size so the whole layout grows), falling ash, animations, reset to defaults.
+- **Flow aids**: minor news (rumours, tips, achievements, bank settlements) are toasts, not blocking
+  cards; several results from one action share a card. Arriving somewhere opens the Market. One trade
+  amount (1/5/10/25/Max/custom) drives every Buy/Sell, capped by cash, space and stock. A next-step strip
+  (`ui/hints.ts`) covers the collectors countdown, contract deadlines, closed markets, licence and low
+  health; travel rows warn about contraband, holidays on arrival, sieges and deadlines. Encounter choices
+  show their success chance from `choiceOdds()`, the same functions `resolve()` rolls with.
+- **Price book**: `GameState.seen` (schema v2) stores the last prices the player saw in each town,
+  recorded after every action. The Market shows the best price seen elsewhere; Travel estimates cargo
+  value and buy-here-sell-there runs per destination. Balance bots already read live prices everywhere,
+  so the price book gives the player less than the bots had and the difficulty targets still hold.
 - **Transitions**: the Codex and Settings slide and fade in over a blurred scrim while the dashboard eases
   back slightly; codex entries crossfade. All of it respects the Animations setting.
 - **Audio**: procedural Web Audio (coins, wind drone, strider bell, encounter sting) with mute and volume;

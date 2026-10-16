@@ -126,11 +126,34 @@ describe('saves', () => {
     const m = migrate(old);
     expect(m.schemaVersion).toBe(SCHEMA_VERSION); expect(m.heard).toEqual([]); expect(m.world.news).toEqual([]);
   });
+  it('migrates v1 → v2 with an empty price book', () => {
+    const old = JSON.parse(serialize(newGame(CFG))); delete old.seen; old.schemaVersion = 1;
+    const m = migrate(old);
+    expect(m.schemaVersion).toBe(2); expect(m.seen).toEqual({});
+  });
   it('refuses future saves', () => { expect(() => migrate({ ...newGame(CFG), schemaVersion: 99 })).toThrow(); });
 });
 
 describe('content sanity via engine', () => {
   it('every location has at least one route', () => {
     for (const L of C.locList) expect(C.routeList.some(r => r.a === L.id || r.b === L.id)).toBe(true);
+  });
+});
+
+describe('price book', () => {
+  it('records the starting market and every market you stand in', () => {
+    let s = drain(newGame(CFG));
+    expect(s.seen.balmora.day).toBe(0);
+    expect(Object.keys(s.seen.balmora.buy).length).toBeGreaterThan(5);
+    const opt = routeOptions(s).find(o => !o.blocked)!;
+    s = act(s, { t: 'travel', route: opt.route.id, mode: opt.modeIndex });
+    while (s.pending) s = act(s, { t: 'choose', choice: s.pending.choices.includes('pass') ? 'pass' : s.pending.choices[s.pending.choices.length - 1] });
+    s = drain(s);
+    if (s.player.location !== 'road') expect(s.seen[s.player.location]?.day).toBe(s.day);
+    expect(s.seen.balmora.day).toBe(0);
+  });
+  it('acknowledges several inbox items at once', () => {
+    const s = newGame(CFG); s.inbox.push({ kind: 'result', title: 'a', text: 'b' });
+    expect(act(s, { t: 'ack', n: 2 }).inbox).toHaveLength(0);
   });
 });

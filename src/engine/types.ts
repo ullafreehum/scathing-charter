@@ -159,6 +159,9 @@ export type InboxItem =
   | { kind: 'result'; title: string; text: string; notice?: boolean } // notice = minor, shown as a toast
   | { kind: 'achievement'; id: string };
 
+/** The last prices the player saw at a place (their own price book, not live data). */
+export interface SeenPrices { day: number; buy: Record<string, number>; sell: Record<string, number> }
+
 export interface LogEntry { day: number; text: string; tone?: 'good' | 'bad' | 'neutral' | 'history' }
 
 export interface PlayerState {
@@ -202,6 +205,7 @@ export interface GameState {
   world: WorldState;
   offers: Contract[]; contracts: Contract[];
   heard: string[];
+  seen: Record<string, SeenPrices>;
   pending: PendingEncounter | null;
   inbox: InboxItem[];
   log: LogEntry[];
