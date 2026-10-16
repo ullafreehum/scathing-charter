@@ -4,6 +4,7 @@ A lore-dense, Dope Wars–style trading game set in the Elder Scrolls universe a
 Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-commercial fan project.
 
 > Status: **planning** (docs only). Game code starts after the plan is approved.
+> Design: `docs/GAME_DESIGN.md` · Lore + sources + dispute register: `docs/LORE_BIBLE.md` · raw notes: `docs/research/`.
 > The unrelated `bandcamp.html` at the repo root predates this project — leave it alone.
 
 ## Commands
