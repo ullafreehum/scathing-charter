@@ -91,6 +91,23 @@ describe('game', () => {
   it('reports net worth including debt', () => { expect(netWorth(newGame(CFG))).toBe(400 - 3000); });
 });
 
+describe('long chronicle', () => {
+  it('a fresh 4E 7 start inherits the Red Year and the Accession War', () => {
+    const s = newGame({ ...CFG, mode: 'long-chronicle' });
+    expect(s.mode).toBe('long-chronicle'); expect(s.timeScale).toBe(7);
+    expect(dateOf(s.day)).toMatchObject({ year: 7, monthName: 'Morning Star', dom: 1 });
+    expect(s.world.status.vivec).toBe('closed'); expect(s.world.status.mournhold).toBe('occupied');
+    expect(s.note.seat).toBe('narsis');
+  });
+  it('weeks pass per day of travel and Ocato falls in c. 4E 15', () => {
+    let s = drain(newGame({ ...CFG, mode: 'long-chronicle' }));
+    s.player.cash = 1e6;
+    while (s.day < D(15, 9, 1) && !s.over) s = drain(act(s, { t: 'wait', days: 7 }));
+    expect(s.world.fired).toContain('ocato-assassinated');
+    expect(s.world.flags.interregnum).toBe(1);
+  });
+});
+
 describe('saves', () => {
   it('round-trips and migrates v0', () => {
     const s = newGame(CFG);

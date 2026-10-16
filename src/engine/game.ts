@@ -5,7 +5,7 @@ import { Rng, hashSeed } from './rng';
 import { D, shortDate } from './calendar';
 import { DEPTH, capacity, cargoWeight, fairValue, holidayAt, marketOpen, quotes } from './market';
 import { routeOptions, type RouteOption } from './travel';
-import { applyHistory, branchKey, clampRep, houseName } from './history';
+import { applyHistory, branchKey, catchUpHistory, clampRep, houseName } from './history';
 import { buildPending, contrabandValue, rollEncounter, resolve } from './encounters';
 import { checkAchievements, netWorth } from './score';
 import { SCHEMA_VERSION } from './save';
@@ -63,7 +63,7 @@ export function newGame(cfg: NewGameConfig): GameState {
     stats: { trades: 0, profit: 0, maxNetWorth: 0, journeys: 0, encounters: 0, fightsWon: 0, smuggled: 0, visited: ['balmora'], reliefDelivered: 0, contractsDone: 0 },
     actions: [], over: null,
   };
-  if (cfg.mode === 'long-chronicle') startChronicle(s, true);
+  if (cfg.mode === 'long-chronicle') { startChronicle(s, true); catchUpHistory(s, rng); s.stats.visited = ['narsis']; }
   for (const id of ['loc:balmora', 'faction:tong', 'topic:the-note', 'topic:calendar', 'holiday:new-life', 'topic:writ-of-coin', `background:${bg.id}`]) unlock(s, id);
   applyHistory(s, rng);
   makeOffers(s, rng, s.player.location);

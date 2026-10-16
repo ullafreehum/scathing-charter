@@ -1,6 +1,6 @@
 # ASHFALL LEDGER — Game Design Document
 
-_Version 0.2 (plan for approval). Unofficial, non-commercial Elder Scrolls fan game.
+_Version 1.0 (as built). Unofficial, non-commercial Elder Scrolls fan game.
 Lore and sources: [`LORE_BIBLE.md`](LORE_BIBLE.md) (dispute IDs `D-xx` refer to its §2).
 Conventions: [`../CLAUDE.md`](../CLAUDE.md)._
 
@@ -49,12 +49,12 @@ disputed.
 ### Difficulty: "Terms of the Note"
 | | Fair Terms | **Tong Terms** (default) | Blood Terms |
 |---|---|---|---|
-| Starting cash / debt | 400 / 2,500 | 300 / 4,000 | 200 / 6,000 |
-| Daily interest | 0.4% | 0.6% | 0.8% |
+| Starting cash / debt | 500 / 2,000 | 400 / 3,000 | 250 / 4,500 |
+| Daily interest | 0.2% | 0.3% | 0.5% |
 | Encounter rate | ×0.75 | ×1 | ×1.3 |
 
-At 0.6% a day, the note roughly doubles in four months and grows ninefold in a year. It is meant to be
-cleared or fled.
+At 0.3% a day the note roughly triples in a year and grows ~27× over the campaign if ignored.
+(Rebalanced from 0.6% after `npm run sim`: at 0.6% a greedy bot never cleared it.)
 
 ---
 
@@ -86,7 +86,7 @@ price = base(g) × regional(l,g) × drift(l,g,t) × shock(l,g,t) × history(l,g,
 - **history**: timeline modifiers (Red Year famine, rebuilding timber boom, war demand…).
 - **holiday**: e.g. Merchants' Festival halves buy prices; Tales and Tallows halves soul gems.
 - **saturation**: your own trades move the price (elastic), recovering ~8% a day.
-- **Spread**: merchants buy at 88–94% of their selling price. Duties and tariffs apply on sale.
+- **Spread**: merchants buy at 90% × their lean of the market price (leans 0.95–1.05). Duties and tariffs apply on sale.
 - **Availability**: a merchant may not stock or not buy a good. Ruined markets sell salvage only.
 - **Spoilage**: kwama eggs lose 2% of the stack per day carried.
 - **Fair value** (for score): median current price across open markets (contraband at 60%).
@@ -121,9 +121,9 @@ in Raven Rock until 4E 16.
 ### 4.3 Conveyance & cargo
 | Conveyance | Capacity | Cost | Notes |
 |---|---|---|---|
-| Pack guar | 40 | start | — |
-| Guar cart | 100 | 2,400 | Road legs +1 day; strider/ship freight charged per stone |
-| Chartered hold | 250 | 14,000 + 10/day | Sea legs −1 day; carts and guar travel as freight |
+| Pack guar | 60 | start | — |
+| Guar cart | 140 | 2,400 | Road legs +1 day; strider/ship freight charged per stone |
+| Chartered hold | 320 | 14,000 + 10/day | Sea legs −1 day; carts and guar travel as freight |
 | Porters (0–4) | +12 each | 100 hire + 4/day | Desert if unpaid for 3 days |
 
 **Fares** = base fare + freight × cargo weight per mode, so heavy cargo is expensive to move by strider.
