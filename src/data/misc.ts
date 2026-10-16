@@ -25,7 +25,7 @@ export const GEAR: Gear[] = [
   { id: 'chitin-cuirass', kind: 'armor', name: 'Chitin cuirass', price: 220, power: 2, canon: 'unverified', sources: [], text: 'Laminated insect shell, light and tough.' },
   { id: 'bonemold', kind: 'armor', name: 'Bonemold armour', price: 700, power: 4, canon: 'unverified', sources: [], text: 'Bone shaped and bonded with resin: the Redoran style.' },
   { id: 'imperial-steel', kind: 'armor', name: 'Imperial steel plate', price: 1100, power: 5, canon: 'unverified', sources: [], text: 'Legion plate, a little dented.' },
-  { id: 'chameleon', kind: 'scroll', name: 'Scroll of Chameleon', price: 90, power: 0, canon: 'canon', sources: [U('Spells_A')], text: 'Bends light around you: slip past a fight or a customs search (9 in 10).' },
+  { id: 'chameleon', kind: 'scroll', name: 'Scroll of Chameleon', price: 150, power: 0, canon: 'canon', sources: [U('Spells_A')], text: 'Bends light around you: slip past bandits (9 in 10) or a customs search (3 in 4).' },
   { id: 'almsivi', kind: 'scroll', name: 'Scroll of Almsivi Intervention', price: 60, power: 0, canon: 'extrapolation', sources: [U('Spells_A'), UG('Morrowind', 'Transport')], text: 'Carries you to the nearest Tribunal temple, with only what fits on your back. UESP: what became of this spell after the Temple dissolved “is unknown”. Here it grows less reliable as faith fails (extrapolation).' },
   { id: 'divine', kind: 'scroll', name: 'Scroll of Divine Intervention', price: 80, power: 0, canon: 'canon', sources: [UG('Morrowind', 'Transport')], text: 'Carries you to the nearest Imperial shrine, with only what fits on your back.' },
 ];

@@ -49,8 +49,8 @@ disputed.
 ### Difficulty: "Terms of the Note"
 | | Fair Terms | **Tong Terms** (default) | Blood Terms |
 |---|---|---|---|
-| Starting cash / debt | 500 / 2,000 | 400 / 3,000 | 250 / 4,500 |
-| Daily interest | 0.2% | 0.3% | 0.5% |
+| Starting cash / debt | 700 / 2,000 | 550 / 3,000 | 250 / 4,500 |
+| Daily interest | 0.2% | 0.3% | 0.6% |
 | Encounter rate | ×0.75 | ×1 | ×1.3 |
 
 At 0.3% a day the note roughly triples in a year and grows ~27× over the campaign if ignored.
@@ -436,6 +436,34 @@ Vite `base: './'` so `dist/` runs from any folder or on itch.io. No CDN assets.
   100k–250k septims.
 - **Playwright**: smoke flows (new game → buy → travel → encounter → sell → save/reload → fast-forward to
   the end) plus screenshots of every screen.
+
+### 14.1 Balance diagnostics (`npm run balance`, 24 seeds per archetype, Tong Terms)
+Six bots stand in for player types: idle, greedy (legal arbitrage), smuggler, prudent (pays the note early and banks
+outside Morrowind), contractor, and oracle (knows the Red Year is coming). Final pass:
+
+| Archetype | Median net worth | Best | Note cleared | Ruined |
+|---|---|---|---|---|
+| Idle | −79k | — | 0% | 100% |
+| Greedy | 114k | 189k | 92% | 8% |
+| Smuggler | 283k | 528k | 92% | 8% |
+| Prudent | 112k | 235k | 96% | 4% |
+| Contractor | 98k | 229k | 79% | 21% |
+| Oracle | 106k | 160k | 79% | 21% |
+
+Difficulty (prudent bot): Fair 0% ruined, median 136k · Tong 4%, 112k · Blood 45% ruined, median 64k (40-seed sweep).
+Profit is spread across timber, restorative draughts, raw ebony, soul gems and stalhrim. No single legal leg holds
+more than about 8% of the economy's margin, and the eruption reshuffles the best routes.
+
+Changes the diagnostics drove:
+- **Work your passage.** A broke player can always travel (no fare, +2 days, −3 health). Before this, about a third
+  of careful runs ended stranded in a far port, unable to afford any fare. That was the main cause of ruin.
+- Starting cash raised (Fair 700, Tong 550) and Blood Terms interest set to 0.6%.
+- Smuggling made riskier: Chameleon beats customs 3 in 4 (was 9 in 10) and costs 150; black-market stings are
+  about 1.5× likelier and fine 40%.
+- Stalhrim is scarcer at Raven Rock and less dear in the south (it was earning 82 dr/stone, over twice any other good).
+
+Known and accepted: smuggling remains the high-risk, high-reward path, at about 2.5× the legal median. Its risk shows up
+as confiscations and stings rather than ruin. This is deliberate (Dope Wars; "smuggling is big business on Vvardenfell").
 
 ## 15. Milestones
 | # | Milestone | Done when |

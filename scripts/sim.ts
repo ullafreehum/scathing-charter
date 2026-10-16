@@ -39,7 +39,7 @@ function play(seed: string): GameState {
     }
     if (best && best.score > 0) { if (best.buy) s = act(s, best.buy); const n = act(s, best.a); s = n === s ? act(s, { t: 'wait', days: 1 }) : n; }
     else {
-      const o = routeOptions(s).filter(o => !o.blocked && o.fare <= s.player.cash);
+      const o = routeOptions(s).filter(o => !o.blocked);
       s = o.length ? act(s, { t: 'travel', route: o[turn % o.length].route.id, mode: o[turn % o.length].modeIndex }) : act(s, { t: 'wait', days: 3 });
     }
   }

@@ -87,7 +87,7 @@ export function MapView({ g }: { g: GameState }) {
               <div className="flex items-center gap-2">
                 <span className="text-bone">{C.locs[o.dest].name}</span>
                 <span className="text-ash-400 text-xs">by <CodexLink id={`travel:${o.mode}`}>{MODE_LABEL[o.mode]}</CodexLink></span>
-                <button className="btn btn-ember ml-auto" disabled={!!o.blocked || g.player.cash < o.fare} onClick={() => act({ t: 'travel', route: o.route.id, mode: o.modeIndex })}>Go</button>
+                <button className={`btn ml-auto ${g.player.cash < o.fare ? '' : 'btn-ember'}`} disabled={!!o.blocked} title={g.player.cash < o.fare ? 'You cannot pay the fare: work your passage instead (+2 days, a little health)' : ''} onClick={() => act({ t: 'travel', route: o.route.id, mode: o.modeIndex })}>{g.player.cash < o.fare ? 'Work passage' : 'Go'}</button>
               </div>
               <div className="text-xs text-ash-400">{o.days} day{o.days > 1 ? 's' : ''}{g.timeScale > 1 ? ` (${o.days * g.timeScale} calendar days)` : ''} · fare <Money v={o.fare} /> · danger {'▮'.repeat(o.risk)}{'▯'.repeat(Math.max(0, 6 - o.risk))}{o.blocked && <span className="text-[#e2584a]"> · {o.blocked}</span>}</div>
               {o.route.note && <div className="text-xs fell italic text-parchment/70">{o.route.note}</div>}
