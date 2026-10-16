@@ -1,0 +1,45 @@
+import type { Route } from '../engine/types';
+
+const r = (a: string, b: string, ...modes: Route['modes']): Route => ({ id: `${a}~${b}`, a, b, modes });
+const m = (mode: Route['modes'][number]['mode'], days: number, fare: number, risk: number, maxWeight?: number) => ({ mode, days, fare, risk, ...(maxWeight ? { maxWeight } : {}) });
+
+export const ROUTES: Route[] = [
+  r('balmora', 'vivec', m('strider', 1, 18, 1)),
+  r('balmora', 'aldruhn', m('strider', 1, 18, 1)),
+  r('vivec', 'ebonheart', m('road', 1, 2, 0)),
+  r('vivec', 'sadrith-mora', m('boat', 2, 30, 1)),
+  r('ebonheart', 'sadrith-mora', m('boat', 2, 30, 1)),
+  r('balmora', 'sadrith-mora', m('guide', 1, 120, 0, 25)),
+  r('aldruhn', 'sadrith-mora', m('guide', 1, 120, 0, 25)),
+  r('aldruhn', 'vivec', m('guide', 1, 120, 0, 25)),
+  r('aldruhn', 'fort-frostmoth', m('boat', 2, 40, 2)),
+  r('fort-frostmoth', 'raven-rock', m('road', 1, 5, 1)),
+  r('ebonheart', 'mournhold', m('inner-sea', 3, 45, 1)),
+  r('ebonheart', 'necrom', m('inner-sea', 3, 45, 2)),
+  r('sadrith-mora', 'necrom', m('coastal', 2, 35, 2)),
+  r('sadrith-mora', 'raven-rock', m('sea-of-ghosts', 4, 70, 3)),
+  r('vivec', 'narsis', m('caravan', 4, 35, 2)),
+  r('mournhold', 'necrom', m('caravan', 4, 30, 2)),
+  r('mournhold', 'narsis', m('caravan', 4, 30, 1)),
+  r('mournhold', 'tear', m('caravan', 5, 35, 2)),
+  r('mournhold', 'blacklight', m('caravan', 6, 45, 2)),
+  r('narsis', 'tear', m('caravan', 4, 30, 2)),
+  r('narsis', 'cheydinhal', m('caravan', 6, 50, 3)),
+  r('blacklight', 'windhelm', m('caravan', 6, 50, 3)),
+  r('tear', 'stormhold', m('caravan', 5, 40, 3)),
+  r('stormhold', 'lilmoth', m('barge', 5, 40, 2)),
+  r('stormhold', 'leyawiin', m('caravan', 6, 45, 3)),
+  r('necrom', 'lilmoth', m('coastal', 8, 90, 3)),
+  r('lilmoth', 'senchal', m('coastal', 5, 60, 3)),
+  r('lilmoth', 'leyawiin', m('coastal', 4, 50, 2)),
+  r('leyawiin', 'senchal', m('coastal', 3, 40, 2)),
+  r('leyawiin', 'imperial-city', m('barge', 3, 30, 1), m('caravan', 4, 20, 2)),
+  r('imperial-city', 'cheydinhal', m('road', 2, 15, 1)),
+  r('imperial-city', 'solitude', m('caravan', 9, 80, 3)),
+  r('solitude', 'windhelm', m('caravan', 6, 50, 2), m('sea-of-ghosts', 5, 60, 2)),
+  r('windhelm', 'raven-rock', m('sea-of-ghosts', 3, 50, 2)),
+  r('solitude', 'raven-rock', m('sea-of-ghosts', 5, 70, 2)),
+  // Relief roads into the ash: closed until House Redoran opens them (First Seed 4E 5).
+  { ...r('mournhold', 'balmora', m('caravan', 6, 40, 4)), closed: true, note: 'Redoran relief road across the Inner Sea and the ash' },
+  { ...r('narsis', 'balmora', m('caravan', 5, 40, 4)), closed: true, note: 'Relief road from the Hlaalu capital' },
+];
