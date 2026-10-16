@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { C } from '../data';
-import { conductTitles, depositsTotal, cargoValue, formatDate, netWorth, power, wealthTitle, type GameState } from '../engine';
+import { choiceOdds, conductTitles, depositsTotal, cargoValue, formatDate, netWorth, power, wealthTitle, type GameState } from '../engine';
 import { useGame } from '../store/game';
 import { exportFile } from '../save/storage';
 import { CodexLink, Money, Sources } from './widgets';
@@ -49,7 +49,7 @@ export function Overlays() {
         <div className="grid sm:grid-cols-2 gap-2">
           {p.choices.map(c => (
             <button key={c} className={`btn justify-start text-left py-2 ${c === 'fight' || c === 'give' ? 'btn-ember' : ''}`} disabled={c === 'bribe' && g.player.cash < p.bribe} onClick={() => act({ t: 'choose', choice: c })}>
-              <span className="flex flex-col items-start normal-case tracking-normal font-body"><span className="h-display uppercase tracking-wider text-[.8rem]">{CHOICE[c]?.label ?? c}</span><span className="hint text-xs font-body">{CHOICE[c]?.hint(g)}</span></span>
+              <span className="flex flex-col items-start normal-case tracking-normal font-body"><span className="h-display uppercase tracking-wider text-[.8rem]">{CHOICE[c]?.label ?? c}</span><span className="hint text-xs font-body">{choiceOdds(g, c) !== undefined && c !== 'bribe' || (c === 'bribe' && p.customs) ? <b>{Math.round(choiceOdds(g, c)! * 100)}% chance. </b> : null}{CHOICE[c]?.hint(g)}</span></span>
             </button>
           ))}
         </div>
@@ -70,20 +70,30 @@ export function Overlays() {
         <button className="btn btn-ember mt-4" autoFocus onClick={() => act({ t: 'ack' })}>Continue</button>
       </Card>
     );
-  } else if (item?.kind === 'achievement') {
+  } else if (item && item.kind !== 'achievement') {
+    // Consecutive results (e.g. everything that happened on one journey) share one card.
+    let n = 0;
+    while (n < g.inbox.length && (g.inbox[n].kind === 'result' || g.inbox[n].kind === 'news')) n++;
+    const items = g.inbox.slice(0, Math.max(1, n)) as { title: string; text: string }[];
+    node = (
+      <Card key={`res-${g.inbox.length}-${g.actions.length}`}>
+        {items.length > 1 && <div className="text-xs h-display uppercase text-ember mb-2">Meanwhile</div>}
+        {items.map((it, i) => (
+          <div key={i} className={i ? 'border-t border-ash-600 pt-3 mt-3' : ''}>
+            <h2 className="h-display text-xl text-bone mb-2">{it.title}</h2>
+            <p className="fell text-lg text-parchment whitespace-pre-line">{it.text}</p>
+          </div>
+        ))}
+        <button className="btn btn-ember mt-4" autoFocus onClick={() => act({ t: 'ack', n: items.length })}>Continue</button>
+      </Card>
+    );
+  } else if (item) {
+    // A stray achievement (old save): acknowledge it from a small card.
     const a = C.achievements.find(x => x.id === item.id);
     node = (
       <Card key={`ach-${item.id}`}>
         <div className="text-center"><div className="text-4xl text-gold">★</div><h2 className="h-display text-xl text-gold">{a?.name}</h2><p className="text-parchment">{a?.text}</p>
           <button className="btn mt-4" autoFocus onClick={() => act({ t: 'ack' })}>Continue</button></div>
-      </Card>
-    );
-  } else if (item) {
-    node = (
-      <Card key={`res-${g.inbox.length}-${g.actions.length}`}>
-        <h2 className="h-display text-xl text-bone mb-2">{item.kind === 'result' || item.kind === 'news' ? item.title : ''}</h2>
-        <p className="fell text-lg text-parchment whitespace-pre-line">{item.kind === 'result' || item.kind === 'news' ? item.text : ''}</p>
-        <button className="btn btn-ember mt-4" autoFocus onClick={() => act({ t: 'ack' })}>Continue</button>
       </Card>
     );
   } else if (g.over) node = <EndScreen key="end" g={g} />;

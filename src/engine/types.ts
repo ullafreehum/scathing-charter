@@ -156,7 +156,7 @@ export interface PendingEncounter {
 export type InboxItem =
   | { kind: 'chronicle'; eventId: string }
   | { kind: 'news'; title: string; text: string }
-  | { kind: 'result'; title: string; text: string }
+  | { kind: 'result'; title: string; text: string; notice?: boolean } // notice = minor, shown as a toast
   | { kind: 'achievement'; id: string };
 
 export interface LogEntry { day: number; text: string; tone?: 'good' | 'bad' | 'neutral' | 'history' }
@@ -231,7 +231,7 @@ export type Action =
   | { t: 'heal' }
   | { t: 'book'; id: string }
   | { t: 'choose'; choice: string }
-  | { t: 'ack' }
+  | { t: 'ack'; n?: number }
   | { t: 'chronicle' };
 
 export interface NewGameConfig { seed: string; backgroundId: string; name: string; difficulty: Difficulty; mode?: Mode }

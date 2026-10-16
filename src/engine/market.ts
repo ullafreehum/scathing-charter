@@ -21,8 +21,10 @@ export function legalityAt(s: GameState, loc: string, good: string): Legality {
   return s.world.legal[j]?.[good] ?? C.goods[good].legality[j];
 }
 
-export function holidayAt(s: GameState, loc: string): Holiday | undefined {
-  const d = dateOf(s.day);
+export function holidayAt(s: GameState, loc: string): Holiday | undefined { return holidayOn(s.day, loc); }
+/** The holiday (if any) at a place on a given day: used to warn about closed markets on arrival. */
+export function holidayOn(day: number, loc: string): Holiday | undefined {
+  const d = dateOf(day);
   const region = C.locs[loc]?.region;
   return C.holidays.find(h => h.month === d.month + 1 && h.day === d.dom && (h.scope === 'all' || (region !== undefined && h.scope.includes(region))));
 }
