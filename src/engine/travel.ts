@@ -15,8 +15,10 @@ export interface RouteOption {
   days: number; fare: number; risk: number; blocked?: string;
 }
 
-export function routeOptions(s: GameState): RouteOption[] {
-  const here = s.player.location;
+export function routeOptions(s: GameState): RouteOption[] { return routeOptionsFrom(s, s.player.location); }
+
+/** Route options leaving any place, priced for the current cargo: used by the route planner. */
+export function routeOptionsFrom(s: GameState, here: string): RouteOption[] {
   const w = cargoWeight(s);
   const month = dateOf(s.day).month;
   const winter = month === 11 || month === 0 || month === 1;

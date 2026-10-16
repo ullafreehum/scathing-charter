@@ -94,8 +94,9 @@ A good first loop:
 2. **Market.** A green **▼** next to a price means it's cheap here; a red **▲** means it's expensive.
    Pick an **Amount** (1, 5, 10, 25 or Max) at the top, then press **Buy** on a cheap good.
    - Avoid goods marked **CONTRABAND** at first: customs can seize them.
-3. **Travel.** Click a glowing town on the map, or pick from **Destinations**, then **Go**. Once you have
-   visited a town, Travel shows what your cargo would sell for there and which goods are worth carrying. Each trip costs
+3. **Travel.** The map opens zoomed on the towns you can reach, with travel days on each route. Click a
+   town (or press its number, 1–9) to open its card: every way there, fares, danger, warnings and, once
+   you have visited it, what your cargo would sell for there. Press **Go**. Each trip costs
    days and a fare. On the road you may meet trouble; read the card and choose.
 4. You arrive on the **Market** tab: **Sell** what you carried if it's worth more here (each good you
    carry shows its profit per unit, and **Sell all at a profit** does it in one click).
@@ -170,9 +171,15 @@ what's wrong.
   and **Sell all at a profit** are above the table. Big trades move the price against you.
   - **Contraband** sells only to fences (merchants marked *fence*), and customs may search you on arrival.
   - **EEC** goods (ebony, glass, stalhrim) sell openly only to East Empire Company factors.
-- **Travel:** every route costs days, a fare (plus freight for heavy loads) and some danger. Each
-  destination shows what your price book says about it, plus warnings (contraband there, market closed
-  on arrival, siege, missed contract deadline). If you're
+- **Travel:** every route costs days, a fare (plus freight for heavy loads) and some danger.
+  - **Map:** *My routes · Vvardenfell · Morrowind · All Tamriel* views, mouse-wheel or **+/−** zoom,
+    drag to move. Towns you can reach are bright, with the days marked on each route.
+  - **Town card:** click any town for every way there, fares, danger, price outlook and warnings
+    (contraband there, market closed on arrival, siege, missed contract deadline).
+  - **Far towns:** the card shows the fastest chain of journeys. **Plan this route** keeps it on the map
+    and in the hint strip, and **Next stop** takes the next leg.
+  - **Markers** (toggle under the map): contract destinations (C), where you can pay the debt (D), banks
+    (B), healing (+), and towns where your cargo sells higher (↑ +amount). If you're
   broke, you can **work your passage** instead: free, but slower.
 - **Bank:** money is deposited in a *particular town's branch* and can only be used there. A
   *transfer* (writ of coin) moves it between branches of the same bank. Branches can be destroyed by history.
@@ -187,6 +194,7 @@ what's wrong.
   coronation of Titus Mede I, a week per day of travel.
 - **Keyboard:**
   - Tabs: `m` Market, `t` Travel, `b` Bank, `v` Tavern, `s` Shop & Temple, `j` Journal.
+  - On the Travel tab, `1`–`9` open a destination's card and `Enter` goes; `Esc` closes the card.
   - `c` opens the Codex; `Esc` closes it (and Settings).
 - **Settings (⚙):** five readable colour themes named after Vvardenfell regions (Ashlands, Bitter Coast,
   Azura's Coast, Ascadian Isles, West Gash), four fonts, text size, falling ash, animations, sound and
