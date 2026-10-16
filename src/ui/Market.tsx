@@ -3,6 +3,7 @@ import { C } from '../data';
 import { capacity, cargoWeight, fairValue, quotes, holidayAt, marketOpen, type GameState, type Quote } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
+import { ago, bestSeenSell } from './prices';
 
 const LEG: Record<string, { label: string; cls: string; tip: string }> = {
   legal: { label: '', cls: '', tip: '' },
@@ -11,7 +12,7 @@ const LEG: Record<string, { label: string; cls: string; tip: string }> = {
 };
 const AMOUNTS = [1, 5, 10, 25];
 type Filter = 'all' | 'cargo' | 'cheap';
-type Sort = 'usual' | 'name' | 'price';
+type Sort = 'usual' | 'name' | 'price' | 'gain';
 
 export function Market({ g }: { g: GameState }) {
   const { act, setTab, tradeQty: amt, setTradeQty: setAmt } = useGame();
@@ -29,6 +30,8 @@ export function Market({ g }: { g: GameState }) {
   let rows = qs.filter(q => filter === 'all' || (filter === 'cargo' ? !!g.player.cargo[q.good] : ratio(q) < 0.8));
   if (sort === 'name') rows = [...rows].sort((a, b) => C.goods[a.good].name.localeCompare(C.goods[b.good].name));
   if (sort === 'price') rows = [...rows].sort((a, b) => (a.buy ?? Infinity) - (b.buy ?? Infinity));
+  const gain = (q: Quote) => (q.buy === null ? -Infinity : (bestSeenSell(g, q.good, loc)?.price ?? -Infinity) - q.buy) / C.goods[q.good].weight;
+  if (sort === 'gain') rows = [...rows].sort((a, b) => gain(b) - gain(a));
   const chip = (on: boolean) => `btn px-2 py-0.5 ${on ? 'btn-ember' : 'btn-ghost'}`;
   return (
     <div className="flex flex-col gap-3">
@@ -53,7 +56,7 @@ export function Market({ g }: { g: GameState }) {
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2 text-sm">
           <div className="flex items-center gap-1" role="radiogroup" aria-label="Trade amount">
             <span className="text-ash-400 mr-1">Amount</span>
-            {AMOUNTS.map(n => <button key={n} role="radio" aria-checked={amt === n} className={chip(amt === n)} onClick={() => setAmt(n)}>{n}</button>)}
+            {AMOUNTS.map(n => <button key={n} role="radio" aria-checked={amt === n} className={chip(amt === n)} onClick={() => setAmt(n)}><span className="font-body num">{n}</span></button>)}
             <button role="radio" aria-checked={amt === 'max'} className={chip(amt === 'max')} onClick={() => setAmt('max')} title="Buy as many as you can afford and carry; sell everything">Max</button>
             <input aria-label="Custom amount" type="number" min={1} placeholder="other" className="input w-20 num py-0.5"
               value={typeof amt === 'number' && !AMOUNTS.includes(amt) ? amt : ''} onChange={e => setAmt(Math.max(1, Math.floor(Number(e.target.value) || 1)))} />
@@ -63,14 +66,14 @@ export function Market({ g }: { g: GameState }) {
             {([['all', 'All'], ['cargo', 'My cargo'], ['cheap', 'Cheap here ▼']] as const).map(([f, l]) => <button key={f} role="radio" aria-checked={filter === f} className={chip(filter === f)} onClick={() => setFilter(f)}>{l}</button>)}
           </div>
           <label className="flex items-center gap-1"><span className="text-ash-400">Sort</span>
-            <select className="input w-auto py-0.5" value={sort} onChange={e => setSort(e.target.value as Sort)}><option value="usual">Usual</option><option value="name">Name</option><option value="price">Cheapest first</option></select></label>
+            <select className="input w-auto py-0.5" value={sort} onChange={e => setSort(e.target.value as Sort)}><option value="usual">Usual</option><option value="name">Name</option><option value="price">Cheapest first</option><option value="gain">Best profit elsewhere</option></select></label>
           <button className="btn ml-auto" disabled={!profitable.length} onClick={() => { for (const q of profitable) act({ t: 'sell', good: q.good, qty: g.player.cargo[q.good].qty }); }}
             title="Sell every good whose price here is above what you paid">Sell all at a profit{profitable.length ? ` (${profitable.length})` : ''}</button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="text-left text-xs h-display uppercase text-ash-400">
-              <th className="py-1">Good</th><th>Weight</th><th className="text-right pl-2">You buy</th><th className="text-right pl-3">You sell</th><th className="text-right pl-3">Owned</th><th></th>
+              <th className="py-1">Good</th><th>Weight</th><th className="text-right pl-2">You buy</th><th className="text-right pl-3">You sell</th><th className="text-right pl-3">Owned</th><th className="text-right pl-3" title="The highest price you have seen for it in another town">Best seen elsewhere</th><th></th>
             </tr></thead>
             <tbody>
               {rows.map(q => {
@@ -81,6 +84,8 @@ export function Market({ g }: { g: GameState }) {
                 const nSell = lot && q.sell !== null ? (amt === 'max' ? lot.qty : Math.min(amt, lot.qty)) : 0;
                 const margin = lot && q.sell !== null ? Math.round(q.sell - lot.cost) : null;
                 const l = LEG[q.legality];
+                const best = bestSeenSell(g, q.good, loc);
+                const edge = best && q.buy !== null ? best.price - q.buy : null;
                 return (
                   <tr key={q.good} className={`border-t border-ash-700 hover:bg-ash-800 ${lot ? 'bg-ash-800/60' : ''}`}>
                     <td className="py-1.5 pr-2">
@@ -93,18 +98,19 @@ export function Market({ g }: { g: GameState }) {
                     <td className="text-right whitespace-nowrap">{q.sell !== null ? <span title={`to ${q.sellTo}${q.sellNote ? ` (${q.sellNote})` : ''}`}><Money v={q.sell} />{q.sellNote && <span className="text-ice text-xs">*</span>}</span> : <span className="text-ash-400 text-xs">no buyer</span>}
                       {margin !== null && <div className={`text-xs ${margin >= 0 ? 'text-moss' : 'text-danger'}`} title={`You paid ${Math.round(lot!.cost)} each`}>{margin >= 0 ? '+' : ''}{margin} each</div>}</td>
                     <td className="text-right num pl-3">{lot ? <span title={`You paid ${Math.round(lot.cost)} each on average`}>{lot.qty}</span> : <span className="text-ash-400">0</span>}</td>
+                    <td className="text-right pl-3 whitespace-nowrap">{best ? <span title={`Seen in ${C.locs[best.loc].name} ${ago(best.age)}. Prices move, so older figures are less reliable.`}><Money v={best.price} />{edge !== null && edge > 0 && <span className="text-moss text-xs"> (+{Math.round(edge)})</span>}<span className="block text-xs text-ash-400">{C.locs[best.loc].name}, {ago(best.age)}</span></span> : <span className="text-ash-400 text-xs">not seen yet</span>}</td>
                     <td className="whitespace-nowrap pl-3 text-right space-x-1">
-                      <button className="btn" disabled={nBuy < 1} onClick={() => act({ t: 'buy', good: q.good, qty: nBuy })} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} (max ${maxBuy})`}>Buy {nBuy > 0 ? nBuy : ''}</button>
-                      <button className="btn" disabled={nSell < 1} onClick={() => act({ t: 'sell', good: q.good, qty: nSell })} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>Sell {nSell > 0 ? nSell : ''}</button>
+                      <button className="btn" disabled={nBuy < 1} onClick={() => act({ t: 'buy', good: q.good, qty: nBuy })} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} (max ${maxBuy})`}>Buy {nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</button>
+                      <button className="btn" disabled={nSell < 1} onClick={() => act({ t: 'sell', good: q.good, qty: nSell })} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>Sell {nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</button>
                     </td>
                   </tr>
                 );
               })}
-              {!rows.length && <tr><td colSpan={6} className="py-3 text-ash-400">Nothing matches this filter.</td></tr>}
+              {!rows.length && <tr><td colSpan={7} className="py-3 text-ash-400">Nothing matches this filter.</td></tr>}
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-ash-400 mt-2">Buy and Sell use the amount chosen above, capped by your cash, cargo space and what you own. ▼ cheap / ▲ expensive compared with the usual price across Tamriel. * sold with a restriction (hover for details). Selling a lot lowers the price; buying a lot raises it.</p>
+        <p className="text-xs text-ash-400 mt-2">Buy and Sell use the amount chosen above, capped by your cash, cargo space and what you own. ▼ cheap / ▲ expensive compared with the usual price across Tamriel. * sold with a restriction (hover for details). “Best seen elsewhere” comes from towns you have visited, so it can be out of date. Selling a lot lowers the price; buying a lot raises it.</p>
       </Section>
       {cargoGoods.length > 0 && (
         <Section title="In your cargo, but nobody here buys it">

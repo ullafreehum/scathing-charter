@@ -59,7 +59,7 @@ export function newGame(cfg: NewGameConfig): GameState {
       faction: Object.fromEntries(C.locList.map(l => [l.id, l.faction])),
       routes: {}, priceMods: [], legal: {}, branches, flags: { guides: 1, almsivi: 95 }, fired: [], news: [],
     },
-    offers: [], contracts: [], heard: [], pending: null, inbox: [], log: [], codex: [], achievements: [],
+    offers: [], contracts: [], heard: [], seen: {}, pending: null, inbox: [], log: [], codex: [], achievements: [],
     stats: { trades: 0, profit: 0, maxNetWorth: 0, journeys: 0, encounters: 0, fightsWon: 0, smuggled: 0, visited: ['balmora'], reliefDelivered: 0, contractsDone: 0 },
     actions: [], over: null,
   };
@@ -67,6 +67,7 @@ export function newGame(cfg: NewGameConfig): GameState {
   for (const id of ['loc:balmora', 'faction:tong', 'topic:the-note', 'topic:calendar', 'holiday:new-life', 'topic:writ-of-coin', `background:${bg.id}`]) unlock(s, id);
   applyHistory(s, rng);
   makeOffers(s, rng, s.player.location);
+  recordPrices(s);
   s.log.push({ day: 0, text: `${shortDate(0)}. New Life Festival in Balmora. You owe Gavas Drelloth ${diff.debt} septims.`, tone: 'neutral' });
   s.inbox.push({ kind: 'result', title: 'Your debt', text: `It is the New Life Festival, 4E 4, in Balmora. You owe Gavas Drelloth of the Camonna Tong ${diff.debt} septims, at ${(diff.rate * 100).toFixed(1)}% interest a day. You have ${diff.cash} septims and a pack guar. Pay him back at the Bank tab in Balmora. The Tong will wait about two months before sending collectors.` });
   s.rng = rng.state();
@@ -194,12 +195,22 @@ export function step(state: GameState, action: Action): StepResult {
   if (err) return { state, error: err };
   s.rng = rng.state();
   s.actions.push(action);
+  recordPrices(s);
   checkAchievements(s);
   s.stats.maxNetWorth = Math.max(s.stats.maxNetWorth, netWorth(s));
   return { state: s };
 }
 
 function here(s: GameState) { return C.locs[s.player.location]; }
+
+/** Note today's prices where the player stands (their price book). Closed markets leave the old entry. */
+function recordPrices(s: GameState) {
+  const loc = s.player.location;
+  if (!C.locs[loc] || !marketOpen(s, loc)) return;
+  const buy: Record<string, number> = {}, sell: Record<string, number> = {};
+  for (const q of quotes(s, loc)) { if (q.buy !== null) buy[q.good] = q.buy; if (q.sell !== null) sell[q.good] = q.sell; }
+  s.seen[loc] = { day: s.day, buy, sell };
+}
 
 function apply(s: GameState, rng: Rng, a: Action): string | void {
   const loc = s.player.location;

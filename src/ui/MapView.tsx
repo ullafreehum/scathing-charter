@@ -5,6 +5,7 @@ import { routeOptions, MODE_LABEL, type GameState, type TravelMode } from '../en
 import { useGame } from '../store/game';
 import { themeById } from './themes';
 import { travelWarnings } from './hints';
+import { ago, outlook } from './prices';
 import { CodexLink, Money, Section, StatusPill } from './widgets';
 
 type Stroke = { stroke: string; dash?: string };
@@ -18,6 +19,21 @@ const LEFT = new Set(['ebonheart', 'fort-frostmoth', 'aldruhn', 'narsis', 'storm
 const MAINLAND = 'M0,120 L55,102 L115,108 L160,128 L230,132 L290,124 L350,128 L400,150 L440,175 L462,205 L455,250 L458,300 L478,350 L540,368 L610,368 L670,350 L715,300 L725,245 L715,195 L740,170 L800,180 L815,260 L790,330 L800,400 L770,470 L740,540 L712,620 L700,690 L705,722 L640,716 L580,726 L520,708 L470,692 L445,652 L420,632 L395,642 L370,682 L345,722 L290,742 L200,748 L100,738 L0,742 Z';
 const VVARDENFELL = 'M498,195 C520,170 580,160 625,178 C660,190 690,205 678,240 C668,270 640,300 610,318 C590,330 555,335 535,325 C510,312 492,285 490,250 C488,225 490,205 498,195 Z';
 const SOLSTHEIM = 'M455,70 C470,40 520,28 555,40 C580,52 578,85 556,100 C530,115 485,112 465,98 C452,90 450,80 455,70 Z';
+
+function Outlook({ g, dest }: { g: GameState; dest: string }) {
+  const o = outlook(g, dest);
+  const carrying = Object.keys(g.player.cargo).length > 0;
+  if (!o) return <div className="text-xs text-ash-400">Prices there: unknown (you have not been there yet).</div>;
+  const diff = o.cargoThere - o.cargoHere;
+  return (
+    <div className="text-xs text-parchment">
+      <span className="text-ash-400">Prices seen {ago(o.age)}:</span>
+      {carrying && <> your cargo would fetch about <Money v={o.cargoThere} /> there <span className={diff >= 0 ? 'text-moss' : 'text-danger'}>({diff >= 0 ? '+' : ''}{diff.toLocaleString('en-US')} vs here)</span>{o.unsellable > 0 && <span className="text-ash-400"> · {o.unsellable} unsold</span>}.</>}
+      {o.runs.length > 0 && <div>Buy here, sell there: {o.runs.map(r => `${C.goods[r.good].name} +${r.gain}`).join(', ')} (each).</div>}
+      {!carrying && !o.runs.length && <> nothing here sells for more there.</>}
+    </div>
+  );
+}
 
 export function MapView({ g }: { g: GameState }) {
   const act = useGame(s => s.act);
@@ -93,6 +109,7 @@ export function MapView({ g }: { g: GameState }) {
                 <button className={`btn ml-auto ${g.player.cash < o.fare ? '' : 'btn-ember'}`} disabled={!!o.blocked} title={g.player.cash < o.fare ? 'You can’t pay the fare: work for your passage instead (+2 days, costs a little health)' : ''} onClick={() => act({ t: 'travel', route: o.route.id, mode: o.modeIndex })}>{g.player.cash < o.fare ? 'Work for passage' : 'Go'}</button>
               </div>
               <div className="text-xs text-ash-400">{o.days} day{o.days > 1 ? 's' : ''}{g.timeScale > 1 ? ` (${o.days * g.timeScale} calendar days)` : ''} · fare <Money v={o.fare} /> · danger {'▮'.repeat(o.risk)}{'▯'.repeat(Math.max(0, 6 - o.risk))}{o.blocked && <span className="text-danger"> · {o.blocked}</span>}</div>
+              <Outlook g={g} dest={o.dest} />
               {travelWarnings(g, o.dest, o.days).map((w, i) => <div key={i} className="text-xs text-danger">⚠ {w}</div>)}
               {o.route.note && <div className="text-xs fell italic text-parchment">{o.route.note}</div>}
             </div>

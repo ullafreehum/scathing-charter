@@ -139,6 +139,14 @@ test('travel: map click filters departures; Go moves you and the calendar', asyn
   await clear(page);
   await expect(page.getByRole('heading', { level: 2, name: 'Ald’ruhn' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Market' })).toHaveAttribute('aria-selected', 'true');
+  // the price book remembers Balmora: in the Market column and in Travel
+  await expect(page.getByText(/Balmora, \d+ days? ago/).first()).toBeVisible();
+  await page.getByRole('tab', { name: 'Travel' }).click();
+  await expect(page.getByText(/Prices seen \d+ days? ago/).first()).toBeVisible();
+  await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-travel-outlook.png' });
+  await page.getByRole('tab', { name: 'Market' }).click();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-market-pricebook.png' });
   expect(await dateText(page)).not.toContain('1 Morning Star');
   expect(errors).toEqual([]);
 });
