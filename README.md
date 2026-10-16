@@ -104,6 +104,17 @@ A good first loop:
 
 ---
 
+## 📦 Offline edition (no install, opens in Chrome)
+
+A ready-to-run copy needs only Node.js and Google Chrome, not `npm install` or the internet. It opens in
+its own Chrome window even when another browser is your default.
+
+To make it yourself: run `npm run package:offline`. It creates `release/AshGame-offline.zip`.
+1. Extract the ZIP into `C:\Games`; you get `C:\Games\AshGame`.
+2. Double-click **`Play Ashfall Ledger.cmd`**.
+
+Saves are kept in `AshGame\chrome-profile`. More details are in `README-OFFLINE.txt` inside the ZIP.
+
 ## ▶️ Playing again later
 
 Double-click **`PLAY.cmd`** again. It skips the install and opens the game straight away. On the title
