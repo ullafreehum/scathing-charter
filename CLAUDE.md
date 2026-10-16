@@ -1,0 +1,72 @@
+# CLAUDE.md — Ashfall Ledger
+
+A lore-dense, Dope Wars–style trading game set in the Elder Scrolls universe at the dawn of the
+Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-commercial fan project.
+
+> Status: **planning** (docs only). Game code starts after the plan is approved.
+> The unrelated `bandcamp.html` at the repo root predates this project — leave it alone.
+
+## Commands
+| What | Command |
+|---|---|
+| Install | `npm install` |
+| Dev server | `npm run dev` |
+| Type-check + production build (static, offline, relative paths) | `npm run build` → `dist/` |
+| Preview the build | `npm run preview` |
+| Unit tests (engine, data validation) | `npm test` (watch: `npm run test:watch`) |
+| UI smoke tests + screenshots | `npm run test:e2e` (uses Playwright's Chromium; in the cloud container launch with `executablePath: '/opt/pw-browsers/chromium'` if versions differ — never `playwright install` there) |
+| Lint | `npm run lint` |
+| Balance simulation | `npm run sim` (headless bot runs over many seeds) |
+
+All npm scripts must work unchanged in **Windows PowerShell**: no `rm -rf`, no `VAR=x cmd`, no bash-only
+syntax. Use Node scripts (`scripts/*.mjs`) for anything beyond a single tool call.
+
+## Architecture
+```
+src/
+  engine/   Pure TypeScript game engine. NO React, NO DOM, NO Date.now(), NO Math.random().
+            Deterministic: (seed, action log) → identical state. All randomness via engine/rng.ts.
+  data/     All content as typed TS data: goods, locations, routes, factions, backgrounds,
+            history (dated world events), events/encounters, rumors, contracts, codex, books, NPCs,
+            holidays. Content never lives in components.
+  store/    Zustand store: holds the engine state, dispatches actions to engine.step(),
+            autosaves via save/ adapters. The only bridge between UI and engine.
+  save/     localStorage adapter, schema versioning + migrations, file export/import.
+  ui/       React components (screens/, panels/, widgets/), Tailwind + Framer Motion.
+  audio/    Procedural Web Audio (no audio files needed).
+tests/e2e/  Playwright specs; screenshots go to tests/e2e/__screenshots__/.
+docs/       GAME_DESIGN.md, LORE_BIBLE.md, research/ (raw researcher notes).
+```
+
+### Engine contract
+- `newGame(config: { seed, backgroundId, playerName, mode }) → GameState`
+- `step(state, action) → { state, log: LogEntry[] }` — the only way state changes. Pure; never mutates input.
+- `GameState` is plain JSON (serializable): includes `rng` state, `actionLog`, `schemaVersion`.
+- Replay: `replay(seed, config, actions) → GameState` must equal the live state (tested).
+- Time advances only through actions (travel, wait). Each elapsed day runs `tickDay()`:
+  interest, price drift, history timeline, contracts expiry, spoilage.
+
+### Lore & content rules (non-negotiable)
+- Every codex entry, good, location, faction, event and rumor carries `sources: string[]` and a
+  `canon` status: `'canon' | 'unverified' | 'disputed' | 'extrapolation' | 'invented'`.
+  The UI shows a badge for anything not plain `canon`.
+- Invented things (merchants, the lender, the counting-houses, exact day-of-month for events
+  where lore gives only a year) must be marked `invented`/`extrapolation` in data **and** in LORE_BIBLE.md.
+- Fan projects (Tamriel Rebuilt, Beyond Skyrim, Project Tamriel…) are not canon: never use them in core content.
+- When sources disagree, keep both: model as a `dispute` (competing rumors / historians' entries), not a silent pick.
+  Default reading = current UESP.
+- Don't paste full in-game book texts (copyrighted): write summaries + at most a short quote, with a source link.
+- Slavery is historical context only — never a tradeable good.
+
+### Conventions
+- TypeScript `strict`, no `any` in engine/data. Prefer `readonly` data types and string-literal ID unions.
+- IDs are kebab-case strings (`balmora`, `kwama-eggs`, `red-year-eruption`).
+- Money is integer septims. Weights are integer "stone" units. Dates are absolute day indices
+  (day 0 = 1 Morning Star 4E 4) converted by `engine/calendar.ts`.
+- Tests sit next to engine code as `*.test.ts`; data integrity tests in `src/data/__tests__/`.
+- Commit at the end of each milestone with a descriptive message. Never leave the build or tests red.
+- Keep this file and `docs/GAME_DESIGN.md` updated when architecture or design changes.
+
+## Network note (cloud sessions)
+Direct fetches to uesp.net / imperial-library.info are blocked by the environment's network policy;
+WebSearch works and returns UESP URLs. Facts not confirmed by a search result are tagged `[unverified]`.
