@@ -169,6 +169,7 @@ function arrive(s: GameState, rng: Rng, dest: string) {
   s.player.location = to;
   if (!s.stats.visited.includes(to)) s.stats.visited.push(to);
   unlock(s, `loc:${to}`);
+  for (const u of C.locs[to].codex ?? []) unlock(s, u);
   unlock(s, `faction:${C.locs[to].faction.toLowerCase().includes('hlaalu') ? 'hlaalu' : 'none'}`);
   makeOffers(s, rng, to);
   // customs

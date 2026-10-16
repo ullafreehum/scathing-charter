@@ -37,7 +37,7 @@ export function Outfitter({ g }: { g: GameState }) {
         <Section title="Your gear">
           <p className="text-sm">{C.gear[g.player.conveyance].name}, {g.player.porters} porters. {C.gear[g.player.weapon].name}, {C.gear[g.player.armor].name}. Scrolls: Chameleon {g.player.scrolls.chameleon}, Almsivi {g.player.scrolls.almsivi}, Divine {g.player.scrolls.divine}.</p>
           <p className="text-sm mt-1">Reputation: {Object.entries(g.player.rep).map(([f, v]) => <span key={f} className="mr-2"><CodexLink id={`faction:${f}`}>{C.factions[f]?.name ?? f}</CodexLink> <span className={v > 0 ? 'text-moss' : v < 0 ? 'text-danger' : ''}>{v > 0 ? '+' : ''}{v}</span></span>)}</p>
-          <p className="text-sm mt-1">Mercy (good deeds): {g.player.mercy}. Books: {g.player.books.length}.</p>
+          <p className="text-sm mt-1">Mercy (good deeds): {g.player.mercy}. Books: {g.player.books.filter(id => C.books.some(b => b.id === id)).length}/{C.books.length}.</p>
         </Section>
         {(L.id === 'lilmoth' || L.id === 'leyawiin') && (
           <Section title="An-Xileel trade licence">
