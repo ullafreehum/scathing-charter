@@ -5,27 +5,28 @@ import { useGame } from '../store/game';
 
 export function Money({ v, className = '' }: { v: number; className?: string }) {
   const n = Math.round(v);
-  return <span className={`num ${n < 0 ? 'text-[#e2584a]' : ''} ${className}`}>{n.toLocaleString('en-US')}<span className="text-gold/80 text-[.8em] ml-0.5">dr</span></span>;
+  return <span className={`num ${n < 0 ? 'text-danger' : ''} ${className}`}>{n.toLocaleString('en-US')}<span className="coin" aria-hidden="true" /></span>;
 }
 
+// Lore-status badges are shown in the Codex only.
 const BADGE: Record<Exclude<Canon, 'canon'>, { label: string; cls: string; tip: string }> = {
-  unverified: { label: 'Unverified', cls: 'bg-[#5a4320] text-[#f2c879]', tip: 'From memory; not confirmed by a sourced page.' },
-  disputed: { label: 'Historians disagree', cls: 'bg-[#3b2b52] text-lilac', tip: 'Sources conflict. See the Historians Disagree section of the codex.' },
-  extrapolation: { label: 'Extrapolation', cls: 'bg-[#1f3a48] text-ice', tip: 'Our reasoned inference from canon (e.g. a day for a year-only event).' },
-  invented: { label: 'Invented for this game', cls: 'bg-[#4b1f1a] text-[#f0a49a]', tip: 'Made up for gameplay; not lore.' },
+  unverified: { label: 'Unverified', cls: 'text-gold', tip: 'Not confirmed by a sourced page.' },
+  disputed: { label: 'Historians disagree', cls: 'text-lilac', tip: 'Sources conflict. See the Historians Disagree section of the codex.' },
+  extrapolation: { label: 'Extrapolation', cls: 'text-ice', tip: 'A reasoned guess from canon (e.g. a day for an event only dated by year).' },
+  invented: { label: 'Invented for this game', cls: 'text-danger', tip: 'Made up for gameplay; not lore.' },
 };
 export function Badge({ canon, className = '' }: { canon: Canon; className?: string }) {
   if (canon === 'canon') return null;
   const b = BADGE[canon];
-  return <span title={b.tip} className={`inline-block rounded px-1.5 py-[1px] text-[.68rem] font-display uppercase tracking-wider align-middle ${b.cls} ${className}`}>{b.label}</span>;
+  return <span title={b.tip} className={`inline-block rounded-full border border-current px-2 py-[1px] text-[.72rem] align-middle ${b.cls} ${className}`}>{b.label}</span>;
 }
 
 const STATUS: Record<LocStatus, { label: string; cls: string; glyph: string }> = {
   thriving: { label: 'Thriving', cls: 'text-moss', glyph: '◆' }, uneasy: { label: 'Uneasy', cls: 'text-gold', glyph: '◇' },
   ruined: { label: 'Ruined', cls: 'text-ember', glyph: '▲' }, rebuilding: { label: 'Rebuilding', cls: 'text-gold', glyph: '△' },
-  besieged: { label: 'Besieged', cls: 'text-[#e2584a]', glyph: '✕' }, sacked: { label: 'Sacked', cls: 'text-[#e2584a]', glyph: '✖' },
-  occupied: { label: 'Occupied', cls: 'text-lilac', glyph: '■' }, 'refugee-swollen': { label: 'Refugee-swollen', cls: 'text-ice', glyph: '●' },
-  closed: { label: 'Gone', cls: 'text-ash-400', glyph: '○' },
+  besieged: { label: 'Besieged', cls: 'text-danger', glyph: '✕' }, sacked: { label: 'Sacked', cls: 'text-danger', glyph: '✖' },
+  occupied: { label: 'Occupied', cls: 'text-lilac', glyph: '■' }, 'refugee-swollen': { label: 'Full of refugees', cls: 'text-ice', glyph: '●' },
+  closed: { label: 'Destroyed', cls: 'text-ash-400', glyph: '○' },
 };
 export function StatusPill({ status }: { status: LocStatus }) {
   const s = STATUS[status];
@@ -56,7 +57,7 @@ export function DateWidget({ g }: { g: GameState }) {
   const hol = g.player.location !== 'road' ? holidayAt(g, g.player.location) : undefined;
   return (
     <div className="flex items-center gap-3">
-      <div className="flex gap-1" title={`Masser: ${PHASES[m.masser]} · Secunda: ${PHASES[m.secunda]} (cycles disputed, D-22)`}>
+      <div className="flex gap-1" title={`Moons: Masser ${PHASES[m.masser]}, Secunda ${PHASES[m.secunda]}`}>
         <MoonIcon phase={m.masser} color="#e8b98a" size={22} /><MoonIcon phase={m.secunda} color="#c9d4dc" size={15} />
       </div>
       <div className="leading-tight">

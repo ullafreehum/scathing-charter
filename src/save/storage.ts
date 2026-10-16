@@ -4,8 +4,23 @@ import { deserialize, serialize, type GameState } from '../engine';
 const KEY = 'ashfall-ledger';
 export type Slot = 'auto' | '1' | '2' | '3';
 export interface Meta { chronicleUnlocked: boolean; achievements: string[]; bestNetWorth: number; settings: Settings }
-export interface Settings { sound: boolean; motion: boolean; largeText: boolean }
-const DEFAULT_META: Meta = { chronicleUnlocked: false, achievements: [], bestNetWorth: 0, settings: { sound: true, motion: true, largeText: false } };
+export interface Settings { sound: boolean; volume: number; theme: string; font: string; textScale: number; ash: boolean; animations: boolean }
+export const DEFAULT_SETTINGS: Settings = { sound: true, volume: 0.8, theme: 'ashlands', font: 'classic', textScale: 1, ash: true, animations: true };
+const DEFAULT_META: Meta = { chronicleUnlocked: false, achievements: [], bestNetWorth: 0, settings: DEFAULT_SETTINGS };
+
+/** Fill in missing settings and migrate the old {motion, largeText} switches. */
+export function normalizeSettings(s: Partial<Settings> & { motion?: boolean; largeText?: boolean } = {}): Settings {
+  const clamp = (v: unknown, lo: number, hi: number, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d);
+  return {
+    sound: s.sound ?? DEFAULT_SETTINGS.sound,
+    volume: clamp(s.volume, 0, 1, DEFAULT_SETTINGS.volume),
+    theme: typeof s.theme === 'string' ? s.theme : DEFAULT_SETTINGS.theme,
+    font: typeof s.font === 'string' ? s.font : DEFAULT_SETTINGS.font,
+    textScale: clamp(s.textScale, 0.8, 1.6, s.largeText ? 1.12 : 1),
+    ash: s.ash ?? s.motion ?? true,
+    animations: s.animations ?? s.motion ?? true,
+  };
+}
 
 function ls(): Storage | null { try { return typeof localStorage === 'undefined' ? null : localStorage; } catch { return null; } }
 
@@ -24,7 +39,10 @@ export function slotInfo(slot: Slot): { day: number; name: string; location: str
 export function deleteGame(slot: Slot) { ls()?.removeItem(`${KEY}/save/${slot}`); }
 
 export function loadMeta(): Meta {
-  try { const t = ls()?.getItem(`${KEY}/meta`); return t ? { ...DEFAULT_META, ...JSON.parse(t) } : DEFAULT_META; } catch { return DEFAULT_META; }
+  try {
+    const t = ls()?.getItem(`${KEY}/meta`); if (!t) return DEFAULT_META;
+    const m = { ...DEFAULT_META, ...JSON.parse(t) } as Meta; return { ...m, settings: normalizeSettings(m.settings) };
+  } catch { return DEFAULT_META; }
 }
 export function saveMeta(m: Meta) { try { ls()?.setItem(`${KEY}/meta`, JSON.stringify(m)); } catch { /* ignore */ } }
 

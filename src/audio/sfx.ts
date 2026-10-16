@@ -1,15 +1,22 @@
 // Tiny procedural Web Audio effects: no audio files, works offline.
 let ctx: AudioContext | null = null;
 let enabled = true;
-let wind: { stop: () => void; gain: GainNode } | null = null;
+let volume = 0.8;
+let wind: { stop: () => void; gain: GainNode; level: number } | null = null;
 
 export function setSound(on: boolean) { enabled = on; if (!on) stopWind(); }
+/** Master volume 0–1 for effects and wind. */
+export function setVolume(v: number) {
+  volume = Math.max(0, Math.min(1, v));
+  if (wind && ctx) wind.gain.gain.setTargetAtTime(wind.level * volume, ctx.currentTime, 0.2);
+}
 function ac(): AudioContext | null {
-  if (!enabled) return null;
+  if (!enabled || volume <= 0) return null;
   try { ctx ??= new AudioContext(); if (ctx.state === 'suspended') void ctx.resume(); return ctx; } catch { return null; }
 }
 function tone(freq: number, dur: number, type: OscillatorType, vol: number, delay = 0, glide?: number) {
   const a = ac(); if (!a) return;
+  vol *= volume;
   const t = a.currentTime + delay;
   const o = a.createOscillator(), g = a.createGain();
   o.type = type; o.frequency.setValueAtTime(freq, t);
@@ -23,7 +30,7 @@ function noise(dur: number, vol: number, freq: number) {
   const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
   const src = a.createBufferSource(); src.buffer = buf;
   const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq;
-  const g = a.createGain(); g.gain.value = vol;
+  const g = a.createGain(); g.gain.value = vol * volume;
   src.connect(f).connect(g).connect(a.destination); src.start();
 }
 export const sfx = {
@@ -37,13 +44,14 @@ export const sfx = {
 };
 export function startWind(intensity: number) {
   const a = ac(); if (!a) return;
-  if (wind) { wind.gain.gain.setTargetAtTime(0.015 + intensity * 0.05, a.currentTime, 1.5); return; }
+  const level = 0.015 + intensity * 0.05;
+  if (wind) { wind.level = level; wind.gain.gain.setTargetAtTime(level * volume, a.currentTime, 1.5); return; }
   const len = a.sampleRate * 4; const buf = a.createBuffer(1, len, a.sampleRate); const d = buf.getChannelData(0);
   let last = 0; for (let i = 0; i < len; i++) { last = (last + (Math.random() * 2 - 1) * 0.02) * 0.995; d[i] = last * 6; }
   const src = a.createBufferSource(); src.buffer = buf; src.loop = true;
   const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 400; f.Q.value = 0.6;
-  const g = a.createGain(); g.gain.value = 0.015 + intensity * 0.05;
+  const g = a.createGain(); g.gain.value = level * volume;
   src.connect(f).connect(g).connect(a.destination); src.start();
-  wind = { stop: () => src.stop(), gain: g };
+  wind = { stop: () => src.stop(), gain: g, level };
 }
 export function stopWind() { try { wind?.stop(); } catch { /* already stopped */ } wind = null; }

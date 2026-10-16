@@ -66,7 +66,7 @@ export function applyEffect(s: GameState, e: Effect, rng: Rng, ev: HistoryEvent)
   }
 }
 
-export function houseName(h: string) { return h === 'hlaalu' ? 'Hlaalu Council Counting-House' : 'East Empire Company strongroom'; }
+export function houseName(h: string) { return h === 'hlaalu' ? 'Hlaalu Council Bank' : 'East Empire Company Bank'; }
 export function clampRep(v: number) { return Math.max(-100, Math.min(100, v)); }
 
 export function applyHistory(s: GameState, rng: Rng): void {

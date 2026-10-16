@@ -384,23 +384,38 @@ armour, scrolls, reputations, Mercy, Lilmoth licence, codex unlocks, achievement
 ---
 
 ## 11. UI / UX & art direction
-- **Look**: obsidian and ember. Charcoal backgrounds, bone and parchment ledger panels, ember-orange
-  accents, ash-grey type. Fonts are Cinzel (display), EB Garamond (body) and IM Fell English (flavour),
-  bundled via `@fontsource` so the game works offline.
+- **Look**: five colour themes, each drawn from a Vvardenfell region (`src/ui/themes.ts`):
+  *Ashlands* (charcoal and ember, the default), *Bitter Coast* (mangrove green and amber), *Azura's Coast*
+  (twilight blue and dawn pink), *Ascadian Isles* (light: cream, paddy green, lake blue) and *West Gash*
+  (light: Balmora sandstone). Themes are CSS variables; the Tailwind colour names (`bone`, `ember`,
+  `ash-400`…) point at them. A unit test (`themes.test.ts`) holds every theme to WCAG contrast: main text
+  ≥ 7:1 (AAA), muted and coloured text ≥ 4.5:1 (AA) on every surface, plus buttons, inputs and map labels.
+- **Fonts**: Classic (Cinzel / EB Garamond / IM Fell English), Book (EB Garamond only), Atkinson
+  Hyperlegible, or the system font, all bundled via `@fontsource` so the game works offline. Non-classic
+  fonts drop the forced capitals.
+- **Wording**: interface labels use plain words a casual Elder Scrolls fan knows (Cash, Debt, Bank,
+  Cargo, Net worth, Shop & Temple, Journal). Lore flavour lives in the codex, rumours, encounters and
+  chronicle cards. Lore-status badges (unverified, disputed, extrapolation, invented) appear only in the
+  Codex.
 - **Atmosphere**: a canvas layer of ash particles whose density follows the calendar, heavier as
   3 Sun's Dawn 4E 5 nears, with an ember glow and red sky afterwards. Vignette and subtle grain.
-  Reduced-motion mode turns it off.
-- **Screens**: Title · New Game (background, name, seed, terms) · Town (Market / Counting-house / Tavern /
-  Outfitter tabs) · Map & Travel · Encounter modal · Chronicle card · Codex · Ledger (log and price
+  It can be switched off in Settings.
+- **Screens**: Title · New Game (character, name, seed, difficulty) · Town (Market / Bank / Tavern /
+  Shop & Temple / Journal tabs) · Map & Travel · Encounter modal · Chronicle card · Codex · Ledger (log and price
   sparklines) · End of Game · Settings · Credits & Sources.
 - **Map**: original, hand-drawn-style SVG of eastern Tamriel (not traced from game maps). It shows nodes,
   route lines styled by mode, and status overlays (ash plume, war banners, closed routes).
 - **Feedback**: coin animation on trades, price flash and trend arrows, shake on losses, rumour toasts,
   keyboard shortcuts. Layout works from 1280×720 down to tablet.
-- **Audio**: procedural Web Audio (coins, wind drone, strider bell, encounter sting) with a mute toggle;
+- **Settings** (⚙ in the top bar and on the title screen; saved per browser in `meta.settings`, old
+  `motion`/`largeText` switches are migrated): sound on/off and volume, theme, font, text size (90–140%,
+  scales the root font size so the whole layout grows), falling ash, animations, reset to defaults.
+- **Transitions**: the Codex and Settings slide and fade in over a blurred scrim while the dashboard eases
+  back slightly; codex entries crossfade. All of it respects the Animations setting.
+- **Audio**: procedural Web Audio (coins, wind drone, strider bell, encounter sting) with mute and volume;
   it starts only after the first interaction.
-- **Accessibility**: status shown by shape and colour, all actions keyboard-reachable, adjustable text
-  size.
+- **Accessibility**: status shown by shape and colour, all actions keyboard-reachable, contrast-tested
+  themes, adjustable text size and font.
 
 ---
 

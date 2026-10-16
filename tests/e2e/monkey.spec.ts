@@ -1,7 +1,7 @@
 // Crash test: hundreds of random clicks across the live UI; any page/console error or blank screen fails.
 import { test, expect } from '@playwright/test';
 
-const SKIP = /Title screen|Export|Import|Save to slot|Credits|New ledger|^Title$|☰/;
+const SKIP = /Title screen|Quit to title|Export|Import|Save to slot|Credits|New game|☰/;
 
 for (const seed of ['MONKEY-A', 'MONKEY-B']) {
   test(`random clicking does not crash (${seed})`, async ({ page }) => {
@@ -11,9 +11,9 @@ for (const seed of ['MONKEY-A', 'MONKEY-B']) {
     page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
     page.on('dialog', d => d.dismiss());
     await page.goto('/');
-    await page.getByRole('button', { name: 'New Ledger' }).click();
-    await page.getByLabel('Seed (same seed, same world)').fill(seed);
-    await page.getByRole('button', { name: 'Sign the note' }).click();
+    await page.getByRole('button', { name: 'New game' }).click();
+    await page.getByLabel('World seed (optional)').fill(seed);
+    await page.getByRole('button', { name: 'Start game' }).click();
     let r = seed.charCodeAt(seed.length - 1);
     const rnd = (n: number) => { r = (r * 1103515245 + 12345) % 2147483648; return r % n; };
     let clicks = 0;
