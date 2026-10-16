@@ -15,6 +15,7 @@ async function clearModals(page: Page) {
 test('new game → trade → travel → codex → save/continue', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /The Scathing Charter/ })).toBeVisible();
+  await expect(page.getByText(/^Version \d+\.\d+\.\d+/)).toBeVisible();
   await page.waitForTimeout(1500);
   await shot(page, '01-title');
   await page.getByRole('button', { name: 'New game' }).click();
