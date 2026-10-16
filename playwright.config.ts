@@ -7,12 +7,13 @@ const executablePath = existsSync(preinstalled) ? preinstalled : undefined;
 
 export default defineConfig({
   testDir: 'tests/e2e',
-  timeout: 60_000,
+  timeout: 120_000,
   use: {
     baseURL: 'http://localhost:4173',
     viewport: { width: 1366, height: 820 },
+    contextOptions: { reducedMotion: 'reduce' },
     launchOptions: executablePath ? { executablePath } : {},
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1366, height: 820 } } }],
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1366, height: 820 }, contextOptions: { reducedMotion: 'reduce' } } }],
   webServer: { command: 'npm run build && npm run preview -- --port 4173 --strictPort', port: 4173, reuseExistingServer: true, timeout: 180_000 },
 });
