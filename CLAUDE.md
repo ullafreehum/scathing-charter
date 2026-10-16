@@ -11,7 +11,7 @@ Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-comme
 | What | Command |
 |---|---|
 | Install | `npm install` |
-| Dev server | `npm run dev` |
+| Dev server | `npm run dev` (`npm start` also opens the browser; players can double-click `PLAY.cmd` / run `./play.sh`) |
 | Type-check + production build (static, offline, relative paths) | `npm run build` → `dist/` |
 | Preview the build | `npm run preview` |
 | Unit tests (engine, data validation) | `npm test` (watch: `npm run test:watch`) |
