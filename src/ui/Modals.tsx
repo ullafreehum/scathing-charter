@@ -25,8 +25,8 @@ const CHOICE: Record<string, { label: string; hint: (g: GameState) => string }> 
 
 function Card({ children, wide = false, parchment = false }: { children: React.ReactNode; wide?: boolean; parchment?: boolean }) {
   return (
-    <motion.div className="fixed inset-0 z-40 bg-black/70 backdrop-blur-[1px] flex items-center justify-center p-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <motion.div role="dialog" aria-modal="true" className={`${parchment ? 'parchment' : 'panel'} ${wide ? 'max-w-3xl' : 'max-w-xl'} w-full p-5 max-h-[90vh] overflow-auto scroll-thin`} initial={{ y: 30, scale: 0.97 }} animate={{ y: 0, scale: 1 }} exit={{ y: 20, opacity: 0 }}>
+    <motion.div className="fixed inset-0 z-40 bg-black/80 backdrop-blur-[2px] flex items-center justify-center p-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
+      <motion.div role="dialog" aria-modal="true" className={`${parchment ? 'parchment' : 'panel-solid'} ${wide ? 'max-w-3xl' : 'max-w-xl'} w-full p-5 max-h-[90vh] overflow-auto scroll-thin`} initial={{ y: 30, scale: 0.97 }} animate={{ y: 0, scale: 1 }} exit={{ y: 20, opacity: 0 }}>
         {children}
       </motion.div>
     </motion.div>

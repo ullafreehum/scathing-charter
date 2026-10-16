@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { C } from '../data';
 import type { CodexEntry } from '../engine';
@@ -17,6 +17,8 @@ export function Codex() {
   const sel = codex ? C.codex[codex] : undefined;
   const [cat, setCat] = useState<CodexEntry['category']>(sel?.category ?? 'place');
   const [q, setQ] = useState('');
+  // Follow the entry that was opened (e.g. clicking a good's name jumps to Goods).
+  useEffect(() => { if (sel) setCat(sel.category); }, [sel]);
   if (codex === undefined) return null;
   const all = Object.values(C.codex);
   // Always-open entries: everything about the calendar, disputes you've heard of, and the "invented" registry.
@@ -25,8 +27,8 @@ export function Codex() {
   const known = list.filter(isOpen);
   const entry = sel && (isOpen(sel) || codex === sel.id) ? sel : undefined;
   return (
-    <motion.div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-2 sm:p-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={closeCodex}>
-      <div role="dialog" aria-label="Codex" className="panel w-full max-w-6xl h-[88vh] grid grid-cols-1 md:grid-cols-[220px_260px_1fr] overflow-hidden" onClick={e => e.stopPropagation()}>
+    <motion.div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.12 }} onClick={closeCodex}>
+      <div role="dialog" aria-label="Codex" className="panel-solid w-full max-w-6xl h-[88vh] grid grid-cols-1 md:grid-cols-[220px_260px_1fr] overflow-hidden" onClick={e => e.stopPropagation()}>
         <nav className="border-r border-ash-700 p-3 overflow-auto scroll-thin">
           <div className="h-display text-ember mb-2">Codex</div>
           <div className="text-xs text-ash-400 mb-2">{all.filter(isOpen).length}/{all.length} entries known</div>

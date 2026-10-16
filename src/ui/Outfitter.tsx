@@ -18,7 +18,7 @@ export function Outfitter({ g }: { g: GameState }) {
             {C.gearList.filter(x => x.kind === kind && x.price > 0).map(x => (
               <div key={x.id} className="flex items-center gap-2 text-sm py-1 border-t border-ash-700/50">
                 <div className="flex-1"><CodexLink id={`gear:${x.id}`} className="text-bone">{x.name}</CodexLink> <Badge canon={x.canon} /><div className="text-xs text-ash-400">{x.text}{x.power ? ` Power ${x.power}.` : ''}{kind === 'scroll' ? ` You carry ${g.player.scrolls[x.id as 'chameleon']}.` : ''}</div></div>
-                <button className="btn" disabled={owned(x.id) || g.player.cash < x.price} onClick={() => act({ t: 'gear', id: x.id })}>{owned(x.id) ? 'Owned' : <Money v={x.price} />}</button>
+                <button className="btn" aria-label={owned(x.id) ? `${x.name}: owned` : `Buy ${x.name} for ${x.price} septims`} disabled={owned(x.id) || g.player.cash < x.price} onClick={() => act({ t: 'gear', id: x.id })}>{owned(x.id) ? 'Owned' : <Money v={x.price} />}</button>
               </div>
             ))}
           </div>
