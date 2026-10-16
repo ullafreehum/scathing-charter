@@ -39,8 +39,8 @@ src/
             themes.ts = the 5 colour themes + fonts as data, applied as CSS variables (contrast-tested
             in themes.test.ts). Tailwind colour names in index.css map onto those variables, so never
             hardcode hex colours in components. Settings.tsx = the in-game settings dialog.
-            hints.ts (next-step strip, travel warnings) and prices.ts (reads the price book) are
-            pure helpers over GameState.
+            hints.ts (next-step strip, travel warnings), prices.ts (reads the price book) and route.ts
+            (route planner) are pure helpers over GameState.
   audio/    Procedural Web Audio (no audio files needed).
 tests/e2e/  Playwright specs; screenshots go to tests/e2e/__screenshots__/.
 docs/       GAME_DESIGN.md, LORE_BIBLE.md, research/ (raw researcher notes).

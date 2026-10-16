@@ -404,7 +404,14 @@ armour, scrolls, reputations, Mercy, Lilmoth licence, codex unlocks, achievement
   Shop & Temple / Journal tabs) · Map & Travel · Encounter modal · Chronicle card · Codex · Ledger (log and price
   sparklines) · End of Game · Settings · Credits & Sources.
 - **Map**: original, hand-drawn-style SVG of eastern Tamriel (not traced from game maps). It shows nodes,
-  route lines styled by mode, and status overlays (ash plume, war banners, closed routes).
+  route lines styled by mode, and status overlays (ash plume, war banners, closed routes). A camera
+  (centre + width in map units, aspect from the box) gives preset views (my routes, Vvardenfell,
+  Morrowind, all), wheel/button zoom and drag-to-pan; dots and labels keep a constant screen size. On the
+  Travel tab the town panel is hidden so the map gets the width. Clicking a town opens a travel card
+  (all modes, outlook, warnings, Go). Unreachable towns get a fastest-route plan (`ui/route.ts`,
+  Dijkstra over `routeOptionsFrom`, fewest days then cheapest fares) that can be kept as a route plan;
+  the hint strip and the destination list then offer the next leg. Toggleable markers: contracts, debt
+  payment, banks, healing, and cargo-sells-higher from the price book. Keys 1–9 pick destinations.
 - **Feedback**: coin animation on trades, price flash and trend arrows, shake on losses, rumour toasts,
   keyboard shortcuts. Layout works from 1280×720 down to tablet.
 - **Settings** (⚙ in the top bar and on the title screen; saved per browser in `meta.settings`, old

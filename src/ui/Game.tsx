@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { nextSteps } from './hints';
+import { nextSteps, type Hint } from './hints';
+import { planRoute } from './route';
 import { AnimatePresence, motion } from 'framer-motion';
 import { C } from '../data';
 import { capacity, cargoWeight, netWorth, depositsTotal, pressure, type GameState } from '../engine';
@@ -55,7 +56,14 @@ function readAbout(): boolean { try { return localStorage.getItem(ABOUT_KEY) !==
 
 function NextSteps({ g }: { g: GameState }) {
   const setTab = useGame(s => s.setTab);
-  const hints = nextSteps(g);
+  const plan = useGame(s => s.plan);
+  const loc = g.player.location;
+  let planHint: Hint | null = null;
+  if (plan && plan !== loc && loc !== 'road' && !g.pending) {
+    const p = planRoute(g, plan);
+    planHint = p ? { text: `Route plan to ${C.locs[plan].name}: next stop ${C.locs[p.path[1]].name} (${p.days * g.timeScale} days in all).`, tab: 'map' } : { warn: true, text: `Your route plan to ${C.locs[plan].name} is blocked right now.`, tab: 'map' };
+  }
+  const hints = [...(planHint ? [planHint] : []), ...nextSteps(g)].slice(0, 2);
   if (!hints.length) return null;
   return (
     <div className="panel px-4 py-2 flex flex-col gap-1 text-sm" aria-label="Next steps">
@@ -114,8 +122,8 @@ export function GameScreen() {
       onKeyDown={e => { if ((e.target as HTMLElement).tagName === 'INPUT') return; const t = TABS.find(x => x.key === e.key); if (t) setTab(t.id); if (e.key === 'c') useGame.getState().openCodex(null); }} tabIndex={-1}>
       <TopBar g={g} />
       {hints && <NextSteps g={g} />}
-      <div className="grid lg:grid-cols-[minmax(300px,380px)_1fr] gap-3 items-start">
-        <LocationPanel g={g} />
+      <div className={`grid gap-3 items-start ${tab === 'map' ? '' : 'lg:grid-cols-[minmax(300px,380px)_1fr]'}`}>
+        {tab !== 'map' && <LocationPanel g={g} />}
         <main className="flex flex-col gap-3 min-w-0">
           <nav className="panel flex flex-wrap px-2" role="tablist">
             {TABS.map(t => <button key={t.id} role="tab" aria-selected={tab === t.id} className="tab" onClick={() => setTab(t.id)} title={`Shortcut: ${t.key}`}>{t.label}</button>)}

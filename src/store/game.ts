@@ -26,8 +26,8 @@ function drainNotices(g: GameState, out: Toast[]): GameState {
 interface Store {
   screen: Screen; game: GameState | null; error: string | null; errorTick: number;
   tab: Tab; codex: string | null | undefined; meta: Meta; settingsOpen: boolean;
-  toasts: Toast[]; tradeQty: TradeQty;
-  dismissToast(id: number): void; setTradeQty(q: TradeQty): void;
+  toasts: Toast[]; tradeQty: TradeQty; plan: string | null;
+  dismissToast(id: number): void; setTradeQty(q: TradeQty): void; setPlan(dest: string | null): void;
   setScreen(s: Screen): void; setTab(t: Tab): void;
   start(cfg: NewGameConfig): void; load(g: GameState): void; continueAuto(): boolean;
   act(a: Action): boolean; saveTo(slot: Slot): void;
@@ -50,11 +50,11 @@ export const useGame = create<Store>()((set, get) => {
   const meta = loadMeta();
   setSound(meta.settings.sound); setVolume(meta.settings.volume);
   return {
-    screen: 'title', game: null, error: null, errorTick: 0, tab: 'market', codex: undefined, meta, settingsOpen: false, toasts: [], tradeQty: 1,
+    screen: 'title', game: null, error: null, errorTick: 0, tab: 'market', codex: undefined, meta, settingsOpen: false, toasts: [], tradeQty: 1, plan: null,
     setScreen: screen => set({ screen }),
     setTab: tab => { sfx.page(); set({ tab }); },
-    start: cfg => { const g = newGame(cfg); saveGame(g); set({ game: g, screen: 'game', tab: 'market', error: null, toasts: [] }); },
-    load: g => { const t: Toast[] = []; g = drainNotices(g, t); saveGame(g); set({ game: g, screen: 'game', tab: 'market', error: null, toasts: t }); },
+    start: cfg => { const g = newGame(cfg); saveGame(g); set({ game: g, screen: 'game', tab: 'market', error: null, toasts: [], plan: null }); },
+    load: g => { const t: Toast[] = []; g = drainNotices(g, t); saveGame(g); set({ game: g, screen: 'game', tab: 'market', error: null, toasts: t, plan: null }); },
     continueAuto: () => { const g = loadGame('auto'); if (!g) return false; get().load(g); return true; },
     act: a => {
       const g = get().game; if (!g) return false;
@@ -69,7 +69,7 @@ export const useGame = create<Store>()((set, get) => {
       // Arriving somewhere new opens the Market: that is nearly always the next step.
       const arrived = n.player.location !== g.player.location && n.player.location !== 'road';
       for (const t of fresh) setTimeout(() => get().dismissToast(t.id), t.text.length > 120 ? 11000 : 7000);
-      set(s => ({ game: n, error: null, tab: arrived ? 'market' : s.tab, toasts: fresh.length ? [...s.toasts, ...fresh].slice(-3) : s.toasts }));
+      set(s => ({ game: n, error: null, tab: arrived ? 'market' : s.tab, plan: s.plan === n.player.location ? null : s.plan, toasts: fresh.length ? [...s.toasts, ...fresh].slice(-3) : s.toasts }));
       return true;
     },
     saveTo: slot => { const g = get().game; if (g) saveGame(g, slot); },
@@ -85,5 +85,6 @@ export const useGame = create<Store>()((set, get) => {
     clearError: () => set({ error: null }),
     dismissToast: id => set(s => ({ toasts: s.toasts.filter(t => t.id !== id) })),
     setTradeQty: q => set({ tradeQty: q }),
+    setPlan: plan => set({ plan }),
   };
 });

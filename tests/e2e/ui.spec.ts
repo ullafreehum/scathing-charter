@@ -129,20 +129,46 @@ test('counting-house: deposit, withdraw with fee, pay the note', async ({ page }
   expect(errors).toEqual([]);
 });
 
-test('travel: map click filters departures; Go moves you and the calendar', async ({ page }) => {
+test('travel: map views, zoom, travel card, planner, keys; Go moves you and the calendar', async ({ page }) => {
   const errors = await start(page);
   await page.getByRole('tab', { name: 'Travel' }).click();
-  await page.getByRole('button', { name: /Ald’ruhn, reachable/ }).click();
-  await expect(page.getByRole('heading', { name: /To Ald’ruhn/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Go' })).toHaveCount(1);
-  await page.getByRole('button', { name: 'Go' }).click();
+  // views and zoom
+  const svg = page.getByRole('img', { name: 'Map of eastern Tamriel' });
+  await page.getByRole('button', { name: 'All Tamriel' }).click();
+  await expect.poll(async () => Number((await svg.getAttribute('viewBox'))!.split(' ')[2])).toBeGreaterThanOrEqual(1000);
+  await page.getByRole('button', { name: 'Vvardenfell', exact: true }).click();
+  await expect.poll(async () => Number((await svg.getAttribute('viewBox'))!.split(' ')[2])).toBeLessThan(400);
+  // a far town: the planner proposes a chain of journeys
+  await page.getByRole('button', { name: 'All Tamriel' }).click();
+  await expect.poll(async () => Number((await svg.getAttribute('viewBox'))!.split(' ')[2])).toBeGreaterThanOrEqual(1000);
+  await page.waitForTimeout(600);
+  await page.getByRole('button', { name: 'Imperial City', exact: true }).click({ force: true });
+  const far = page.getByRole('group', { name: 'Travel to Imperial City' });
+  await expect(far).toContainText('Fastest way');
+  await far.getByRole('button', { name: 'Plan this route' }).click();
+  await expect(page.getByLabel('Next steps')).toContainText('Route plan to Imperial City');
+  await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-map-plan.png' });
+  await far.getByRole('button', { name: 'Close' }).click();
+  // number key 1 opens the nearest destination's card
+  await page.keyboard.press('1');
+  await expect(page.getByRole('group', { name: /^Travel to / })).toBeVisible();
+  await page.keyboard.press('Escape');
+  // click a reachable town, travel from its card
+  await page.getByRole('button', { name: 'My routes' }).click();
+  await page.waitForTimeout(600);
+  await page.getByRole('button', { name: /Ald’ruhn, reachable/ }).click({ force: true });
+  const card = page.getByRole('group', { name: 'Travel to Ald’ruhn' });
+  await expect(card.getByRole('button', { name: 'Go' })).toHaveCount(1);
+  await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-map-card.png' });
+  await card.getByRole('button', { name: 'Go' }).click();
   await clear(page);
   await expect(page.getByRole('heading', { level: 2, name: 'Ald’ruhn' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Market' })).toHaveAttribute('aria-selected', 'true');
   // the price book remembers Balmora: in the Market column and in Travel
   await expect(page.getByText(/Balmora, \d+ days? ago/).first()).toBeVisible();
   await page.getByRole('tab', { name: 'Travel' }).click();
-  await expect(page.getByText(/Prices seen \d+ days? ago/).first()).toBeVisible();
+  await page.getByTitle('Show on the map').filter({ hasText: 'Balmora' }).click();
+  await expect(page.getByRole('group', { name: 'Travel to Balmora' })).toContainText(/Prices seen (today|\d+ days? ago)/);
   await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-travel-outlook.png' });
   await page.getByRole('tab', { name: 'Market' }).click();
   await page.waitForTimeout(400);
