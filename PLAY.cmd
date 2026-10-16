@@ -1,8 +1,8 @@
 @echo off
-title Ashfall Ledger
+title The Scathing Charter
 cd /d "%~dp0"
 echo.
-echo   ASHFALL LEDGER
+echo   THE SCATHING CHARTER
 echo   ==============
 echo.
 where node >nul 2>nul

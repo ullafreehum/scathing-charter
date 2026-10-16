@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Ashfall Ledger launcher for macOS / Linux: installs on first run, then opens the game.
+# The Scathing Charter launcher for macOS / Linux: installs on first run, then opens the game.
 cd "$(dirname "$0")" || exit 1
 if ! command -v node >/dev/null 2>&1; then
   echo "Node.js is not installed. Get the LTS version from https://nodejs.org and run ./play.sh again."

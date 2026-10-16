@@ -51,7 +51,7 @@ export function exportFile(s: GameState) {
   const blob = new Blob([serialize(s)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `ashfall-${s.player.name.replace(/[^\w-]+/g, '_')}-day${s.day}.ashfall.json`;
+  a.download = `scathing-charter-${s.player.name.replace(/[^\w-]+/g, '_')}-day${s.day}.json`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

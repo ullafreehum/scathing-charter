@@ -10,7 +10,7 @@ rmSync(out, { recursive: true, force: true });
 mkdirSync(join(dir, 'launcher'), { recursive: true });
 cpSync('dist', join(dir, 'game'), { recursive: true });
 cpSync('offline/server.mjs', join(dir, 'launcher', 'server.mjs'));
-for (const f of ['Play Ashfall Ledger.cmd', 'Make desktop shortcut.cmd', 'README-OFFLINE.txt']) cpSync(join('offline', f), join(dir, f));
+for (const f of ['Play The Scathing Charter.cmd', 'Make desktop shortcut.cmd', 'README-OFFLINE.txt']) cpSync(join('offline', f), join(dir, f));
 const zip = join(out, 'AshGame-offline.zip');
 if (process.platform === 'win32') execSync(`powershell -NoProfile -Command "Compress-Archive -Path '${dir}' -DestinationPath '${zip}' -Force"`, { stdio: 'inherit' });
 else execSync(`cd ${out} && zip -qr AshGame-offline.zip AshGame`, { stdio: 'inherit' });

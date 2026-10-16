@@ -1,4 +1,7 @@
-# ASHFALL LEDGER — Game Design Document
+# THE SCATHING CHARTER — Game Design Document
+
+> Formerly *Ashfall Ledger*. The name pairs **Scathing Bay**, the boiling crater left where Vivec City
+> stood after the Red Year, with a trader's **charter**.
 
 _Version 1.0 (as built). Unofficial, non-commercial Elder Scrolls fan game.
 Lore and sources: [`LORE_BIBLE.md`](LORE_BIBLE.md) (dispute IDs `D-xx` refer to its §2).

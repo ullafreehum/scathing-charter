@@ -22,7 +22,8 @@ for (const seed of ['MONKEY-A', 'MONKEY-B']) {
       const n = await els.count();
       if (!n) break;
       const el = els.nth(rnd(n));
-      const label = ((await el.textContent().catch(() => '')) ?? '').trim();
+      // the DOM can change between count() and here (e.g. a toast auto-dismisses), so never wait unbounded
+      const label = ((await el.textContent({ timeout: 1000 }).catch(() => '')) ?? '').trim();
       if (SKIP.test(label)) continue;
       await el.click({ force: true, timeout: 1500 }).catch(() => {});
       clicks++;

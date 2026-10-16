@@ -1,18 +1,21 @@
-ASHFALL LEDGER - offline edition
-================================
+THE SCATHING CHARTER - offline edition
+======================================
 
 Where it goes
   Extract the ZIP into C:\Games so that you get C:\Games\AshGame
-  (inside it: "Play Ashfall Ledger.cmd", "game", "launcher", this file).
+  (inside it: "Play The Scathing Charter.cmd", "game", "launcher", this file).
 
 How to play
-  1. Double-click  "Play Ashfall Ledger.cmd".
+  1. Double-click  "Play The Scathing Charter.cmd".
   2. A small black window appears (the game's engine) and Google Chrome opens the game
      in its own window - even though Firefox is your default browser.
   3. Play! When you close the game window, the black window closes by itself.
 
   Optional: double-click "Make desktop shortcut.cmd" once to get an
-  "Ashfall Ledger" icon on your desktop.
+  "The Scathing Charter" icon on your desktop.
+
+  Updating from the old "Ashfall Ledger" version: extract over the old folder and choose
+  "Replace". Your saves are kept. The old "Play Ashfall Ledger.cmd" can be deleted.
 
   No internet is needed. You need Node.js (already installed) and Google Chrome.
 
