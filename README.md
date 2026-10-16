@@ -72,23 +72,24 @@ That's it. 🎉
 
 ### Step 4: Your first five minutes
 
-1. On the title screen, click **New Ledger**.
-2. **Pick a background card.** Each has a perk (✦) and a burden (✧). *Hlaalu Factor's By-Blow* is a
+1. On the title screen, click **New game**.
+2. **Pick a character card.** Each has a perk (+) and a drawback (−). *Hlaalu Factor's By-Blow* is a
    gentle start.
 3. Keep or change your **Name**. The ↻ button suggests one that fits your race's naming customs.
-4. Under **Terms of the note**, choose **Fair Terms** for your first game: a smaller debt and
+4. Under **Difficulty**, choose **Easy (Fair Terms)** for your first game: a smaller debt and
    gentler interest.
-5. Click **Sign the note**. Read the card that appears, then click **Continue**.
+5. Click **Start game**. Read the card that appears, then click **Continue**.
 
 You're now in **Balmora**. The screen has three parts:
-- **Top bar:** the date (with the two moons), your **Purse** (cash), your **Note** (the debt, which grows
-  every day), **Vaults** (bank deposits), **Load** (cargo / capacity), health ♥ and **Worth** (your score).
+- **Top bar:** the date (with the two moons), your **Cash**, your **Debt** (it grows every day),
+  **Bank** (deposits), **Cargo** (weight / capacity), health ♥ and **Net worth** (your score), plus the
+  **Codex** and **⚙ Settings** buttons.
 - **Left panel:** where you are: its story, its laws, and the merchants here. Underlined words open the
   **Codex** (the in-game encyclopaedia).
-- **Tabs:** **Market · Travel · Counting-house · Tavern · Outfitter & Temple · Ledger**.
+- **Tabs:** **Market · Travel · Bank · Tavern · Shop & Temple · Journal**.
 
 A good first loop:
-1. **Tavern → Stand a round.** It's the New Life Festival, so rumours are free tonight. Rumours give price
+1. **Tavern → Buy a round & hear rumours.** It's the New Life Festival, so rumours are free tonight. Rumours give price
    tips and warnings.
 2. **Market.** A green **▼** next to a price means it's cheap here; a red **▲** means it's dear. Buy
    something cheap (type a quantity, then **Buy**, or **Max**).
@@ -96,8 +97,8 @@ A good first loop:
 3. **Travel.** Click a glowing town on the map, or pick from **Departures**, then **Go**. Each trip costs
    days and a fare. On the road you may meet trouble; read the card and choose.
 4. **Market** in the new town: **Sell** what you carried if it's worth more here.
-5. When you have a few hundred spare septims, go back to Balmora's **Counting-house** tab and **Pay** some
-   of the note. The longer you leave it, the more the Camonna Tong's collectors come looking for you.
+5. When you have a few hundred spare septims, go back to Balmora's **Bank** tab and **Pay** some of the
+   debt. The longer you leave it, the more the Camonna Tong's collectors come looking for you.
 
 > 💡 Read the rumours, and keep an eye on the ash falling on screen. History in this game happens on
 > real dates, and it does not care where you keep your money.
@@ -141,7 +142,7 @@ screen, click **Continue** to pick up where you left off.
 | The browser shows *"This site can't be reached"* | The black window must stay open. Start `PLAY.cmd` again and wait for **"Local: http://localhost:5173"**. |
 | A blank or dark page | Press **Ctrl + F5** to reload. If it stays blank, close the black window, delete the `node_modules` folder inside the game folder, and run `PLAY.cmd` again. |
 | My **Continue** button disappeared | Browser data was cleared. Use **Import save file…** with an exported backup. |
-| Text is too small, or the falling ash is distracting | The title screen has **Large text** and **Ash & motion** switches (sound too). |
+| Text is hard to read, too small, or the falling ash is distracting | Open **⚙ Settings** (top bar or title screen): 5 colour themes, 4 fonts, text size up to 140%, ash and animations on/off, sound and volume. |
 
 Still stuck? Copy the last lines of the black window and ask for help. The message usually says exactly
 what's wrong.
@@ -164,22 +165,25 @@ what's wrong.
   - **EEC** goods (ebony, glass, stalhrim) sell openly only to East Empire Company factors.
 - **Travel:** every route costs days, a fare (plus freight for heavy loads) and some danger. If you're
   broke, you can **work your passage** instead: free, but slower.
-- **Counting-house:** money is deposited in a *particular town's branch* and can only be touched there.
-  A *writ of coin* moves it between branches of the same house. Branches can be destroyed by history.
+- **Bank:** money is deposited in a *particular town's branch* and can only be used there. A
+  *transfer* (writ of coin) moves it between branches of the same bank. Branches can be destroyed by history.
 - **Tavern:** rumours (tips, omens, and historians arguing), contracts, hired porters (+12 stone) and
   sellswords, books, and rest.
-- **Outfitter & Temple:** bigger carts and holds, weapons and armour, scrolls (Chameleon, Almsivi and
+- **Shop & Temple:** bigger carts and holds, weapons and armour, scrolls (Chameleon, Almsivi and
   Divine Intervention), and healing.
-- **Score:** your **Worth** = cash + deposits + cargo at fair value − the note. At the end you earn a
+- **Score:** your **Net worth** = cash + deposits + cargo value − debt. At the end you earn a
   title, plus conduct titles and achievements.
 - **Long Chronicle:** finish the Red Year alive and in profit to unlock it. History carries on to the
   coronation of Titus Mede I, a week per day of travel.
 - **Keyboard:**
-  - Tabs: `m` Market, `t` Travel, `b` Counting-house, `v` Tavern, `o` Outfitter & Temple, `l` Ledger.
-  - `c` opens the Codex; `Esc` closes it.
-- **Lore badges:** *Unverified*, *Historians disagree*, *Extrapolation* and *Invented for this game*
-  tell you how sure the lore is. Open the **Codex → Historians disagree** section for the arguments,
-  with sources.
+  - Tabs: `m` Market, `t` Travel, `b` Bank, `v` Tavern, `s` Shop & Temple, `j` Journal.
+  - `c` opens the Codex; `Esc` closes it (and Settings).
+- **Settings (⚙):** five readable colour themes named after Vvardenfell regions (Ashlands, Bitter Coast,
+  Azura's Coast, Ascadian Isles, West Gash), four fonts, text size, falling ash, animations, sound and
+  volume. Saved in your browser.
+- **Lore badges** (in the Codex): *Unverified*, *Historians disagree*, *Extrapolation* and *Invented for
+  this game* tell you how sure the lore is. **Codex → Historians disagree** has the arguments, with
+  sources.
 
 ## 🌐 Sharing the game (itch.io or any website)
 

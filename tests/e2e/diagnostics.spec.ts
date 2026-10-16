@@ -36,7 +36,7 @@ test('the Red Year strikes: chronicle card, disaster, ruined Balmora, wiped vaul
   await expect(page.getByRole('heading', { name: /You were at Balmora/ })).toBeVisible();
   for (let i = 0; i < 8 && await contBtn(page).count(); i++) { await cont(page); await page.waitForTimeout(200); }
   await expect(page.getByLabel('Status: Ruined')).toBeVisible();
-  await page.getByRole('tab', { name: 'Counting-house' }).click();
+  await page.getByRole('tab', { name: 'Bank' }).click();
   await expect(page.locator('li', { hasText: 'Vivec City' }).locator('.line-through')).toBeVisible();
   await page.getByRole('tab', { name: 'Travel' }).click();
   await shot(page, '02-after-eruption-map');
@@ -68,8 +68,8 @@ test('the end screen appears and the Long Chronicle continues', async ({ page })
   await boot(page, s, errors);
   await page.getByRole('tab', { name: 'Tavern' }).click();
   await page.getByRole('button', { name: /^Rest 1 day/ }).click();
-  for (let i = 0; i < 8 && !(await page.getByText('The Red Year is past').count()); i++) { await cont(page).catch(() => {}); await page.waitForTimeout(200); }
-  await expect(page.getByText('The Red Year is past')).toBeVisible();
+  for (let i = 0; i < 8 && !(await page.getByText(/Campaign complete/).count()); i++) { await cont(page).catch(() => {}); await page.waitForTimeout(200); }
+  await expect(page.getByText(/Campaign complete/)).toBeVisible();
   await shot(page, '04-end-screen');
   await page.getByRole('button', { name: /Continue into the Long Chronicle/ }).click();
   await expect(page.getByText('Long Chronicle').first()).toBeVisible();
@@ -97,7 +97,7 @@ test('codex disputes, save export/import, and phone layout', async ({ page, brow
   const path = await dl.path();
   expect(dl.suggestedFilename()).toMatch(/\.ashfall\.json$/);
   // import it back from the title screen
-  await page.getByRole('button', { name: 'Title screen' }).click();
+  await page.getByRole('button', { name: 'Quit to title' }).click();
   await page.locator('input[type=file]').setInputFiles(path!);
   await expect(page.getByRole('heading', { name: 'Balmora' })).toBeVisible();
   // phone width: no horizontal page overflow

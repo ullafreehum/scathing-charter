@@ -68,7 +68,7 @@ export function newGame(cfg: NewGameConfig): GameState {
   applyHistory(s, rng);
   makeOffers(s, rng, s.player.location);
   s.log.push({ day: 0, text: `${shortDate(0)}. New Life Festival in Balmora. You owe Gavas Drelloth ${diff.debt} septims.`, tone: 'neutral' });
-  s.inbox.push({ kind: 'result', title: 'The Note', text: `It is the New Life Festival, 4E 4. Free ale flows in the Council Club, where Gavas Drelloth has your note: ${diff.debt} septims at ${(diff.rate * 100).toFixed(1)}% a day. You have ${diff.cash} septims and a pack guar. The Tong is patient for about two months.` });
+  s.inbox.push({ kind: 'result', title: 'Your debt', text: `It is the New Life Festival, 4E 4, in Balmora. You owe Gavas Drelloth of the Camonna Tong ${diff.debt} septims, at ${(diff.rate * 100).toFixed(1)}% interest a day. You have ${diff.cash} septims and a pack guar. Pay him back at the Bank tab in Balmora. The Tong will wait about two months before sending collectors.` });
   s.rng = rng.state();
   return s;
 }
@@ -126,7 +126,7 @@ export function tickDay(s: GameState, rng: Rng): void {
     const key = branchKey(f.house, f.settleAt); const amt = Math.round(f.amount * f.ratio);
     s.deposits[key] = (s.deposits[key] ?? 0) + amt;
     log(s, `The ${houseName(f.house)} settles your frozen account: ${amt} septims, payable at ${C.locs[f.settleAt].name}.`, 'neutral');
-    s.inbox.push({ kind: 'result', title: 'A settlement', text: `"Ten drakes on the hundred." ${amt} septims are credited at ${C.locs[f.settleAt].name}.` });
+    s.inbox.push({ kind: 'result', title: 'Frozen account settled', text: `The bank pays out part of your frozen money: ${amt} septims, credited at ${C.locs[f.settleAt].name}.` });
   }
   s.frozen = s.frozen.filter(f => f.settleDay > s.day);
   // contracts
@@ -186,8 +186,8 @@ function arrive(s: GameState, rng: Rng, dest: string) {
 
 // ---------------------------------------------------------------- step
 export function step(state: GameState, action: Action): StepResult {
-  if (state.over && action.t !== 'ack' && action.t !== 'chronicle') return { state, error: 'The ledger is closed.' };
-  if (state.pending && action.t !== 'choose' && action.t !== 'ack') return { state, error: 'Deal with the road first.' };
+  if (state.over && action.t !== 'ack' && action.t !== 'chronicle') return { state, error: 'The game is over.' };
+  if (state.pending && action.t !== 'choose' && action.t !== 'ack') return { state, error: 'Deal with what is happening on the road first.' };
   const s = structuredClone(state);
   const rng = new Rng(s.rng);
   const err = apply(s, rng, action);
@@ -262,7 +262,7 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       const amt = Math.min(Math.floor(a.amount), Math.ceil(s.note.balance), s.player.cash);
       if (amt <= 0) return 'Enter an amount.';
       s.player.cash -= amt; s.note.balance -= amt; s.note.lastPaymentDay = s.day;
-      if (s.note.balance < 1) { s.note.balance = 0; s.note.cleared = true; log(s, 'You burn the Tong\'s note in the tavern hearth. You owe no one.', 'good'); s.inbox.push({ kind: 'result', title: 'The note is burned', text: 'Gavas Drelloth counts the coin twice, then tears the note. "Pleasure, outlander." You are free of the Tong.' }); }
+      if (s.note.balance < 1) { s.note.balance = 0; s.note.cleared = true; log(s, 'You paid off the Camonna Tong. You owe no one.', 'good'); s.inbox.push({ kind: 'result', title: 'Debt paid off', text: 'Gavas Drelloth counts the coin twice, then tears up your note. "Pleasure, outlander." You are free of the Tong.' }); }
       return;
     }
     case 'borrow': {
@@ -454,18 +454,18 @@ function rumor(s: GameState, rng: Rng): string | void {
       const truthful = rng.chance(0.75);
       const best = truthful ? markets.reduce((a, b) => ((s.markets[a.id][g.id].drift * s.markets[a.id][g.id].shock * (a.tendencies[g.id] ?? 1)) > (s.markets[b.id][g.id].drift * s.markets[b.id][g.id].shock * (b.tendencies[g.id] ?? 1)) ? a : b)) : rng.pick(markets);
       const text = `They say ${g.name.toLowerCase()} fetches a fine price in ${best.name} these days.`;
-      s.inbox.push({ kind: 'result', title: 'Tavern talk (a tip)', text: `${text} (Tips are right about three times in four.)` });
+      s.inbox.push({ kind: 'result', title: 'Rumour (price tip)', text: `${text} (Tips like this are right about three times in four.)` });
       return;
     }
   }
   const unheard = pool.filter(r => !s.heard.includes(r.id));
   const fresh = unheard.filter(r => r.kind === 'foreshadow');
   const r = (fresh.length && rng.chance(s.player.books.includes('progress-of-truth') ? 0.9 : 0.7) ? rng.pick(fresh) : unheard.length ? rng.pick(unheard) : pool.length ? rng.pick(pool) : undefined);
-  if (!r) { s.inbox.push({ kind: 'result', title: 'Tavern talk', text: 'Nobody has anything new tonight.' }); return; }
+  if (!r) { s.inbox.push({ kind: 'result', title: 'Rumour', text: 'Nobody has anything new tonight.' }); return; }
   if (!s.heard.includes(r.id)) s.heard.push(r.id);
   if (r.dispute) unlock(s, `dispute:${r.dispute}`);
   unlock(s, `rumor:${r.id}`);
-  s.inbox.push({ kind: 'result', title: r.kind === 'dispute' ? 'Tavern talk (an argument)' : r.kind === 'foreshadow' ? 'Tavern talk (an omen)' : 'Tavern talk', text: `${r.voice ? r.voice + ': ' : ''}“${r.text}”` });
+  s.inbox.push({ kind: 'result', title: r.kind === 'dispute' ? 'Rumour (historians disagree)' : r.kind === 'foreshadow' ? 'Rumour (a warning)' : 'Rumour', text: `${r.voice ? r.voice + ': ' : ''}“${r.text}”` });
 }
 
 /** Rebuild a game from its seed, config and action log; must equal the live state. */

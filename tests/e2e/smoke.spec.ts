@@ -17,10 +17,10 @@ test('new game → trade → travel → codex → save/continue', async ({ page 
   await expect(page.getByRole('heading', { name: /ASHFALL/ })).toBeVisible();
   await page.waitForTimeout(1500);
   await shot(page, '01-title');
-  await page.getByRole('button', { name: 'New Ledger' }).click();
-  await page.getByLabel('Seed (same seed, same world)').fill('SMOKE1');
+  await page.getByRole('button', { name: 'New game' }).click();
+  await page.getByLabel('World seed (optional)').fill('SMOKE1');
   await shot(page, '02-new-game');
-  await page.getByRole('button', { name: 'Sign the note' }).click();
+  await page.getByRole('button', { name: 'Start game' }).click();
   await shot(page, '03-first-card');
   await clearModals(page);
   await expect(page.getByRole('heading', { name: 'Balmora' })).toBeVisible();
@@ -37,10 +37,10 @@ test('new game → trade → travel → codex → save/continue', async ({ page 
   await page.waitForTimeout(500);
   await shot(page, '06-after-travel');
   await clearModals(page);
-  await page.getByRole('tab', { name: 'Counting-house' }).click();
+  await page.getByRole('tab', { name: 'Bank' }).click();
   await shot(page, '07-bank');
   await page.getByRole('tab', { name: 'Tavern' }).click();
-  await page.getByRole('button', { name: /Stand a round/ }).click();
+  await page.getByRole('button', { name: /Buy a round/ }).click();
   await page.waitForTimeout(300);
   await shot(page, '08-rumour');
   await clearModals(page);

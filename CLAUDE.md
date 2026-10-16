@@ -36,6 +36,9 @@ src/
             autosaves via save/ adapters. The only bridge between UI and engine.
   save/     localStorage adapter, schema versioning + migrations, file export/import.
   ui/       React components (screens/, panels/, widgets/), Tailwind + Framer Motion.
+            themes.ts = the 5 colour themes + fonts as data, applied as CSS variables (contrast-tested
+            in themes.test.ts). Tailwind colour names in index.css map onto those variables, so never
+            hardcode hex colours in components. Settings.tsx = the in-game settings dialog.
   audio/    Procedural Web Audio (no audio files needed).
 tests/e2e/  Playwright specs; screenshots go to tests/e2e/__screenshots__/.
 docs/       GAME_DESIGN.md, LORE_BIBLE.md, research/ (raw researcher notes).
@@ -66,6 +69,8 @@ docs/       GAME_DESIGN.md, LORE_BIBLE.md, research/ (raw researcher notes).
   Default reading = current UESP.
 - Don't paste full in-game book texts (copyrighted): write summaries + at most a short quote, with a source link.
 - Slavery is historical context only — never a tradeable good.
+- UI wording stays plain (Cash, Debt, Bank, Journal…); lore flavour belongs in codex, rumours, events.
+  Canon-status badges are rendered only in the Codex.
 
 ### Conventions
 - TypeScript `strict`, no `any` in engine/data. Prefer `readonly` data types and string-literal ID unions.

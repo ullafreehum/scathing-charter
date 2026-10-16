@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { useGame } from '../store/game';
 import { ERUPTION_DAY } from '../data/history';
@@ -9,6 +9,8 @@ import { NewGame } from './NewGame';
 import { GameScreen } from './Game';
 import { Overlays } from './Modals';
 import { Codex } from './Codex';
+import { Settings } from './Settings';
+import { applyAppearance, themeById } from './themes';
 import { startWind, stopWind } from '../audio/sfx';
 
 function ashIntensity(day: number, region: string | undefined): number {
@@ -17,31 +19,44 @@ function ashIntensity(day: number, region: string | undefined): number {
   return i;
 }
 
+const EASE = [0.22, 1, 0.36, 1] as const;
+
 export function App() {
-  const { screen, game, error, errorTick, clearError, meta, codex, closeCodex } = useGame();
+  const { screen, game, error, errorTick, clearError, meta, codex, closeCodex, settingsOpen, closeSettings } = useGame();
+  const st = meta.settings;
   const region = game ? C.locs[game.player.location]?.region : undefined;
   const intensity = game ? ashIntensity(game.day, region) : 0.35;
   const ember = !!game?.world.flags.erupted;
-  useEffect(() => { document.body.classList.toggle('large-text', meta.settings.largeText); }, [meta.settings.largeText]);
+  const codexOpen = codex !== undefined;
+  useLayoutEffect(() => { applyAppearance(st.theme, st.font, st.textScale); }, [st.theme, st.font, st.textScale]);
   useEffect(() => {
-    if (screen === 'game' && meta.settings.sound) startWind(intensity); else stopWind();
-  }, [screen, intensity, meta.settings.sound]);
+    if (screen === 'game' && st.sound) startWind(intensity); else stopWind();
+  }, [screen, intensity, st.sound]);
   useEffect(() => { if (!error) return; const t = setTimeout(clearError, 3500); return () => clearTimeout(t); }, [error, errorTick, clearError]);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && codex !== undefined) closeCodex(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (settingsOpen) closeSettings(); else if (codexOpen) closeCodex();
+    };
     window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey);
-  }, [codex, closeCodex]);
+  }, [codexOpen, closeCodex, settingsOpen, closeSettings]);
   return (
-    <MotionConfig reducedMotion={meta.settings.motion ? 'user' : 'always'}>
-    <div className="relative min-h-full" style={{ background: ember ? 'radial-gradient(ellipse at 60% -10%, #3a140a 0%, #0d0a09 60%)' : 'radial-gradient(ellipse at 50% -10%, #241a15 0%, #0d0a09 60%)' }}>
-      <AshLayer intensity={intensity} ember={ember} enabled={meta.settings.motion} />
+    <MotionConfig reducedMotion={st.animations ? 'user' : 'always'}>
+    <div className="relative min-h-full" style={{ background: ember ? 'radial-gradient(ellipse at 60% -10%, color-mix(in oklab, var(--c-bg2) 70%, #b2401a) 0%, var(--c-bg) 60%)' : 'radial-gradient(ellipse at 50% -10%, var(--c-bg2) 0%, var(--c-bg) 60%)' }}>
+      <AshLayer intensity={intensity} ember={ember} enabled={st.ash} color={themeById(st.theme).ash} />
       <div className="vignette" /><div className="grain" />
-      {screen === 'title' && <Title />}
-      {screen === 'new' && <NewGame />}
-      {screen === 'game' && game && <><GameScreen /><Overlays /></>}
-      <Codex />
+      {/* The dashboard eases back while the codex or settings sit on top of it. */}
+      <motion.div className="relative min-h-full" style={{ transformOrigin: '50% 20%' }} initial={false}
+        animate={codexOpen || settingsOpen ? { scale: 0.985 } : { scale: 1 }} transition={{ duration: 0.28, ease: EASE }}>
+        {screen === 'title' && <Title />}
+        {screen === 'new' && <NewGame />}
+        {screen === 'game' && game && <GameScreen />}
+      </motion.div>
+      {screen === 'game' && game && <Overlays />}
+      <AnimatePresence>{codexOpen && <Codex key="codex" />}</AnimatePresence>
+      <AnimatePresence>{settingsOpen && <Settings key="settings" />}</AnimatePresence>
       <AnimatePresence>
-        {error && <motion.div key={errorTick} role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] panel px-4 py-2 text-[#f0a49a] shake" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>{error}</motion.div>}
+        {error && <motion.div key={errorTick} role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] panel px-4 py-2 text-danger shake" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>{error}</motion.div>}
       </AnimatePresence>
     </div>
     </MotionConfig>

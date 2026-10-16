@@ -1,20 +1,20 @@
 // Zustand store: the only bridge between React and the pure engine.
 import { create } from 'zustand';
 import { newGame, step, netWorth, type Action, type GameState, type NewGameConfig } from '../engine';
-import { loadGame, loadMeta, saveGame, saveMeta, type Meta, type Settings, type Slot } from '../save/storage';
-import { sfx, setSound } from '../audio/sfx';
+import { DEFAULT_SETTINGS, loadGame, loadMeta, normalizeSettings, saveGame, saveMeta, type Meta, type Settings, type Slot } from '../save/storage';
+import { sfx, setSound, setVolume } from '../audio/sfx';
 
 export type Screen = 'title' | 'new' | 'game';
 export type Tab = 'market' | 'map' | 'bank' | 'tavern' | 'outfitter' | 'ledger';
 
 interface Store {
   screen: Screen; game: GameState | null; error: string | null; errorTick: number;
-  tab: Tab; codex: string | null | undefined; meta: Meta;
+  tab: Tab; codex: string | null | undefined; meta: Meta; settingsOpen: boolean;
   setScreen(s: Screen): void; setTab(t: Tab): void;
   start(cfg: NewGameConfig): void; load(g: GameState): void; continueAuto(): boolean;
   act(a: Action): boolean; saveTo(slot: Slot): void;
   openCodex(id?: string | null): void; closeCodex(): void;
-  setSettings(p: Partial<Settings>): void; clearError(): void;
+  setSettings(p: Partial<Settings>): void; resetSettings(): void; openSettings(): void; closeSettings(): void; clearError(): void;
 }
 
 function recordMeta(get: () => Store, set: (p: Partial<Store>) => void, g: GameState) {
@@ -30,9 +30,9 @@ function recordMeta(get: () => Store, set: (p: Partial<Store>) => void, g: GameS
 
 export const useGame = create<Store>()((set, get) => {
   const meta = loadMeta();
-  setSound(meta.settings.sound);
+  setSound(meta.settings.sound); setVolume(meta.settings.volume);
   return {
-    screen: 'title', game: null, error: null, errorTick: 0, tab: 'market', codex: undefined, meta,
+    screen: 'title', game: null, error: null, errorTick: 0, tab: 'market', codex: undefined, meta, settingsOpen: false,
     setScreen: screen => set({ screen }),
     setTab: tab => { sfx.page(); set({ tab }); },
     start: cfg => { const g = newGame(cfg); saveGame(g); set({ game: g, screen: 'game', tab: 'market', error: null }); },
@@ -54,9 +54,12 @@ export const useGame = create<Store>()((set, get) => {
     openCodex: id => { sfx.page(); set({ codex: id ?? null }); },
     closeCodex: () => set({ codex: undefined }),
     setSettings: p => {
-      const meta = { ...get().meta, settings: { ...get().meta.settings, ...p } };
-      setSound(meta.settings.sound); saveMeta(meta); set({ meta });
+      const meta = { ...get().meta, settings: normalizeSettings({ ...get().meta.settings, ...p }) };
+      setSound(meta.settings.sound); setVolume(meta.settings.volume); saveMeta(meta); set({ meta });
     },
+    resetSettings: () => get().setSettings(DEFAULT_SETTINGS),
+    openSettings: () => { sfx.page(); set({ settingsOpen: true }); },
+    closeSettings: () => set({ settingsOpen: false }),
     clearError: () => set({ error: null }),
   };
 });

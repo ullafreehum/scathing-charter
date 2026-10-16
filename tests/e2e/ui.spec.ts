@@ -4,7 +4,7 @@ import { test, expect, type Page } from '@playwright/test';
 const num = (s: string) => Number((s.match(/-?[\d,]+/)?.[0] ?? 'NaN').replace(/,/g, ''));
 const purse = async (p: Page) => num(await p.getByTitle('Cash on hand').innerText());
 const vaults = async (p: Page) => num(await p.getByTitle(/All deposits/).innerText());
-const note = async (p: Page) => num(await p.getByTitle('Your Camonna Tong note').innerText());
+const note = async (p: Page) => num(await p.getByTitle('Your debt to the Camonna Tong').innerText());
 const load = async (p: Page) => (await p.getByTitle(/Cargo weight/).innerText()).match(/(\d+)\/(\d+)/)!.slice(1).map(Number);
 const dateText = (p: Page) => p.locator('header .h-display').nth(1).innerText();
 async function clear(p: Page) {
@@ -20,23 +20,23 @@ async function start(p: Page, opts: { difficulty?: RegExp } = {}) {
   const errors: string[] = [];
   p.on('pageerror', e => errors.push(e.message));
   await p.goto('/');
-  await p.getByRole('button', { name: 'New Ledger' }).click();
-  await p.getByLabel('Seed (same seed, same world)').fill('UI-TEST');
+  await p.getByRole('button', { name: 'New game' }).click();
+  await p.getByLabel('World seed (optional)').fill('UI-TEST');
   if (opts.difficulty) await p.getByRole('radio', { name: opts.difficulty }).check();
-  await p.getByRole('button', { name: 'Sign the note' }).click();
+  await p.getByRole('button', { name: 'Start game' }).click();
   await clear(p);
   return errors;
 }
 
 test('new game: terms set the purse and note; New Life banner; Long Chronicle locked', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'New Ledger' }).click();
+  await page.getByRole('button', { name: 'New game' }).click();
   await expect(page.getByRole('radio', { name: /Long Chronicle/ })).toBeDisabled();
   const before = await page.getByLabel('Name').inputValue();
   await page.getByRole('button', { name: /Senchal Caravaner/ }).click();
   await expect(page.getByLabel('Name')).not.toHaveValue(before);
   await page.getByRole('radio', { name: /Fair Terms/ }).check();
-  await page.getByRole('button', { name: 'Sign the note' }).click();
+  await page.getByRole('button', { name: 'Start game' }).click();
   await clear(page);
   expect(await purse(page)).toBe(700);
   expect(await note(page)).toBe(2000);
@@ -76,8 +76,8 @@ test('tavern: free rumour on New Life, rest advances one day for 3 dr, porter ad
   const errors = await start(page);
   await page.getByRole('tab', { name: 'Tavern' }).click();
   const p0 = await purse(page);
-  await page.getByRole('button', { name: /Stand a round/ }).click();
-  await expect(page.locator('[role=dialog]')).toContainText(/Tavern talk/);
+  await page.getByRole('button', { name: /Buy a round/ }).click();
+  await expect(page.locator('[role=dialog]')).toContainText(/Rumour/);
   await page.waitForTimeout(400);
   await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-rumour.png' });
   await clear(page);
@@ -94,7 +94,7 @@ test('tavern: free rumour on New Life, rest advances one day for 3 dr, porter ad
   expect((await load(page))[1]).toBe(cap0);
   // second rumour costs 5 (no longer New Life)
   const p1 = await purse(page);
-  await page.getByRole('button', { name: /Stand a round/ }).click();
+  await page.getByRole('button', { name: /Buy a round/ }).click();
   await clear(page);
   expect(await purse(page)).toBe(p1 - 5);
   expect(errors).toEqual([]);
@@ -105,7 +105,7 @@ test('counting-house: deposit, withdraw with fee, pay the note', async ({ page }
   await page.keyboard.press('Tab');
   await page.getByRole('tab', { name: 'Market' }).click();
   await page.keyboard.press('b');
-  await expect(page.getByRole('tab', { name: 'Counting-house' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: 'Bank' })).toHaveAttribute('aria-selected', 'true');
   const p0 = await purse(page);
   await page.getByLabel('Amount').fill('200');
   await page.getByRole('button', { name: 'Deposit 200' }).first().click();
@@ -119,7 +119,7 @@ test('counting-house: deposit, withdraw with fee, pay the note', async ({ page }
   await page.getByRole('button', { name: 'Pay', exact: true }).click();
   expect(await note(page)).toBe(n0 - 100);
   // EEC has no branch in Balmora
-  await expect(page.getByText('No branch of this house here.').first()).toBeVisible();
+  await expect(page.getByText('No branch of this bank here.').first()).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -138,7 +138,7 @@ test('travel: map click filters departures; Go moves you and the calendar', asyn
 
 test('outfitter, codex links, ledger, keyboard, save slot, settings', async ({ page }) => {
   const errors = await start(page);
-  await page.getByRole('tab', { name: 'Outfitter & Temple' }).click();
+  await page.getByRole('tab', { name: 'Shop & Temple' }).click();
   const p0 = await purse(page);
   await page.getByRole('button', { name: /^Buy Scroll of Chameleon/ }).click();
   expect(await purse(page)).toBe(p0 - 150);
@@ -156,11 +156,11 @@ test('outfitter, codex links, ledger, keyboard, save slot, settings', async ({ p
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: 'Codex' })).toHaveCount(0);
   // ledger
-  await page.getByRole('tab', { name: 'Ledger' }).click();
+  await page.getByRole('tab', { name: 'Journal' }).click();
   await expect(page.getByText(/You owe Gavas Drelloth/)).toBeVisible();
   await expect(page.getByText(/Achievements \d+\/21/)).toBeVisible();
   // keyboard: c opens codex
-  await page.getByRole('tab', { name: 'Ledger' }).focus();
+  await page.getByRole('tab', { name: 'Journal' }).focus();
   await page.keyboard.press('c');
   await expect(page.getByRole('dialog', { name: 'Codex' })).toBeVisible();
   await page.keyboard.press('Escape');
@@ -168,15 +168,51 @@ test('outfitter, codex links, ledger, keyboard, save slot, settings', async ({ p
   await page.getByRole('button', { name: '☰' }).click();
   await page.getByRole('button', { name: 'Save to slot 2' }).click();
   await page.getByRole('button', { name: '☰' }).click();
-  await page.getByRole('button', { name: 'Title screen' }).click();
+  await page.getByRole('button', { name: 'Quit to title' }).click();
   await expect(page.getByRole('button', { name: /Slot 2:/ })).toBeVisible();
-  await page.getByRole('checkbox', { name: 'Large text' }).check();
-  await expect(page.locator('body')).toHaveClass(/large-text/);
-  await page.getByRole('checkbox', { name: 'Ash & motion' }).uncheck();
-  await expect(page.locator('canvas')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Settings' })).toHaveCount(0);
   await page.reload();
-  await expect(page.getByRole('checkbox', { name: 'Large text' })).toBeChecked();
   await page.getByRole('button', { name: /Slot 2:/ }).click();
   await expect(page.getByRole('heading', { level: 2, name: 'Balmora' })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('settings: themes, fonts, text size, motion and sound persist', async ({ page }) => {
+  const errors = await start(page);
+  const html = page.locator('html');
+  // lore badges are codex-only
+  await page.getByRole('tab', { name: 'Bank' }).click();
+  await expect(page.getByText('Invented for this game')).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Market' }).click();
+  for (const [name, id] of [['Ashlands', 'ashlands'], ['Bitter Coast', 'bitter-coast'], ['Azura’s Coast', 'azuras-coast'], ['Ascadian Isles', 'ascadian-isles'], ['West Gash', 'west-gash']]) {
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await page.getByRole('radio', { name: new RegExp(`^${name}`) }).click();
+    await expect(html).toHaveAttribute('data-theme', id);
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: 'Settings' })).toHaveCount(0);
+    await page.screenshot({ path: `tests/e2e/__screenshots__/theme-${id}.png` });
+  }
+  await page.getByRole('button', { name: 'Settings' }).click();
+  const dlg = page.getByRole('dialog', { name: 'Settings' });
+  await dlg.getByRole('radio', { name: /^Atkinson Hyperlegible/ }).click();
+  await expect(html).toHaveAttribute('data-caps', 'off');
+  await dlg.getByRole('radio', { name: 'Text size 125%' }).click();
+  expect(await html.evaluate(e => e.style.fontSize)).toBe('125%');
+  await dlg.getByRole('checkbox', { name: 'Falling ash' }).uncheck();
+  await expect(page.locator('canvas')).toHaveCount(0);
+  await dlg.getByRole('checkbox', { name: 'Sound on' }).uncheck();
+  await expect(dlg.getByLabel('Volume')).toBeDisabled();
+  await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-settings.png' });
+  await page.reload();
+  await expect(html).toHaveAttribute('data-theme', 'west-gash');
+  expect(await html.evaluate(e => e.style.fontSize)).toBe('125%');
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await expect(page.getByRole('checkbox', { name: 'Sound on' })).not.toBeChecked();
+  await page.getByRole('button', { name: 'Reset to defaults' }).click();
+  await expect(html).toHaveAttribute('data-theme', 'ashlands');
+  await expect(page.getByRole('checkbox', { name: 'Falling ash' })).toBeChecked();
   expect(errors).toEqual([]);
 });
