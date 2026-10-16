@@ -119,6 +119,8 @@ export function quotes(s: GameState, loc: string): Quote[] {
         }
       }
     }
+    // Invariant: no same-town arbitrage, whatever discounts or reputation apply.
+    if (buy !== null && sell !== null && sell >= buy * 0.97) sell = Math.max(1, Math.floor(buy * 0.97));
     out.push({ good, legality, stock: cell.stock, buy, buyFrom, sell, sellTo, sellNote, mid });
   }
   return out;
