@@ -94,7 +94,9 @@ export function GameScreen() {
           <nav className="panel flex flex-wrap px-2" role="tablist">
             {TABS.map(t => <button key={t.id} role="tab" aria-selected={tab === t.id} className="tab" onClick={() => setTab(t.id)} title={`Shortcut: ${t.key}`}>{t.label}</button>)}
           </nav>
-          <AnimatePresence mode="wait">
+          {g.player.location === 'road' ? (
+            <div className="panel p-6 fell text-lg text-parchment">On the road{g.pending ? ` to ${C.locs[g.pending.dest]?.name ?? '…'}` : ''}. Something blocks the way.</div>
+          ) : <AnimatePresence mode="wait">
             <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15 }}>
               {tab === 'market' && <Market g={g} />}
               {tab === 'map' && <MapView g={g} />}
@@ -103,7 +105,7 @@ export function GameScreen() {
               {tab === 'outfitter' && <Outfitter g={g} />}
               {tab === 'ledger' && <Ledger g={g} />}
             </motion.div>
-          </AnimatePresence>
+          </AnimatePresence>}
         </main>
       </div>
     </div>

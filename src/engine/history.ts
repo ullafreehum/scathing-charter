@@ -75,6 +75,7 @@ export function applyHistory(s: GameState, rng: Rng): void {
     if (ev.mode !== 'both' && ev.mode !== s.mode && !(ev.mode === 'red-year' && s.mode === 'long-chronicle')) continue;
     s.world.fired.push(ev.id);
     const lostBefore = s.world.flags.lostDeposits ?? 0;
+    const inboxAt = s.inbox.length;
     for (const e of ev.effects) applyEffect(s, e, rng, ev);
     if (ev.id === 'red-year-eruption') {
       const total = Object.values(s.deposits).reduce((a, b) => a + b, 0);
@@ -85,7 +86,8 @@ export function applyHistory(s: GameState, rng: Rng): void {
     if (!s.codex.includes(`event:${ev.id}`)) s.codex.push(`event:${ev.id}`);
     for (const d of ev.disputes ?? []) if (!s.codex.includes(`dispute:${d}`)) s.codex.push(`dispute:${d}`);
     s.log.push({ day: s.day, text: `${shortDate(s.day)} — ${ev.title}`, tone: 'history' });
-    if (ev.major) s.inbox.push({ kind: 'chronicle', eventId: ev.id });
+    // The history card comes before any personal consequences it caused.
+    if (ev.major) s.inbox.splice(inboxAt, 0, { kind: 'chronicle', eventId: ev.id });
   }
 }
 

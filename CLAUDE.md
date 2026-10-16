@@ -18,6 +18,7 @@ Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-comme
 | UI smoke tests + screenshots | `npm run test:e2e` (uses Playwright's Chromium; in the cloud container launch with `executablePath: '/opt/pw-browsers/chromium'` if versions differ — never `playwright install` there) |
 | Lint | `npm run lint` |
 | Balance simulation | `npm run sim` (headless bot runs over many seeds) |
+| Engine diagnostics | `npm run diagnose -- 4` (random-play fuzzing, invariants, replay checks; exits 1 on violations) |
 
 All npm scripts must work unchanged in **Windows PowerShell**: no `rm -rf`, no `VAR=x cmd`, no bash-only
 syntax. Use Node scripts (`scripts/*.mjs`) for anything beyond a single tool call.
