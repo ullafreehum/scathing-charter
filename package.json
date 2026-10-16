@@ -16,7 +16,8 @@
     "test:e2e": "playwright test",
     "sim": "tsx scripts/sim.ts",
     "diagnose": "tsx scripts/diagnose.ts",
-    "balance": "tsx scripts/balance.ts"
+    "balance": "tsx scripts/balance.ts",
+    "package:offline": "npm run build && node scripts/package-offline.mjs"
   },
   "license": "GPL-3.0-only",
   "dependencies": {
