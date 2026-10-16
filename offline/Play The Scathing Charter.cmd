@@ -1,5 +1,5 @@
 @echo off
-title Ashfall Ledger
+title The Scathing Charter
 cd /d "%~dp0"
 where node >nul 2>nul
 if errorlevel 1 (

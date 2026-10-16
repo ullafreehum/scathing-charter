@@ -4,6 +4,7 @@ import { useGame } from '../store/game';
 import { importFile, slotInfo, loadGame, type Slot } from '../save/storage';
 import { formatDate } from '../engine';
 import { C } from '../data';
+import logo from '../assets/scathing-charter-logo.jpg';
 
 export function Title() {
   const { setScreen, continueAuto, load, meta, openSettings } = useGame();
@@ -15,7 +16,7 @@ export function Title() {
     <div className="relative z-10 min-h-full flex flex-col items-center justify-center p-6 text-center">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2 }}>
         <div className="fell italic text-ash-400 mb-2">Morrowind · 4E 4 · an Elder Scrolls trading game</div>
-        <h1 className="h-display text-5xl sm:text-7xl text-bone drop-shadow-[0_0_25px_rgba(236,122,50,.35)]">ASHFALL<br /><span className="text-ember">LEDGER</span></h1>
+        <h1 className="m-0"><img src={logo} alt="The Scathing Charter" width={1400} height={781} className="logo-art mx-auto w-[min(92vw,760px)] h-auto" /></h1>
         <p className="fell text-lg text-parchment mt-4 max-w-xl mx-auto">Buy low, sell high, and pay off your debt to the Camonna Tong, through the last calm year, the Red Year, and the Argonian invasion.</p>
       </motion.div>
       <motion.div className="flex flex-col gap-2 mt-8 w-72" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>

@@ -34,7 +34,8 @@ test('the Red Year strikes: chronicle card, disaster, ruined Balmora, wiped vaul
   await shot(page, '01-red-year-card');
   await cont(page);
   await expect(page.getByRole('heading', { name: /You were at Balmora/ })).toBeVisible();
-  for (let i = 0; i < 8 && await contBtn(page).count(); i++) { await cont(page); await page.waitForTimeout(200); }
+  // a card may be mid-exit when counted; a missed click here is harmless, the loop re-checks
+  for (let i = 0; i < 8 && await contBtn(page).count(); i++) { await cont(page).catch(() => {}); await page.waitForTimeout(200); }
   await expect(page.getByLabel('Status: Ruined')).toBeVisible();
   await page.getByRole('tab', { name: 'Bank' }).click();
   await expect(page.locator('li', { hasText: 'Vivec City' }).locator('.line-through')).toBeVisible();
@@ -95,7 +96,7 @@ test('codex disputes, save export/import, and phone layout', async ({ page, brow
   await page.getByRole('button', { name: '☰' }).click();
   const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export save file' }).click()]);
   const path = await dl.path();
-  expect(dl.suggestedFilename()).toMatch(/\.ashfall\.json$/);
+  expect(dl.suggestedFilename()).toMatch(/^scathing-charter-.*\.json$/);
   // import it back from the title screen
   await page.getByRole('button', { name: 'Quit to title' }).click();
   await page.locator('input[type=file]').setInputFiles(path!);

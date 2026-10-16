@@ -1,4 +1,4 @@
-# ASHFALL LEDGER — Lore Bible
+# THE SCATHING CHARTER — Lore Bible
 
 _The researched lore behind the game, organised by topic. Every fact carries a source link.
 Raw researcher notes, with far more detail, live in [`research/`](research/) (01 Morrowind ·

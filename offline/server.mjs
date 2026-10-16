@@ -1,4 +1,4 @@
-// Ashfall Ledger offline launcher: serves the built game from ./game on 127.0.0.1 and opens it in
+// The Scathing Charter offline launcher: serves the built game from ./game on 127.0.0.1 and opens it in
 // Google Chrome (its own app window and profile, so saves live next to the game). Zero dependencies.
 // Usage: node launcher/server.mjs [--no-browser] [--port 51735]
 import http from 'node:http';
@@ -18,7 +18,7 @@ const URL = `http://127.0.0.1:${PORT}/`;
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.woff': 'font/woff', '.txt': 'text/plain; charset=utf-8' };
 
 const say = (m) => console.log(`  ${m}`);
-console.log('\n  ASHFALL LEDGER (offline)\n  ========================\n');
+console.log('\n  THE SCATHING CHARTER (offline)\n  ==============================\n');
 if (!existsSync(join(GAME, 'index.html'))) { say(`Game files not found in ${GAME}. Re-extract the ZIP so the "game" folder sits next to this launcher.`); process.exit(1); }
 
 function findChrome() {

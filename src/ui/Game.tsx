@@ -25,7 +25,7 @@ function TopBar({ g }: { g: GameState }) {
   const pr = pressure(g);
   return (
     <header className="panel relative z-20 flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2">
-      <div className="h-display text-ember text-lg mr-2 hidden md:block">ASHFALL LEDGER</div>
+      <div className="h-display text-ember text-lg mr-2 hidden md:block">THE SCATHING CHARTER</div>
       <DateWidget g={g} />
       <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm ml-auto items-center">
         <span title="Cash on hand">Cash <Money v={g.player.cash} className="text-bone" /></span>

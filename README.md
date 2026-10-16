@@ -1,4 +1,6 @@
-# Ashfall Ledger
+# The Scathing Charter
+
+<p align="center"><img src="src/assets/scathing-charter-logo.jpg" alt="The Scathing Charter" width="640"></p>
 
 *A trading game set in the world of The Elder Scrolls, at the dawn of the Fourth Era.*
 
@@ -38,7 +40,7 @@ You only do Steps 1–2 once. Allow about 10 minutes, mostly waiting for downloa
 4. Find the ZIP in your **Downloads** folder. Right-click it, choose **Extract All…**, then
    **Extract**.
 5. Optional but tidy: move the extracted folder (`bandcamp-main`) somewhere easy, such as
-   `Documents\Ashfall Ledger`.
+   `Documents\The Scathing Charter`.
 
 > Prefer Git? `git clone https://github.com/ullafreehum/bandcamp.git` works too.
 
@@ -118,7 +120,7 @@ its own Chrome window even when another browser is your default.
 
 To make it yourself: run `npm run package:offline`. It creates `release/AshGame-offline.zip`.
 1. Extract the ZIP into `C:\Games`; you get `C:\Games\AshGame`.
-2. Double-click **`Play Ashfall Ledger.cmd`**.
+2. Double-click **`Play The Scathing Charter.cmd`**.
 
 Saves are kept in `AshGame\chrome-profile`. More details are in `README-OFFLINE.txt` inside the ZIP.
 
@@ -131,7 +133,7 @@ screen, click **Continue** to pick up where you left off.
 
 - The game **saves automatically** after every action, inside your web browser.
 - **☰ menu → Save to slot 1/2/3** keeps extra copies; they appear on the title screen.
-- **☰ menu → Export save file** downloads a `.ashfall.json` file. Keep it as a backup, or move your game to
+- **☰ menu → Export save file** downloads a `scathing-charter-….json` file (older `.ashfall.json` backups still import). Keep it as a backup, or move your game to
   another computer with **Import save file…** on the title screen.
 - ⚠️ Saves live in *this browser* on *this computer*. Clearing your browser's history or site data, or
   using a private window, removes them, so export a backup now and then.
