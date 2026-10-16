@@ -118,7 +118,7 @@ A good first loop:
 A ready-to-run copy needs only Node.js and Google Chrome, not `npm install` or the internet. It opens in
 its own Chrome window even when another browser is your default.
 
-To make it yourself: run `npm run package:offline`. It creates `release/AshGame-offline.zip`.
+To make it yourself: run `npm run package:offline`. It creates `release/AshGame-offline-v<version>.zip`.
 1. Extract the ZIP into `C:\Games`; you get `C:\Games\AshGame`.
 2. Double-click **`Play The Scathing Charter.cmd`**.
 

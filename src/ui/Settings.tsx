@@ -85,7 +85,7 @@ export function Settings() {
         </Group>
 
         <div className="flex items-center justify-between mt-5 pt-3 border-t border-ash-600">
-          <span className="text-xs text-ash-400">Settings are saved in this browser and apply to every game.</span>
+          <span className="text-xs text-ash-400">Settings are saved in this browser and apply to every game. · The Scathing Charter v{__APP_VERSION__}</span>
           <button className="btn btn-ghost" onClick={resetSettings}>Reset to defaults</button>
         </div>
       </motion.div>

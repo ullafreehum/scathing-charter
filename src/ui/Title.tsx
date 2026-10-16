@@ -33,11 +33,13 @@ export function Title() {
         {msg && <div className="text-danger text-sm">{msg}</div>}
         {meta.achievements.length > 0 && <div className="text-xs text-ash-400 mt-1">Achievements earned in all games: {meta.achievements.length}/{C.achievements.length}{meta.chronicleUnlocked && ' · Long Chronicle unlocked'}</div>}
       </motion.div>
-      <p className="text-[.7rem] text-ash-400 mt-10 max-w-lg">An unofficial, non-commercial fan game. The Elder Scrolls and all related names are trademarks of ZeniMax Media / Bethesda Softworks; this project is not affiliated with or endorsed by them.</p>
+      <p className="text-xs text-ash-400 mt-8 num">Version {__APP_VERSION__} (beta)</p>
+      <p className="text-[.7rem] text-ash-400 mt-2 max-w-lg">An unofficial, non-commercial fan game. The Elder Scrolls and all related names are trademarks of ZeniMax Media / Bethesda Softworks; this project is not affiliated with or endorsed by them.</p>
       {credits && (
         <div className="fixed inset-0 z-50 scrim flex items-center justify-center p-4" onClick={() => setCredits(false)}>
           <div className="parchment max-w-2xl p-6 text-left max-h-[85vh] overflow-auto" onClick={e => e.stopPropagation()}>
             <h2 className="h-display text-2xl mb-2">Credits &amp; Sources</h2>
+            <p className="mb-2 text-sm">The Scathing Charter, version {__APP_VERSION__} (beta).</p>
             <p className="mb-2">Design, code and writing for this fan game. Lore was researched from <a className="underline" href="https://en.uesp.net/wiki/Lore:Main_Page" target="_blank" rel="noreferrer">UESP’s Lore namespace</a> and <a className="underline" href="https://www.imperial-library.info/" target="_blank" rel="noreferrer">The Imperial Library</a>. Every codex entry links its sources and, in the codex, marks what is <b>unverified</b>, <b>disputed</b>, <b>extrapolated</b> or <b>invented</b>.</p>
             <p className="mb-2">Fan projects (Tamriel Rebuilt, Beyond Skyrim, Project Tamriel) are not canon and are not used. In-game books appear only as summaries with short quotes.</p>
             <p className="mb-2">Invented for play: the lender Gavas Drelloth, both counting-houses, every merchant, all prices, tariffs and route times, the day-of-month of year-only events, and Almsivi Intervention’s failing reliability.</p>
