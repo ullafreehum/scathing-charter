@@ -1,0 +1,43 @@
+import type { ContractTemplate } from '../engine/types';
+import { D } from '../engine/calendar';
+import { U, IL } from './src';
+
+const ERUPT = D(5, 2, 3);
+export const CONTRACTS: ContractTemplate[] = [
+  { id: 'tong-cogs', faction: 'tong', issuer: 'a Tong broker', title: 'Cogs for the collectors', canon: 'invented', sources: [U('Camonna_Tong'), U('Vvardenfell')],
+    text: 'Carry Dwemer goods out of Morrowind to a collector who asks no questions. The Tong takes its cut; you take the risk.',
+    goods: ['dwemer-artifacts'], origins: ['balmora', 'vivec', 'narsis'], destinations: ['imperial-city', 'solitude', 'senchal'], qty: [3, 6], deadline: 40, payMult: 1.55, mercy: 0, rep: 6, to: ERUPT },
+  { id: 'eec-ore', faction: 'eec', issuer: 'the East Empire Company', title: 'Company ore run', canon: 'invented', sources: [U('East_Empire_Company')],
+    text: 'Licensed carriage of Company ebony and glass to an Imperial buyer. Honest, slow and well paid.',
+    goods: ['raw-ebony', 'raw-glass'], origins: ['raven-rock', 'ebonheart', 'solitude'], destinations: ['imperial-city', 'solitude', 'windhelm'], qty: [3, 8], deadline: 45, payMult: 1.3, mercy: 0, rep: 6 },
+  { id: 'temple-pilgrims', faction: 'temple', issuer: 'a Temple almoner', title: 'Pilgrim provisions', canon: 'invented', sources: [U('Necrom'), U('Holidays')],
+    text: 'Bring food and draughts to the pilgrims’ hostels. The Temple pays a little over cost and prays for you.',
+    goods: ['healing-draughts', 'saltrice'], origins: ['vivec', 'necrom', 'mournhold'], destinations: ['vivec', 'necrom', 'mournhold'], qty: [8, 20], deadline: 30, payMult: 1.2, mercy: 2, rep: 5, to: ERUPT },
+  { id: 'redoran-relief', faction: 'redoran', issuer: 'the Redoran relief council', title: 'Relief for the ash towns', canon: 'extrapolation', sources: [U('Red_Year'), U('The_Red_Year,_Vol._I')], flag: 'relief',
+    text: 'House Redoran directs supplies to the worst-hit settlements. The House pays below market; the survivors pay in other coin.',
+    goods: ['saltrice', 'healing-draughts', 'timber', 'kwama-eggs'], origins: ['mournhold', 'narsis', 'blacklight', 'necrom'], destinations: ['balmora', 'aldruhn', 'sadrith-mora'], qty: [10, 25], deadline: 30, payMult: 0.85, mercy: 8, rep: 10 },
+  { id: 'bulwark-timber', faction: 'eec', issuer: 'Factor Brara Morvayn', title: 'Timber for the Bulwark', canon: 'extrapolation', sources: [IL('history-raven-rock-vol-ii')], from: ERUPT, to: D(6, 3, 1),
+    text: 'Ash storms bury Raven Rock’s east end. The Factor has designed a great wall, and the Company pays for timber to raise it.',
+    goods: ['timber'], origins: ['windhelm', 'solitude', 'cheydinhal'], destinations: ['raven-rock'], qty: [8, 18], deadline: 45, payMult: 1.4, mercy: 2, rep: 8 },
+  { id: 'blacklight-war', faction: 'redoran', issuer: 'the Redoran war council', title: 'Supplies for the front', canon: 'extrapolation', sources: [U('Accession_War'), U('Blacklight')], flag: 'war',
+    text: 'The re-raised army of House Redoran needs ebony, draughts and grain to hold the Argonians.',
+    goods: ['raw-ebony', 'healing-draughts', 'saltrice'], origins: ['blacklight', 'narsis', 'windhelm', 'cheydinhal'], destinations: ['blacklight', 'necrom', 'narsis'], qty: [5, 20], deadline: 35, payMult: 1.45, mercy: 1, rep: 8 },
+  { id: 'indarys-bread', faction: 'legion', issuer: 'Count Andel Indarys', title: 'Bread for the émigrés', canon: 'invented', sources: [U('Andel_Indarys'), U('Dunmer')], from: ERUPT,
+    text: 'The Dunmer count of Cheydinhal feeds the refugees arriving at his gates, and pays fairly.',
+    goods: ['saltrice', 'kwama-eggs'], origins: ['imperial-city', 'leyawiin', 'narsis'], destinations: ['cheydinhal'], qty: [12, 30], deadline: 30, payMult: 1.1, mercy: 4, rep: 6 },
+  { id: 'gray-quarter', faction: 'temple', issuer: 'a Snow Quarter elder', title: 'A taste of home', canon: 'invented', sources: [U('Windhelm')], from: ERUPT,
+    text: 'The refugees in Windhelm’s Snow Quarter want sujamma and saltrice, and the dignity of buying their own.',
+    goods: ['sujamma', 'saltrice'], origins: ['narsis', 'blacklight', 'mournhold'], destinations: ['windhelm'], qty: [8, 20], deadline: 40, payMult: 1.25, mercy: 3, rep: 4 },
+  { id: 'telvanni-musk', faction: 'telvanni', issuer: 'a Telvanni mouth', title: 'Musk and gems for the court', canon: 'invented', sources: [U('House_Telvanni')], to: D(6, 6, 10),
+    text: 'A Telvanni household sells its musk and buys its influence abroad.',
+    goods: ['bug-musk', 'soul-gems'], origins: ['sadrith-mora'], destinations: ['imperial-city', 'solitude', 'mournhold'], qty: [4, 10], deadline: 40, payMult: 1.3, mercy: 0, rep: 6 },
+  { id: 'anxileel-washtongue', faction: 'anxileel', issuer: 'the Organism’s trade-speaker', title: 'Washtongue for the kilns', canon: 'invented', sources: [U('Black_Marsh'), U('An-Xileel')], to: D(5, 10, 12),
+    text: 'Argonia sells the one thing it is known for. Carry washtongue powder to the potters of the north.',
+    goods: ['washtongue'], origins: ['lilmoth', 'stormhold'], destinations: ['mournhold', 'narsis', 'imperial-city'], qty: [10, 25], deadline: 40, payMult: 1.45, mercy: 0, rep: 8 },
+  { id: 'legion-frostmoth', faction: 'legion', issuer: 'Quartermaster, Fort Frostmoth', title: 'Comforts for the garrison', canon: 'invented', sources: [U('Fort_Frostmoth'), U('Falx_Carius')], to: D(5, 2, 3),
+    text: 'General Carius’s thinned garrison wants mead, bread and bandages.',
+    goods: ['nord-mead', 'healing-draughts', 'kwama-eggs'], origins: ['windhelm', 'solitude', 'ebonheart'], destinations: ['fort-frostmoth'], qty: [8, 18], deadline: 30, payMult: 1.35, mercy: 0, rep: 6 },
+  { id: 'imperial-wine', faction: 'hlaalu', issuer: 'a Hlaalu factor', title: 'Colovian for the councilors', canon: 'invented', sources: [U('Skingrad'), U('House_Hlaalu')],
+    text: 'Pro-Imperial Hlaalu households want West Weald wine at their tables.',
+    goods: ['skingrad-wine'], origins: ['imperial-city', 'cheydinhal'], destinations: ['narsis', 'mournhold', 'balmora'], qty: [6, 16], deadline: 40, payMult: 1.3, mercy: 0, rep: 6 },
+];
