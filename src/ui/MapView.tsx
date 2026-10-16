@@ -4,6 +4,7 @@ import { C } from '../data';
 import { routeOptions, MODE_LABEL, type GameState, type TravelMode } from '../engine';
 import { useGame } from '../store/game';
 import { themeById } from './themes';
+import { travelWarnings } from './hints';
 import { CodexLink, Money, Section, StatusPill } from './widgets';
 
 type Stroke = { stroke: string; dash?: string };
@@ -92,6 +93,7 @@ export function MapView({ g }: { g: GameState }) {
                 <button className={`btn ml-auto ${g.player.cash < o.fare ? '' : 'btn-ember'}`} disabled={!!o.blocked} title={g.player.cash < o.fare ? 'You can’t pay the fare: work for your passage instead (+2 days, costs a little health)' : ''} onClick={() => act({ t: 'travel', route: o.route.id, mode: o.modeIndex })}>{g.player.cash < o.fare ? 'Work for passage' : 'Go'}</button>
               </div>
               <div className="text-xs text-ash-400">{o.days} day{o.days > 1 ? 's' : ''}{g.timeScale > 1 ? ` (${o.days * g.timeScale} calendar days)` : ''} · fare <Money v={o.fare} /> · danger {'▮'.repeat(o.risk)}{'▯'.repeat(Math.max(0, 6 - o.risk))}{o.blocked && <span className="text-danger"> · {o.blocked}</span>}</div>
+              {travelWarnings(g, o.dest, o.days).map((w, i) => <div key={i} className="text-xs text-danger">⚠ {w}</div>)}
               {o.route.note && <div className="text-xs fell italic text-parchment">{o.route.note}</div>}
             </div>
           ))}

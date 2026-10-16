@@ -126,7 +126,7 @@ export function tickDay(s: GameState, rng: Rng): void {
     const key = branchKey(f.house, f.settleAt); const amt = Math.round(f.amount * f.ratio);
     s.deposits[key] = (s.deposits[key] ?? 0) + amt;
     log(s, `The ${houseName(f.house)} settles your frozen account: ${amt} septims, payable at ${C.locs[f.settleAt].name}.`, 'neutral');
-    s.inbox.push({ kind: 'result', title: 'Frozen account settled', text: `The bank pays out part of your frozen money: ${amt} septims, credited at ${C.locs[f.settleAt].name}.` });
+    s.inbox.push({ kind: 'result', notice: true, title: 'Frozen account settled', text: `The bank pays out part of your frozen money: ${amt} septims, credited at ${C.locs[f.settleAt].name}.` });
   }
   s.frozen = s.frozen.filter(f => f.settleDay > s.day);
   // contracts
@@ -204,7 +204,7 @@ function here(s: GameState) { return C.locs[s.player.location]; }
 function apply(s: GameState, rng: Rng, a: Action): string | void {
   const loc = s.player.location;
   switch (a.t) {
-    case 'ack': s.inbox.shift(); return;
+    case 'ack': s.inbox.splice(0, Math.max(1, Math.min(20, Math.floor(a.n ?? 1)))); return;
     case 'buy': case 'sell': return trade(s, rng, a.t, a.good, a.qty);
     case 'travel': {
       const opt = routeOptions(s).find(o => o.route.id === a.route && o.modeIndex === a.mode);
@@ -454,18 +454,19 @@ function rumor(s: GameState, rng: Rng): string | void {
       const truthful = rng.chance(0.75);
       const best = truthful ? markets.reduce((a, b) => ((s.markets[a.id][g.id].drift * s.markets[a.id][g.id].shock * (a.tendencies[g.id] ?? 1)) > (s.markets[b.id][g.id].drift * s.markets[b.id][g.id].shock * (b.tendencies[g.id] ?? 1)) ? a : b)) : rng.pick(markets);
       const text = `They say ${g.name.toLowerCase()} fetches a fine price in ${best.name} these days.`;
-      s.inbox.push({ kind: 'result', title: 'Rumour (price tip)', text: `${text} (Tips like this are right about three times in four.)` });
+      s.inbox.push({ kind: 'result', notice: true, title: 'Rumour (price tip)', text: `${text} (Tips like this are right about three times in four.)` });
+      log(s, `Price tip: ${text}`);
       return;
     }
   }
   const unheard = pool.filter(r => !s.heard.includes(r.id));
   const fresh = unheard.filter(r => r.kind === 'foreshadow');
   const r = (fresh.length && rng.chance(s.player.books.includes('progress-of-truth') ? 0.9 : 0.7) ? rng.pick(fresh) : unheard.length ? rng.pick(unheard) : pool.length ? rng.pick(pool) : undefined);
-  if (!r) { s.inbox.push({ kind: 'result', title: 'Rumour', text: 'Nobody has anything new tonight.' }); return; }
+  if (!r) { s.inbox.push({ kind: 'result', notice: true, title: 'Rumour', text: 'Nobody has anything new tonight.' }); return; }
   if (!s.heard.includes(r.id)) s.heard.push(r.id);
   if (r.dispute) unlock(s, `dispute:${r.dispute}`);
   unlock(s, `rumor:${r.id}`);
-  s.inbox.push({ kind: 'result', title: r.kind === 'dispute' ? 'Rumour (historians disagree)' : r.kind === 'foreshadow' ? 'Rumour (a warning)' : 'Rumour', text: `${r.voice ? r.voice + ': ' : ''}“${r.text}”` });
+  s.inbox.push({ kind: 'result', notice: true, title: r.kind === 'dispute' ? 'Rumour (historians disagree)' : r.kind === 'foreshadow' ? 'Rumour (a warning)' : 'Rumour', text: `${r.voice ? r.voice + ': ' : ''}“${r.text}”` });
 }
 
 /** Rebuild a game from its seed, config and action log; must equal the live state. */

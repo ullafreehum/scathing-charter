@@ -105,17 +105,38 @@ function keepLightest(s: GameState, limit: number): void {
   }
 }
 
+// Success chances, shared by resolve() and the encounter card so the shown odds are the rolled odds.
+export function fightChance(s: GameState): number { return Math.max(0.08, Math.min(0.92, 0.5 + (power(s) - s.pending!.threat) * 0.07)); }
+export function fleeChance(s: GameState): number {
+  const loadRatio = cargoWeight(s) / Math.max(1, capacity(s));
+  return Math.max(0.1, Math.min(0.85, 0.7 - loadRatio * 0.4 - (s.pending!.customs ? 0.25 : 0)));
+}
+function customsBribeChance(s: GameState): number { return 0.85 - C.locs[s.pending!.dest].enforcement * 0.08; }
+function chameleonChance(s: GameState): number { return s.pending!.customs ? 0.75 : 0.9; }
+function interventionChance(s: GameState, kind: 'almsivi' | 'divine'): number { return kind === 'almsivi' ? (s.world.flags.almsivi ?? 95) / 100 : 0.97; }
+
+/** Chance that a choice works out, exactly as resolve() rolls it; undefined when nothing is rolled. */
+export function choiceOdds(s: GameState, choice: string): number | undefined {
+  if (!s.pending) return undefined;
+  switch (choice) {
+    case 'fight': return fightChance(s);
+    case 'flee': return fleeChance(s);
+    case 'bribe': return s.pending.customs ? customsBribeChance(s) : 1;
+    case 'chameleon': return chameleonChance(s);
+    case 'almsivi': case 'divine': return interventionChance(s, choice);
+    case 'press-on': return 0.5;
+    default: return undefined;
+  }
+}
+
 /** Returns [outcome text, tone, teleport destination or null, extra delay days]. */
 export function resolve(s: GameState, rng: Rng, choice: string): { text: string; good: boolean; teleport?: string; delay?: number; fail?: string } {
   const p = s.pending!;
   const def = C.encounters.find(e => e.id === p.defId)!;
-  const pw = power(s);
-  const winP = Math.max(0.08, Math.min(0.92, 0.5 + (pw - p.threat) * 0.07));
-  const loadRatio = cargoWeight(s) / Math.max(1, capacity(s));
   const fac = def.faction;
   switch (choice) {
     case 'fight': {
-      if (rng.chance(winP)) {
+      if (rng.chance(fightChance(s))) {
         const loot = rng.int(p.threat * 4, p.threat * 12);
         s.player.cash += loot; s.stats.fightsWon++;
         const d = hurt(s, rng, 0, 12);
@@ -127,8 +148,7 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
       return { text: `You are beaten (${d} wounds). They take ${lost} and ${cash} septims.`, good: false };
     }
     case 'flee': {
-      const fp = Math.max(0.1, Math.min(0.85, 0.7 - loadRatio * 0.4 - (p.customs ? 0.25 : 0)));
-      if (rng.chance(fp)) return { text: 'You get away clean, heart pounding.', good: true };
+      if (rng.chance(fleeChance(s))) return { text: 'You get away clean, heart pounding.', good: true };
       if (p.customs) return confiscate(s, rng, true);
       const d = hurt(s, rng, 4, 12); const lost = loseCargo(s, rng, def.loss * 0.6);
       return { text: `They catch you. ${d} wounds; you lose ${lost}.`, good: false };
@@ -136,7 +156,7 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
     case 'bribe': {
       if (s.player.cash < p.bribe) return { text: '', good: false, fail: 'You cannot afford the bribe.' };
       s.player.cash -= p.bribe;
-      if (p.customs && !rng.chance(0.85 - C.locs[p.dest].enforcement * 0.08)) {
+      if (p.customs && !rng.chance(customsBribeChance(s))) {
         const r = confiscate(s, rng, false); return { text: `The officer takes your ${p.bribe} septims, then books you anyway. ${r.text}`, good: false };
       }
       if (def.kind === 'enforcer') s.note.lastPaymentDay = s.day;
@@ -147,15 +167,14 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
     case 'chameleon': {
       s.player.scrolls.chameleon--;
       // Customs officers are trained to look for shimmering air; bandits are not.
-      if (rng.chance(p.customs ? 0.75 : 0.9)) return { text: 'The scroll crackles; light bends round you. You walk past them.', good: true };
+      if (rng.chance(chameleonChance(s))) return { text: 'The scroll crackles; light bends round you. You walk past them.', good: true };
       if (p.customs) { const c = confiscate(s, rng, false); return { text: `The Chameleon spell flickers out at the worst moment. ${c.text}`, good: false }; }
       return { text: `The Chameleon spell flickers out at the worst moment. Spotted! You lose ${loseCargo(s, rng, def.loss * 0.5)}.`, good: false };
     }
     case 'almsivi': case 'divine': {
       s.player.scrolls[choice]--;
-      const rel = choice === 'almsivi' ? (s.world.flags.almsivi ?? 95) / 100 : 0.97;
       const targets = C.locList.filter(L => s.world.status[L.id] !== 'closed' && (choice === 'almsivi' ? L.temple === 'tribunal' : L.shrine));
-      if (!targets.length || !rng.chance(rel)) {
+      if (!targets.length || !rng.chance(interventionChance(s, choice))) {
         const lost = loseCargo(s, rng, def.loss * 0.7);
         return { text: choice === 'almsivi' ? `You speak the Almsivi words. Nothing answers: the Tribunal is gone, and so is the spell. They take ${lost}.` : `The Divine Intervention fizzles. They take ${lost}.`, good: false };
       }

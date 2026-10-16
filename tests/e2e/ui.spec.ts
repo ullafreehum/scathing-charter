@@ -44,29 +44,34 @@ test('new game: terms set the purse and note; New Life banner; Long Chronicle lo
   expect(await dateText(page)).toContain('1 Morning Star, 4E 4');
 });
 
-test('market: buy and sell move cash, cargo, load; errors show a toast', async ({ page }) => {
+test('market: amount picker, buy and sell, filters, capped amounts, next-step hint', async ({ page }) => {
   const errors = await start(page);
+  await expect(page.getByLabel('Next steps')).toContainText('Start simple');
   const row = page.getByRole('row').filter({ hasText: 'Kwama Eggs' });
   const unit = num(await row.getByRole('cell').nth(2).innerText());
   const p0 = await purse(page);
-  await row.getByLabel(/Quantity/).fill('5');
-  await row.getByRole('button', { name: 'Buy', exact: true }).click();
+  await page.getByRole('radio', { name: '5', exact: true }).click();
+  await expect(row.getByRole('button', { name: /^Buy/ })).toHaveText('Buy 5');
+  await row.getByRole('button', { name: /^Buy/ }).click();
   const p1 = await purse(page);
   expect(p0 - p1).toBeGreaterThanOrEqual(unit * 5);
   expect(p0 - p1).toBeLessThanOrEqual(Math.ceil(unit * 5 * 1.03));
   await expect(row.getByRole('cell').nth(4)).toHaveText('5');
   expect((await load(page))[0]).toBe(10);
-  // selling all returns cash and clears the hold
-  await row.getByRole('button', { name: 'All', exact: true }).click();
+  await expect(page.getByText(/Start simple/)).toHaveCount(0);
+  // "My cargo" filter shows only what you carry
+  await page.getByRole('radio', { name: 'My cargo' }).click();
+  await expect(page.getByRole('row')).toHaveCount(2);
+  await page.getByRole('radio', { name: 'All', exact: true }).click();
+  // Max sells everything you own of it
+  await page.getByRole('radio', { name: 'Max' }).click();
+  await row.getByRole('button', { name: /^Sell/ }).click();
   expect(await purse(page)).toBeGreaterThan(p1);
   expect((await load(page))[0]).toBe(0);
-  // too much → toast, nothing changes
-  await row.getByLabel(/Quantity/).fill('999');
-  const p2 = await purse(page);
-  await row.getByRole('button', { name: 'Buy', exact: true }).click();
-  await expect(page.getByRole('alert')).toBeVisible();
-  expect(await purse(page)).toBe(p2);
-  await expect(page.getByRole('alert')).toBeHidden({ timeout: 6000 });
+  // a huge custom amount is capped to what you can afford and carry
+  await page.getByLabel('Custom amount').fill('999');
+  const shown = num(await row.getByRole('button', { name: /^Buy/ }).innerText());
+  expect(shown).toBeGreaterThan(0); expect(shown).toBeLessThan(999);
   // contraband is labelled, and selling it here needs a fence (J'Dhannar is one)
   await expect(page.getByRole('row', { name: /^Moon Sugar/ })).toContainText('Contraband');
   expect(errors).toEqual([]);
@@ -77,7 +82,8 @@ test('tavern: free rumour on New Life, rest advances one day for 3 dr, porter ad
   await page.getByRole('tab', { name: 'Tavern' }).click();
   const p0 = await purse(page);
   await page.getByRole('button', { name: /Buy a round/ }).click();
-  await expect(page.locator('[role=dialog]')).toContainText(/Rumour/);
+  await expect(page.getByRole('status')).toContainText(/Rumour/);
+  await expect(page.locator('[role=dialog]')).toHaveCount(0);
   await page.waitForTimeout(400);
   await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-rumour.png' });
   await clear(page);
@@ -107,14 +113,14 @@ test('counting-house: deposit, withdraw with fee, pay the note', async ({ page }
   await page.keyboard.press('b');
   await expect(page.getByRole('tab', { name: 'Bank' })).toHaveAttribute('aria-selected', 'true');
   const p0 = await purse(page);
-  await page.getByLabel('Amount').fill('200');
-  await page.getByRole('button', { name: 'Deposit 200' }).first().click();
+  await page.getByLabel('Hlaalu Council Bank amount').fill('200');
+  await page.getByRole('button', { name: 'Deposit', exact: true }).click();
   expect(await purse(page)).toBe(p0 - 200);
   expect(await vaults(page)).toBe(200);
-  await page.getByRole('button', { name: 'Withdraw 200' }).first().click();
+  await page.getByRole('button', { name: 'Withdraw', exact: true }).click();
   expect(await vaults(page)).toBe(0);
   expect(await purse(page)).toBe(p0 - 1); // 1% fee, halved for the Hlaalu by-blow, rounded up
-  await page.getByLabel('Amount').fill('100');
+  await page.getByLabel('Payment amount').fill('100');
   const n0 = await note(page);
   await page.getByRole('button', { name: 'Pay', exact: true }).click();
   expect(await note(page)).toBe(n0 - 100);
@@ -132,6 +138,7 @@ test('travel: map click filters departures; Go moves you and the calendar', asyn
   await page.getByRole('button', { name: 'Go' }).click();
   await clear(page);
   await expect(page.getByRole('heading', { level: 2, name: 'Ald’ruhn' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Market' })).toHaveAttribute('aria-selected', 'true');
   expect(await dateText(page)).not.toContain('1 Morning Star');
   expect(errors).toEqual([]);
 });

@@ -27,8 +27,8 @@ test('new game → trade → travel → codex → save/continue', async ({ page 
   await shot(page, '04-market');
   // buy a few kwama eggs
   const row = page.getByRole('row').filter({ hasText: 'Kwama Eggs' });
-  await row.getByLabel(/Quantity/).fill('5');
-  await row.getByRole('button', { name: 'Buy', exact: true }).click();
+  await page.getByRole('radio', { name: '5', exact: true }).click();
+  await row.getByRole('button', { name: /^Buy/ }).click();
   await expect(row.getByRole('cell').nth(4)).toContainText('5');
   await page.getByRole('tab', { name: 'Travel' }).click();
   await page.waitForTimeout(400);

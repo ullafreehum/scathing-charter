@@ -80,6 +80,10 @@ export function Settings() {
           <label className="flex items-center gap-2 mt-1"><input type="checkbox" checked={s.animations} onChange={e => setSettings({ animations: e.target.checked })} />Animations (sliding panels and cards)</label>
         </Group>
 
+        <Group title="Help">
+          <label className="flex items-center gap-2"><input type="checkbox" checked={s.hints} onChange={e => setSettings({ hints: e.target.checked })} />Show next-step hints under the top bar</label>
+        </Group>
+
         <div className="flex items-center justify-between mt-5 pt-3 border-t border-ash-600">
           <span className="text-xs text-ash-400">Settings are saved in this browser and apply to every game.</span>
           <button className="btn btn-ghost" onClick={resetSettings}>Reset to defaults</button>
