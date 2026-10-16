@@ -51,7 +51,7 @@ export function Tavern({ g }: { g: GameState }) {
           {C.books.filter(b => b.from === undefined || g.day >= b.from).map(b => (
             <div key={b.id} className="border-t border-ash-700/60 py-2 text-sm">
               <div className="flex items-center gap-2"><CodexLink id={`book:${b.id}`} className="text-bone">{b.title}</CodexLink> <Badge canon={b.canon} />
-                <button className="btn ml-auto" disabled={g.player.books.includes(b.id)} onClick={() => act({ t: 'book', id: b.id })}>{g.player.books.includes(b.id) ? 'Owned' : <>Buy <Money v={b.price} /></>}</button></div>
+                <button className="btn ml-auto" aria-label={g.player.books.includes(b.id) ? `${b.title}: owned` : `Buy ${b.title} for ${b.price} septims`} disabled={g.player.books.includes(b.id)} onClick={() => act({ t: 'book', id: b.id })}>{g.player.books.includes(b.id) ? 'Owned' : <>Buy <Money v={b.price} /></>}</button></div>
               <div className="text-xs text-ash-400">{b.author}{b.perk && b.perk !== 'none' ? ` · reading helps: ${b.perk === 'tendencies' ? 'shows where goods are cheap or dear' : b.perk === 'customs' ? 'fewer customs searches' : 'more omens in rumours'}` : ''}</div>
             </div>
           ))}

@@ -28,7 +28,7 @@ export function Market({ g }: { g: GameState }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="text-left text-xs h-display uppercase text-ash-400">
-              <th className="py-1">Good</th><th>Wt</th><th className="text-right">You buy</th><th className="text-right">You sell</th><th className="text-right">Held</th><th className="pl-3">Qty</th><th></th>
+              <th className="py-1">Good</th><th>Wt</th><th className="text-right pl-2">You buy</th><th className="text-right pl-3">You sell</th><th className="text-right pl-3">Held</th><th className="pl-3">Qty</th><th></th>
             </tr></thead>
             <tbody>
               {qs.map(q => {
@@ -47,7 +47,7 @@ export function Market({ g }: { g: GameState }) {
                     <td className="num text-ash-400">{G.weight}</td>
                     <td className="text-right whitespace-nowrap">{q.buy !== null ? <span title={`from ${q.buyFrom}`}><Money v={q.buy} /> {ratio < 0.8 ? <span className="text-moss" title="Well below the going rate">▼</span> : ratio > 1.25 ? <span className="text-[#e2584a]" title="Well above the going rate">▲</span> : null}</span> : <span className="text-ash-400 text-xs">{q.stock ? '—' : 'out of stock'}</span>}</td>
                     <td className="text-right whitespace-nowrap">{q.sell !== null ? <span title={`to ${q.sellTo}${q.sellNote ? ` (${q.sellNote})` : ''}`}><Money v={q.sell} />{q.sellNote && <span className="text-ice text-xs">*</span>}</span> : <span className="text-ash-400 text-xs">no buyer</span>}</td>
-                    <td className="text-right num">{lot ? <span title={`Average cost ${Math.round(lot.cost)}`}>{lot.qty}</span> : <span className="text-ash-600">0</span>}</td>
+                    <td className="text-right num pl-3">{lot ? <span title={`Average cost ${Math.round(lot.cost)}`}>{lot.qty}</span> : <span className="text-ash-600">0</span>}</td>
                     <td className="pl-3"><input aria-label={`Quantity of ${G.name}`} className="input w-16 num py-0.5" type="number" min={1} value={n} onChange={e => setQty({ ...qty, [q.good]: Math.max(1, Number(e.target.value) || 1) })} /></td>
                     <td className="whitespace-nowrap pl-2 space-x-1">
                       <button className="btn" disabled={q.buy === null || maxBuy < 1} onClick={() => act({ t: 'buy', good: q.good, qty: n })}>Buy</button>
