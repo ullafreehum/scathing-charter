@@ -3,7 +3,7 @@
 A lore-dense, Dope Wars–style trading game set in the Elder Scrolls universe at the dawn of the
 Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-commercial fan project.
 
-> Status: **planning** (docs only). Game code starts after the plan is approved.
+> Status: **playable** (M1–M7 done). Red Year campaign + Long Chronicle; see README.md to play.
 > Design: `docs/GAME_DESIGN.md` · Lore + sources + dispute register: `docs/LORE_BIBLE.md` · raw notes: `docs/research/`.
 > The unrelated `bandcamp.html` at the repo root predates this project — leave it alone.
 
@@ -43,7 +43,13 @@ docs/       GAME_DESIGN.md, LORE_BIBLE.md, research/ (raw researcher notes).
 - `newGame(config: { seed, backgroundId, playerName, mode }) → GameState`
 - `step(state, action) → { state, log: LogEntry[] }` — the only way state changes. Pure; never mutates input.
 - `GameState` is plain JSON (serializable): includes `rng` state, `actionLog`, `schemaVersion`.
-- Replay: `replay(seed, config, actions) → GameState` must equal the live state (tested).
+- Replay: `replay(config, actions) → GameState` must equal the live state (tested).
+- Determinism across JS engines: the engine avoids `Math.exp/log/pow/sin` (implementation-defined);
+  normals use Irwin–Hall sums; `Math.sqrt` (IEEE-exact) is fine. ESLint bans `Math.random`/`Date.now` in `src/engine`.
+- Key files: `engine/game.ts` (newGame, step, tickDay), `market.ts` (prices/quotes), `travel.ts`,
+  `encounters.ts`, `history.ts` (world events), `score.ts`, `save.ts` (schema + migrations).
+- Balance knobs: `DIFFICULTY` (game.ts), `SELL_FACTOR`/`DEPTH` (market.ts), encounter odds (encounters.ts),
+  goods/tendencies in `src/data`. Re-run `npm run sim` after changing them.
 - Time advances only through actions (travel, wait). Each elapsed day runs `tickDay()`:
   interest, price drift, history timeline, contracts expiry, spoilage.
 

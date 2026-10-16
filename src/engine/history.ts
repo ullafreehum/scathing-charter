@@ -88,3 +88,13 @@ export function applyHistory(s: GameState, rng: Rng): void {
     if (ev.major) s.inbox.push({ kind: 'chronicle', eventId: ev.id });
   }
 }
+
+/** Fresh Long Chronicle starts: silently apply every earlier world event (no cards, no disasters, no fresh price shocks). */
+export function catchUpHistory(s: GameState, rng: Rng): void {
+  for (const ev of C.history) {
+    if (ev.day >= s.day || s.world.fired.includes(ev.id) || ev.mode === 'long-chronicle') continue;
+    s.world.fired.push(ev.id);
+    for (const e of ev.effects) if (e.type !== 'disaster' && e.type !== 'price') applyEffect(s, e, rng, ev);
+    if (!s.codex.includes(`event:${ev.id}`)) s.codex.push(`event:${ev.id}`);
+  }
+}
