@@ -49,7 +49,7 @@ describe('game', () => {
     s = act(s, { t: 'buy', good: 'kwama-eggs', qty: 5 });
     expect(JSON.stringify(newGame(CFG))).not.toBe(''); // sanity
     expect(s.player.cargo['kwama-eggs'].qty).toBe(5);
-    expect(s.player.cash).toBeLessThan(400);
+    expect(s.player.cash).toBeLessThan(550);
     expect(q.buy).toBeGreaterThan(0);
     expect(step(s, { t: 'buy', good: 'kwama-eggs', qty: 999 }).error).toBeTruthy();
     s = act(s, { t: 'sell', good: 'kwama-eggs', qty: 5 });
@@ -88,7 +88,17 @@ describe('game', () => {
     expect(s.frozen.length + (s.deposits['hlaalu:narsis'] ?? 0) > 0 || s.over !== null).toBe(true);
     expect(s.note.seat).toBe('narsis');
   });
-  it('reports net worth including debt', () => { expect(netWorth(newGame(CFG))).toBe(400 - 3000); });
+  it('a broke trader works their passage instead of being stranded', () => {
+    let s = drain(newGame(CFG));
+    s.player.cash = 0;
+    const o = routeOptions(s).find(x => !x.blocked)!;
+    const r = step(s, { t: 'travel', route: o.route.id, mode: o.modeIndex });
+    expect(r.error).toBeUndefined();
+    s = r.state;
+    expect(s.day).toBeGreaterThanOrEqual(o.days + 2);
+    expect(s.log.some(l => l.text.includes('work your passage'))).toBe(true);
+  });
+  it('reports net worth including debt', () => { expect(netWorth(newGame(CFG))).toBe(550 - 3000); });
 });
 
 describe('long chronicle', () => {

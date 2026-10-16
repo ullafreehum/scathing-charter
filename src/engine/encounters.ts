@@ -146,7 +146,8 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
     case 'submit': return confiscate(s, rng, false);
     case 'chameleon': {
       s.player.scrolls.chameleon--;
-      if (rng.chance(0.9)) return { text: 'The scroll crackles; light bends round you. You walk past them.', good: true };
+      // Customs officers are trained to look for shimmering air; bandits are not.
+      if (rng.chance(p.customs ? 0.75 : 0.9)) return { text: 'The scroll crackles; light bends round you. You walk past them.', good: true };
       if (p.customs) { const c = confiscate(s, rng, false); return { text: `The Chameleon spell flickers out at the worst moment. ${c.text}`, good: false }; }
       return { text: `The Chameleon spell flickers out at the worst moment. Spotted! You lose ${loseCargo(s, rng, def.loss * 0.5)}.`, good: false };
     }

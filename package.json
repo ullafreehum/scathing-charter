@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "sim": "tsx scripts/sim.ts",
-    "diagnose": "tsx scripts/diagnose.ts"
+    "diagnose": "tsx scripts/diagnose.ts",
+    "balance": "tsx scripts/balance.ts"
   },
   "license": "GPL-3.0-only",
   "dependencies": {

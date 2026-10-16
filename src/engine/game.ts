@@ -14,9 +14,9 @@ export const RED_YEAR_END = D(6, 12, 31);
 /** Titus Mede I takes the Imperial City: c. 4E 22 (D-10); day chosen as Emperor's Day (extrapolation). */
 export const CORONATION_DAY = D(22, 10, 30);
 export const DIFFICULTY = {
-  fair: { cash: 500, debt: 2000, rate: 0.002 },
-  tong: { cash: 400, debt: 3000, rate: 0.003 },
-  blood: { cash: 250, debt: 4500, rate: 0.005 },
+  fair: { cash: 700, debt: 2000, rate: 0.002 },
+  tong: { cash: 550, debt: 3000, rate: 0.003 },
+  blood: { cash: 250, debt: 4500, rate: 0.006 },
 } as const;
 export const WAGES = { porter: { hire: 100, day: 4, max: 4 }, sellsword: { hire: 150, day: 10, max: 3 } } as const;
 export const LICENCE_PRICE = 300;
@@ -210,9 +210,15 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       const opt = routeOptions(s).find(o => o.route.id === a.route && o.modeIndex === a.mode);
       if (!opt) return 'That route is not open.';
       if (opt.blocked) return opt.blocked;
-      if (s.player.cash < opt.fare) return `The fare is ${opt.fare} septims.`;
-      s.player.cash -= opt.fare; s.stats.journeys++;
+      s.stats.journeys++;
       unlock(s, `travel:${opt.mode}`);
+      if (s.player.cash < opt.fare) {
+        // Never strand the player: the broke work their passage (no fare, two extra days, sore hands).
+        s.player.health = Math.max(1, s.player.health - 3);
+        log(s, `Unable to pay the ${opt.fare}-septim fare, you work your passage as a ${opt.mode === 'caravan' || opt.mode === 'road' ? 'caravan hand' : 'deckhand'}.`, 'bad');
+        return journey(s, rng, { ...opt, fare: 0, days: opt.days + 2 });
+      }
+      s.player.cash -= opt.fare;
       return journey(s, rng, opt);
     }
     case 'wait': {
@@ -408,8 +414,8 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
     let total = Math.round(q.sell * qty * Math.max(0.5, 1 - qty / (2 * depth)));
     const profit = total - Math.round(lot.cost * qty);
     if (q.legality === 'restricted' && q.sellNote?.startsWith('black')) {
-      if (rng.chance(here(s).enforcement * 0.04 * C.backgrounds[s.player.backgroundId].customsMod)) {
-        const fine = Math.round(total * 0.3); total -= fine;
+      if (rng.chance(here(s).enforcement * 0.06 * C.backgrounds[s.player.backgroundId].customsMod)) {
+        const fine = Math.round(total * 0.4); total -= fine;
         log(s, `An EEC informer was watching. Fine: ${fine} septims.`, 'bad');
         s.inbox.push({ kind: 'result', title: 'An informer', text: `The East Empire Company does not forgive unlicensed ${g.name}. You are fined ${fine} septims.` });
       }
