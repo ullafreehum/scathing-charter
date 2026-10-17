@@ -10,7 +10,7 @@ export const CHARTER = {
   tiers: [
     { tier: 1, name: 'Relief supplier licence', price: 12000, text: 'Relief contracts pay 25% more, and towns offer you more of them.' },
     { tier: 2, name: 'Warehouse at Narsis', price: 30000, text: 'Store any amount of cargo in Narsis, where it does not spoil: wait out a flooded market instead of dumping.' },
-    { tier: 3, name: 'The Scathing Charter', price: 55000, text: 'A share in rebuilding the Vivec region: a dividend every 30 days (halved while the war lasts) and the title Charter-Holder.' },
+    { tier: 3, name: 'The Scathing Charter', price: 55000, text: 'Wins the game if you owe the Tong nothing. A share in rebuilding the Vivec region: a dividend every 30 days (halved while the war lasts) and the title Charter-Holder.' },
   ] as readonly CharterTier[],
   dividend: 4000,
   dividendEvery: 30,

@@ -236,26 +236,25 @@ export interface GameState {
   achievements: string[];
   stats: Stats;
   actions: Action[];
-  over: null | { reason: 'calendar' | 'death' | 'ruin' | 'retired'; day: number };
+  over: null | { reason: 'calendar' | 'death' | 'ruin' | 'retired' | 'won' | 'marked'; day: number };
   /** what the player chose at the end of the calendar (or when retiring); endless play continues after some */
   ending?: { kind: Ending; day: number; worth: number };
   /** milestones that open early retirement: 'debt', 'charter', 'mercy' */
   milestones?: string[];
-  /** Tong indenture: interest stops, collectors stand down, 30% of every sale goes to the note until it is paid */
-  indentured?: boolean;
+  /** Highest debt warning already sent (4 or 5 times the note) */
+  markWarned?: number;
   /** goods seized by customs that can still be contested before the magistrate in this town */
   appeal?: { loc: string; goods: Record<string, Lot>; fine: number } | null;
   duel?: DuelState | null;
 }
 
-export type Ending = 'retire' | 'tong' | 'charter' | 'trade';
+export type Ending = 'win' | 'mark' | 'retire';
 
 export type Action =
   | { t: 'buy'; good: string; qty: number }
   | { t: 'sell'; good: string; qty: number }
   | { t: 'travel'; route: string; mode: number }
   | { t: 'wait'; days: number }
-  | { t: 'crossroads'; choice: Ending }
   | { t: 'retire' }
   | { t: 'appeal' }
   | { t: 'duel'; card: number; discard?: boolean }

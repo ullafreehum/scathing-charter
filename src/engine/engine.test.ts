@@ -112,26 +112,56 @@ describe('game', () => {
   it('the Tong always lends, at a rising rate', () => {
     let s = drain(newGame(CFG));
     const rate = s.note.rate, debt = s.note.balance;
-    s = act(s, { t: 'borrow', amount: s.note.original * 5 });
-    expect(s.note.balance).toBe(debt + s.note.original * 5);
+    s = act(s, { t: 'borrow', amount: s.note.original * 3 });
+    expect(s.note.balance).toBe(debt + s.note.original * 3);
     expect(s.note.rate).toBeGreaterThan(rate);
   });
-  it('offers a crossroads at the end of the calendar, and keep trading plays on', () => {
+  it('retires you automatically at the end date, ranked by net worth', () => {
     let s = drain(newGame(CFG));
     s = { ...s, day: s.endDay - 1 };
     s = drain(act(s, { t: 'wait', days: 1 }));
     expect(s.over?.reason).toBe('calendar');
-    s = act(s, { t: 'crossroads', choice: 'trade' });
+    expect(s.ending?.kind).toBe('retire');
+    expect(s.ending?.worth).toBe(netWorth(s));
+    s = act(s, { t: 'chronicle' });
     expect(s.over).toBeNull();
-    expect(s.ending?.kind).toBe('trade');
-    s = drain(act(s, { t: 'wait', days: 7 }));
-    expect(s.over).toBeNull();
+    expect(s.mode).toBe('long-chronicle');
   });
-  it('turns runaway Tong debt into indenture', () => {
+  it('early retirement needs a milestone', () => {
     let s = drain(newGame(CFG));
-    s = act(s, { t: 'borrow', amount: s.note.original * 6 });
+    expect(step(s, { t: 'retire' }).error).toBeTruthy();
+    s.note.cleared = true; s.note.balance = 0;
     s = drain(act(s, { t: 'wait', days: 1 }));
-    expect(s.indentured).toBe(true);
+    s = act(s, { t: 'retire' });
+    expect(s.over?.reason).toBe('retired');
+    expect(s.ending?.kind).toBe('retire');
+  });
+  it('warns at 4x and 5x the note and marks you past 6x', () => {
+    let s = drain(newGame(CFG));
+    expect(step(s, { t: 'borrow', amount: s.note.original * 6 }).error).toBeTruthy();
+    s.note.balance = s.note.original * 4.2;
+    s = act(s, { t: 'wait', days: 1 });
+    expect(s.inbox.some(m => 'title' in m && m.title.includes('4 times'))).toBe(true);
+    s = drain(s); s.note.balance = s.note.original * 5.2;
+    s = act(s, { t: 'wait', days: 1 });
+    expect(s.inbox.some(m => 'title' in m && m.title.includes('5 times'))).toBe(true);
+    s = drain(s); s.note.balance = s.note.original * 6.2;
+    s = act(s, { t: 'wait', days: 1 });
+    expect(s.over?.reason).toBe('marked');
+    expect(s.ending?.kind).toBe('mark');
+  });
+  it('wins the moment the Scathing Charter is bought with the debt cleared', () => {
+    let s = drain(newGame(CFG));
+    s.player.location = C.charter.offices[0]; s.world.flags.relief = 1;
+    s.player.cash = 200000; s.charter.tier = 2;
+    expect(step(s, { t: 'charter' }).error).toMatch(/Tong/);
+    s.note.cleared = true; s.note.balance = 0;
+    s = act(s, { t: 'charter' });
+    expect(s.charter.tier).toBe(3);
+    expect(s.over?.reason).toBe('won');
+    expect(s.ending?.kind).toBe('win');
+    s = act(s, { t: 'chronicle' });
+    expect(s.over).toBeNull();
   });
   it('reports net worth including debt', () => { expect(netWorth(newGame(CFG))).toBe(DIFFICULTY.tong.cash - DIFFICULTY.tong.debt); });
 });
@@ -221,7 +251,9 @@ describe('the Scathing Charter', () => {
   it('is not on sale before the relief, or while you owe the Tong', () => {
     const s = drain(newGame(CFG)); s.player.cash = 200000;
     expect(step(s, { t: 'charter' }).error).toMatch(/No charters/);
-    const t = ready(); t.note.cleared = false;
+    const t = ready(); t.note.cleared = false; t.note.balance = 100;
+    expect(step(t, { t: 'charter' }).error).toBeUndefined(); // tiers 1 and 2 don't need the debt cleared
+    t.charter.tier = 2;
     expect(step(t, { t: 'charter' }).error).toMatch(/Camonna Tong/);
   });
   it('sells tiers in order and counts them toward net worth', () => {
@@ -231,7 +263,7 @@ describe('the Scathing Charter', () => {
     expect(netWorth(s)).toBe(Math.round(nw0 - C.charter.tiers[0].price * (1 - C.charter.bookValue)));
   });
   it('pays dividends at the full tier, halved in war', () => {
-    let s = ready(); s.player.cash = 1e6;
+    let s = ready(); s.player.cash = 1e6; s.mode = 'long-chronicle'; // in the Red Year the third tier wins the game
     for (let i = 0; i < 3; i++) s = drain(act(s, { t: 'charter' }));
     expect(s.charter.tier).toBe(3);
     const c0 = s.player.cash; s.world.flags.war = 1;

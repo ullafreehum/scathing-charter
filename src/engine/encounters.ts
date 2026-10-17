@@ -10,7 +10,7 @@ import { clampRep } from './history';
 export const DIFF = { fair: { enc: 0.75 }, tong: { enc: 1 }, blood: { enc: 1.3 } } as const;
 
 export function pressure(s: GameState): number {
-  if (s.note.cleared || s.indentured) return 0;
+  if (s.note.cleared) return 0;
   const ratio = s.note.balance / s.note.original;
   const late = s.day - s.note.lastPaymentDay;
   let p = 0;

@@ -1,4 +1,5 @@
 // Strongboxes and the Tong note: deposits, withdrawals, paying and borrowing.
+import { LEND_RATIO } from './endings';
 import { C } from '../data';
 import type { Action, GameState } from './types';
 import { vaultHouse } from './history';
@@ -38,6 +39,8 @@ export function bankAction(s: GameState, a: Action, loc: string): string | void 
       if (loc !== s.note.seat && !s.note.agents.includes(loc)) return 'No Tong agent here.';
       const amt = Math.floor(a.amount);
       if (amt <= 0) return 'Enter an amount.';
+      const room = Math.floor(s.note.original * LEND_RATIO - (s.note.cleared ? 0 : s.note.balance));
+      if (amt > room) return room > 0 ? `Drelloth will lend you at most ${room} more.` : 'Drelloth will not lend you more. Pay something first.';
       if (s.note.cleared) { s.note.cleared = false; s.note.balance = 0; s.note.lastPaymentDay = s.day; }
       s.note.rate = Math.min(0.02 / s.timeScale, s.note.rate + 0.0015 * amt / s.note.original / s.timeScale);
       s.note.extended += amt; s.note.balance += amt; s.player.cash += amt;

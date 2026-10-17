@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { C } from '../data';
-import { DEPOSIT_RATE, WITHDRAW_FEE, houseName, pressure, shortDate, strongboxCities, type GameState } from '../engine';
+import { DEPOSIT_RATE, MARK_RATIO, WITHDRAW_FEE, houseName, pressure, shortDate, strongboxCities, type GameState } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
@@ -20,7 +20,7 @@ function CharterSection({ g }: { g: GameState }) {
   const carried = Object.entries(g.player.cargo);
   if (!g.world.flags.relief && ch.tier === 0) return null;
   const fee = Math.round(ch.paid * C.charter.renewalFee);
-  const why = !g.note.cleared ? 'Pay off the Camonna Tong first.' : !atOffice ? `Sold in ${offices}.` : next && g.player.cash < next.price ? `You need ${Math.ceil(next.price - g.player.cash).toLocaleString('en-US')} more.` : '';
+  const why = next?.tier === 3 && !g.note.cleared ? 'Pay off the Camonna Tong first.' : !atOffice ? `Sold in ${offices}.` : next && g.player.cash < next.price ? `You need ${Math.ceil(next.price - g.player.cash).toLocaleString('en-US')} more.` : '';
   return (
     <Section title="The Scathing Charter" className="xl:col-span-2">
       <p className="text-sm text-parchment">Rights to supply and rebuild the ruined Vivec region, sold by the Grand Council in {offices}. <CodexLink id="topic:scathing-charter">More</CodexLink></p>
@@ -69,6 +69,24 @@ function CharterSection({ g }: { g: GameState }) {
   );
 }
 
+/** The spine of the game: clear the Tong debt, then buy the Scathing Charter before the end date. */
+function GoalTrack({ g }: { g: GameState }) {
+  const tier = g.charter.tier; const top = C.charter.tiers[2];
+  const steps = [
+    { done: g.note.cleared, text: 'Pay off the Camonna Tong' },
+    { done: tier >= 2, text: `Climb the Charter: ${C.charter.tiers[0].name}, then ${C.charter.tiers[1].name} (optional)` },
+    { done: tier >= 3, text: <>Buy {top.name} (<Money v={top.price} />) before {shortDate(g.endDay)}</> },
+  ];
+  return (
+    <Section title="Your goal" className="xl:col-span-2">
+      <ol className="flex flex-wrap gap-x-6 gap-y-1 text-sm">{steps.map((st, i) => (
+        <li key={i} className="flex items-center gap-2"><span className={`num w-4 ${st.done ? 'text-moss' : 'text-ash-400'}`} aria-hidden="true">{st.done ? '✓' : i + 1}</span><span className={st.done ? 'text-moss' : 'text-bone'}>{st.text}</span></li>
+      ))}</ol>
+      <p className="text-xs text-ash-400 mt-1">Win by holding the Scathing Charter with no Tong debt. Otherwise, at the end you retire and are ranked by net worth.</p>
+    </Section>
+  );
+}
+
 export function Bank({ g }: { g: GameState }) {
   const act = useGame(s => s.act);
   const [pay, setPay] = useState(100);
@@ -85,6 +103,7 @@ export function Bank({ g }: { g: GameState }) {
   const payAll = Math.min(g.player.cash, Math.ceil(n.balance));
   return (
     <div className="grid xl:grid-cols-2 gap-3">
+      <GoalTrack g={g} />
       <Section title="Your debt (Camonna Tong)">
         {n.cleared ? <><p className="text-moss">Paid off. You owe the Camonna Tong nothing.</p>
           {atTong && <div className="flex flex-wrap gap-2 mt-3 items-center"><input className="input w-28 num" type="number" min={1} value={loan} onChange={e => setLoan(toInt(e.target.value))} aria-label="Loan amount" /><button className="btn btn-ghost" onClick={borrow}>Borrow again</button></div>}</> : (
@@ -104,8 +123,8 @@ export function Bank({ g }: { g: GameState }) {
             </>) : <p className="text-sm text-ash-400 mt-2">You can’t pay here. Pay in {places}.</p>}
           </>
         )}
-        {g.indentured && <p className="text-sm text-danger mt-2">You are indentured: no interest and no collectors, but the Tong takes 30% of every sale until the note is paid.</p>}
-        {!!g.milestones?.length && !g.indentured && <div className="mt-3 text-sm"><button className="btn btn-ember" onClick={() => { if (confirm('Retire now? The game ends here with your fortune as it stands.')) act({ t: 'retire' }); }}>Retire</button> <span className="text-ash-400 text-xs">End the game now and read your epilogue.</span></div>}
+        {!n.cleared && <p className="text-xs text-ash-400 mt-2">If the debt passes {MARK_RATIO} times the note (<Money v={n.original * MARK_RATIO} />), the Tong puts its mark on you and the game ends.</p>}
+        {!!g.milestones?.length && <div className="mt-3 text-sm"><button className="btn btn-ember" onClick={() => { if (confirm('Retire now? The game ends here with your fortune as it stands.')) act({ t: 'retire' }); }}>Retire</button> <span className="text-ash-400 text-xs">End the game now and read your epilogue.</span></div>}
         <p className="text-xs text-ash-400 mt-3"><CodexLink id="faction:tong">About the Camonna Tong</CodexLink></p>
       </Section>
       <Section title="Strongboxes">

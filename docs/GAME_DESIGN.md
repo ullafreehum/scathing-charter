@@ -565,6 +565,6 @@ Still open:
    a teaching moment rather than inventing a flashier "Hist amber". Tell me if you'd prefer otherwise.
 
 ## Endings and the magistrate's duel (0.9.5)
-- **Crossroads** (`crossroads` action) when the calendar ends: `retire` (game over, epilogue verdict), `trade` / `charter` (tier ≥ 2) / `tong` (debt wiped, +30 heat) continue with `endDay = day + ENDLESS_DAYS`; `ending.worth` freezes the score.
-- **Milestones** (`debt`, `charter` tier 3, `mercy` ≥ 60) unlock `retire` early. **Indenture** at debt > `INDENTURE_RATIO` × note: no interest, pressure 0, `TONG_CUT` of each sale goes to the note.
+- **Endings (0.10, `endings.ts`):** *win* the moment tier 3 of the Scathing Charter is bought (only sold to traders with the Tong note cleared; tiers 1–2 are not gated); *mark* when the debt passes `MARK_RATIO` (6) × the original note, with inbox warnings past 4× and 5×; *retire* automatically at the end date, ranked by net worth. The Tong lends only up to `LEND_RATIO` (5) × the note. Win and end-date retirement both offer the Long Chronicle; `ending.worth` freezes the score.
+- **Milestones** (`debt`, `mercy` ≥ 60) unlock `retire` early. The crossroads and indenture are gone.
 - **Duel** (`engine/duel.ts`): Ants rules: tower 30 / wall 10 / generators 2 / stocks 5, hand 8, win at tower 100 or toppling the other; 30 cards, 10 per resource. Contest a customs seizure in the same town (`appeal`); win returns goods and fine, loss doubles the fine. Card names, flavour and art come from the "Daedric duel" thread (`/mnt/project-files/daedric-duel/cards.json`).

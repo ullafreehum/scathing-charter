@@ -41,7 +41,7 @@ interface Store {
 
 function recordMeta(get: () => Store, set: (p: Partial<Store>) => void, g: GameState) {
   const m = get().meta;
-  const unlocked = m.chronicleUnlocked || (g.over?.reason === 'calendar' && g.mode === 'red-year' && netWorth(g) > 0);
+  const unlocked = m.chronicleUnlocked || ((g.over?.reason === 'calendar' || g.over?.reason === 'won') && g.mode === 'red-year' && netWorth(g) > 0);
   const achievements = Array.from(new Set([...m.achievements, ...g.achievements]));
   const best = Math.max(m.bestNetWorth, g.over ? netWorth(g) : 0);
   if (unlocked !== m.chronicleUnlocked || achievements.length !== m.achievements.length || best !== m.bestNetWorth) {

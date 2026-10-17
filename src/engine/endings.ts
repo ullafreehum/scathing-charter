@@ -1,15 +1,14 @@
-// Endings: the last-day crossroads, early retirement, milestones and Tong indenture.
+// Endings: win (the Charter seat, debt-free), the Tong's mark (debt past 6x the note), retirement.
 import type { Action, GameState } from './types';
-import { clampRep } from './history';
-import { addHeat } from './encounters';
 import { netWorth } from './score';
 import { log } from './util';
 
-/** Endless play after the crossroads: the calendar runs on for a century. */
-export const ENDLESS_DAYS = 36500;
-/** Debt at this multiple of the original note turns into indenture instead of more killers. */
-export const INDENTURE_RATIO = 6;
-export const TONG_CUT = 0.3;
+/** Debt past this multiple of the original note: the Tong's mark, and the run ends. */
+export const MARK_RATIO = 6;
+/** The Tong warns you (once each) as the debt passes these multiples. */
+export const MARK_WARNINGS = [4, 5] as const;
+/** The Tong will not lend past this multiple of the note. */
+export const LEND_RATIO = 5;
 
 export /** Milestones open early retirement ("retire now or carry on"). */
 function milestones(s: GameState) {
@@ -19,33 +18,44 @@ function milestones(s: GameState) {
     got.push(id);
     s.inbox.push({ kind: 'result', title, text: `${text} You can retire now (Bank tab) with your fortune as it stands, or carry on.` });
   };
-  if (s.note.cleared && !s.indentured) add('debt', 'Free of debt', 'The Tong has no claim on you.');
-  if (s.charter.tier >= 3) add('charter', 'Charter-Holder', 'You hold a share of the Scathing Charter.');
+  if (s.note.cleared) add('debt', 'Free of debt', 'The Tong has no claim on you.');
   if (s.player.mercy >= 60) add('mercy', 'A name for mercy', 'Refugees across Morrowind know your name.');
 }
 
-export function endingAction(s: GameState, a: Action): string | void {
-  switch (a.t) {
-    case 'crossroads': {
-      // The last day: retire for good, or choose a way to play on without an end date (score frozen now).
-      if (s.over?.reason !== 'calendar' || s.ending) return 'Not now.';
-      if (a.choice === 'charter' && s.charter.tier < 2) return 'You need a charter tier of 2 or more.';
-      s.ending = { kind: a.choice, day: s.day, worth: netWorth(s) };
-      if (a.choice === 'retire') { log(s, 'You put away the ledger for good.', 'history'); return; }
-      s.over = null; s.endDay = s.day + ENDLESS_DAYS;
-      if (a.choice === 'tong') {
-        s.note.cleared = true; s.note.balance = 0; s.indentured = false;
-        s.player.rep.tong = clampRep(s.player.rep.tong + 30); addHeat(s, 30);
-        log(s, 'You take the Tong’s mark. Your debt is gone; now you carry what they tell you to.', 'history');
-      } else log(s, a.choice === 'charter' ? 'You take your seat among the Charter-Holders and keep trading.' : 'The ledger stays open. You keep trading.', 'history');
-      return;
-    }
-    case 'retire': {
-      if (!s.milestones?.length) return 'You have nothing to retire on yet.';
-      if (s.indentured) return 'The Tong does not let its runners retire.';
-      s.ending = { kind: 'retire', day: s.day, worth: netWorth(s) };
-      s.over = { reason: 'retired', day: s.day };
-      return;
+function end(s: GameState, kind: 'win' | 'mark' | 'retire', reason: 'won' | 'marked' | 'retired' | 'calendar') {
+  s.ending = { kind, day: s.day, worth: netWorth(s) };
+  s.over = { reason, day: s.day };
+}
+
+/** Called once per day: warnings at 4x and 5x the note, the mark past 6x. */
+export function checkMark(s: GameState) {
+  if (s.note.cleared) return;
+  const x = s.note.balance / s.note.original;
+  if (x > MARK_RATIO) {
+    end(s, 'mark', 'marked');
+    s.inbox.push({ kind: 'result', title: 'The Tong’s mark', text: 'Drelloth’s men find you. Your debt is past six times the note: from now on you carry what the Camonna Tong tells you to.' });
+    log(s, 'You take the Tong’s mark.', 'bad');
+    return;
+  }
+  for (const w of MARK_WARNINGS) {
+    if (x > w && (s.markWarned ?? 0) < w) {
+      s.markWarned = w;
+      s.inbox.push({ kind: 'result', title: `Debt past ${w} times the note`, text: `You owe the Tong more than ${w} times what you first borrowed. Past ${MARK_RATIO} times (${Math.round(s.note.original * MARK_RATIO).toLocaleString('en-US')} septims) they put their mark on you and the game ends.` });
     }
   }
+}
+
+/** The run is won the moment the Scathing Charter (tier 3) is bought with the Tong paid off. */
+export function win(s: GameState) {
+  end(s, 'win', 'won');
+  log(s, 'You take your seat among the Charter-Holders. The Red Year is yours.', 'history');
+}
+
+/** The end date retires you automatically, ranked by net worth. */
+export function timeUp(s: GameState) { end(s, 'retire', 'calendar'); }
+
+export function endingAction(s: GameState, a: Action): string | void {
+  if (a.t !== 'retire') return;
+  if (!s.milestones?.length) return 'You have nothing to retire on yet.';
+  end(s, 'retire', 'retired');
 }
