@@ -38,7 +38,7 @@ test('new game: terms set the purse and note; New Life banner; Long Chronicle lo
   await page.getByRole('radio', { name: /Fair Terms/ }).check();
   await page.getByRole('button', { name: 'Start game' }).click();
   await clear(page);
-  expect(await purse(page)).toBe(700);
+  await expect.poll(() => purse(page)).toBe(700);
   expect(await note(page)).toBe(2000);
   await expect(page.getByText('New Life Festival').first()).toBeVisible();
   expect(await dateText(page)).toContain('1 Morning Star, 4E 4');
@@ -62,9 +62,9 @@ test('market: amount picker, buy and sell, filters, capped amounts, next-step hi
   // the total shows next to Buy; Undo takes the trade back; ▸ writes out the row's details
   await expect(row.getByRole('cell').nth(6)).toContainText('space left');
   await page.getByRole('button', { name: /Undo last trade/ }).click();
-  expect(await purse(page)).toBe(p0);
+  await expect.poll(() => purse(page)).toBe(p0);
   await row.getByRole('button', { name: /^Buy/ }).click();
-  expect(await purse(page)).toBe(p1);
+  await expect.poll(() => purse(page)).toBe(p1);
   await row.getByRole('button', { name: 'Details' }).click();
   await expect(page.getByText(/You own 5, bought at/)).toBeVisible();
   await row.getByRole('button', { name: 'Details' }).click();
@@ -104,22 +104,22 @@ test('tavern: free rumour on New Life, rest advances one day for 3 dr, porter ad
   await page.waitForTimeout(400);
   await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-rumour.png' });
   await clear(page);
-  expect(await purse(page)).toBe(p0);
+  await expect.poll(() => purse(page)).toBe(p0);
   await page.getByRole('button', { name: /^Rest 1 day/ }).click();
   await clear(page);
   expect(await dateText(page)).toContain('2 Morning Star, 4E 4');
-  expect(await purse(page)).toBe(p0 - 3);
+  await expect.poll(() => purse(page)).toBe(p0 - 3);
   const cap0 = (await load(page))[1];
   await page.getByRole('button', { name: 'Hire porter' }).click();
   expect((await load(page))[1]).toBe(cap0 + 12);
-  expect(await purse(page)).toBe(p0 - 3 - 100);
+  await expect.poll(() => purse(page)).toBe(p0 - 3 - 100);
   await page.getByRole('button', { name: 'Dismiss porter' }).click();
   expect((await load(page))[1]).toBe(cap0);
   // second rumour costs 5 (no longer New Life)
   const p1 = await purse(page);
   await page.getByRole('button', { name: /Buy a round/ }).click();
   await clear(page);
-  expect(await purse(page)).toBe(p1 - 5);
+  await expect.poll(() => purse(page)).toBe(p1 - 5);
   expect(errors).toEqual([]);
 });
 
@@ -132,11 +132,11 @@ test('strongbox: deposit, withdraw with fee, pay the note', async ({ page }) => 
   const p0 = await purse(page);
   await page.getByLabel('Strongbox amount').fill('200');
   await page.getByRole('button', { name: 'Deposit', exact: true }).click();
-  expect(await purse(page)).toBe(p0 - 200);
+  await expect.poll(() => purse(page)).toBe(p0 - 200);
   expect(await vaults(page)).toBe(200);
   await page.getByRole('button', { name: 'Withdraw', exact: true }).click();
   expect(await vaults(page)).toBe(0);
-  expect(await purse(page)).toBe(p0 - 1); // 1% fee, halved for the Hlaalu by-blow, rounded up
+  await expect.poll(() => purse(page)).toBe(p0 - 1); // 1% fee, halved for the Hlaalu by-blow, rounded up
   await page.getByLabel('Payment amount').fill('100');
   const n0 = await note(page);
   await page.getByRole('button', { name: 'Pay', exact: true }).click();

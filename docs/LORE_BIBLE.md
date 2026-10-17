@@ -345,6 +345,7 @@ Everything here is marked in data (`canon: 'invented' | 'extrapolation'`) and ba
 
 | Item | Status | Rationale |
 |---|---|---|
+| **Charter favour** (mercy on the road lowers the Grand Council's price for charter tiers, 5% a point, max 25%) | invented | Game rule linking the Mercy and Charter systems; no source on how the Council chose its rebuilders |
 | The lender: **Gavas Drelloth**, Camonna Tong usurer at the Council Club, Balmora | invented | Tong controlled Hlaalu finance; Council Club is the Tong's Balmora tavern `[unverified]` |
 | Lender flees to **Narsis** after the eruption | invented | Hlaalu capital; Tong is a Hlaalu-linked syndicate |
 | **Hlaalu Council Counting-House** (Balmora, Vivec, Narsis, Mournhold) | invented | Hlaalu = merchant House; "writ of coin" letters of credit are canon [uesp:Currency] |

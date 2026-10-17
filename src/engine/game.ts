@@ -167,7 +167,7 @@ export function tickDay(s: GameState, rng: Rng): void {
     }
     if (ch.renewDue !== null && s.day > ch.renewDue) {
       const lost = C.charter.tiers[ch.tier - 1];
-      ch.tier = (ch.tier - 1) as CharterState['tier']; ch.renewDue = null; ch.renewed = true; ch.paid -= lost.price;
+      ch.tier = (ch.tier - 1) as CharterState['tier']; ch.renewDue = null; ch.renewed = true; ch.paid = Math.max(0, ch.paid - lost.price); // a favour discount may have paid less than the list price
       log(s, `You missed the charter renewal and lost the ${lost.name}.`, 'bad');
       s.inbox.push({ kind: 'result', title: 'Charter tier lost', text: `The council revokes your ${lost.name}.` });
     }

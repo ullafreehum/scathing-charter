@@ -7,7 +7,6 @@ import { useGame } from '../store/game';
 import { CodexLink, Money, Section, StatusPill } from './widgets';
 import { themeById } from './themes';
 import { travelWarnings } from './hints';
-import { useAnimationsOn } from './motion';
 import { ago, outlook } from './prices';
 import { planRoute, type RoutePlan } from './route';
 import { BORDERS, ISLES, LAKES, MAINLAND, MARSH, MORROWIND_REGION, MOUNTAINS, RED_MOUNTAIN, RIVERS, SOLSTHEIM, VVARDENFELL } from './mapShapes';
@@ -91,7 +90,6 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
     .sort((a, b) => a.options[0].days - b.options[0].days || C.locs[a.id].name.localeCompare(C.locs[b.id].name));
   const reach = new Set(byDest.keys());
   const erupted = !!g.world.flags.erupted; const war = (g.world.flags.war ?? 0) > 0;
-  const moving = useAnimationsOn();
   // The Red Year on the map: ash haze thickening toward the eruption, a glow once the omens start.
   const eDay = ERUPTION?.day ?? 0;
   const haze = erupted ? 0 : Math.max(0, Math.min(0.45, 0.06 + 0.39 * g.day / Math.max(1, eDay)));
@@ -326,11 +324,9 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
               const w = hot.has(r.id) ? 4.2 : mine ? 2.6 : 1.3;
               return <line key={r.id} x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={st.stroke} strokeDasharray={st.dash?.split(' ').map(n => Number(n) * u).join(' ')} strokeWidth={w * u} strokeOpacity={mine ? 1 : 0.38} strokeLinecap="round" />;
             })}
-            {refugees.map((r, i) => {
+            {refugees.map(r => {
               const goal = REFUGEE_GOALS.includes(r.b) ? r.b : r.a; const A = C.locs[goal === r.b ? r.a : r.b], B = C.locs[goal];
-              return [0, 1, 2].map(j => moving
-                ? <circle key={`ref-${r.id}-${j}`} r={2.2 * u} style={{ fill: 'var(--c-info)' }} className="pointer-events-none"><animateMotion dur={`${9 + (i % 4)}s`} begin={`${-j * 3 - i}s`} repeatCount="indefinite" path={`M${A.x},${A.y} L${B.x},${B.y}`} /></circle>
-                : <circle key={`ref-${r.id}-${j}`} cx={A.x + (B.x - A.x) * (j + 1) / 4} cy={A.y + (B.y - A.y) * (j + 1) / 4} r={2.2 * u} style={{ fill: 'var(--c-info)' }} className="pointer-events-none" />);
+              return [0, 1, 2].map(j => <circle key={`ref-${r.id}-${j}`} cx={A.x + (B.x - A.x) * (j + 1) / 4} cy={A.y + (B.y - A.y) * (j + 1) / 4} r={2.2 * u} style={{ fill: 'var(--c-info)' }} className="pointer-events-none" />);
             })}
             {planned && <polyline points={pathLine(planned)} fill="none" style={{ stroke: 'var(--c-accent)' }} strokeWidth={4 * u} strokeOpacity={0.9} strokeDasharray={`${9 * u} ${6 * u}`} strokeLinecap="round" />}
             {preview && preview !== planned && <polyline points={pathLine(preview)} fill="none" style={{ stroke: 'var(--c-text)' }} strokeWidth={3 * u} strokeOpacity={0.75} strokeDasharray={`${6 * u} ${6 * u}`} strokeLinecap="round" />}

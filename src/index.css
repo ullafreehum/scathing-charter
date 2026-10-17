@@ -66,6 +66,8 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
     box-shadow: 0 24px 80px var(--shadow-strong);
   }
   .scrim { background: color-mix(in srgb, var(--c-bg) 72%, transparent); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+  /* Dark ink for text printed on parchment art (duel cards), whatever the theme. */
+  .ink { color: #1a0f08; }
   .parchment {
     background: radial-gradient(ellipse at top, #f3e9d2 0%, #e3d3b0 60%, #d3be94 100%);
     color: #2a1d14; border-radius: 8px; border: 1px solid #8f744a;

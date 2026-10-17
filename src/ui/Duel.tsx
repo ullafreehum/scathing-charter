@@ -66,7 +66,7 @@ export function DuelScreen({ d }: { d: DuelState }) {
                   <img src={frame} alt="" className="absolute inset-0 w-full h-full" />
                   <span className="absolute left-[10%] right-[10%] top-[4%] text-[0.69rem] text-bone leading-tight">{c.name}</span>
                   <span className={`absolute right-[8%] top-[4%] flex items-center gap-0.5 text-[0.69rem] ${RES_LABEL[c.res].cls}`}><img src={RES_LABEL[c.res].icon} alt={RES_LABEL[c.res].name} className="w-3.5 h-3.5" />{c.cost}</span>
-                  <span className="absolute left-[10%] right-[10%] top-[57%] text-[0.69rem] text-parchment leading-tight">{c.text}<span className="block italic text-ash-400 mt-1">{c.flavour}</span></span>
+                  <span className="absolute left-[10%] right-[10%] top-[57%] text-[0.69rem] ink leading-tight">{c.text}<span className="block italic opacity-70 mt-1">{c.flavour}</span></span>
                 </button>
               );
             })}

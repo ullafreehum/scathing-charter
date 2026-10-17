@@ -300,6 +300,16 @@ follows ("This ledger follows UESP's c. 4E 22; the Imperial Library timeline say
 ## 7. Events, encounters, rumours, contracts
 
 ### 7.1 Road encounters
+**Crossing cards (0.10).** A journey shows at most one card (a road card also replaces the customs search on
+arrival). `cardOptions()` in encounters.ts gives every option a label, a stake line in septims and
+percentages and the rolled odds from `choiceOdds()`; a disabled option says why and `step` refuses it.
+Four scenes set the shape: **customs** (declare and pay 25% duty, bribe, or Chameleon, which loses the whole
+lot if it fails); **mercy** (sell at cost for Mercy +2 and Charter favour +1, or at the crisis price);
+**hazards** (wait a day, hire a guide for 40, or push through and lose 30% of perishables); **Tong collectors**
+(pay 300, ask for time at +0.1% a day, or run with a 40% chance of being caught; the route is *watched*,
+doubling enforcer odds, for 30 days). Charter favour takes 5% per point off charter tiers (max 25%).
+Schema v6 gives an open card in an old save the new choice set.
+
 Chance per travel day = `routeRisk × modeFactor × eraFactor × difficulty − protection`. Weighted tables
 depend on region and era:
 - **Vvardenfell, 4E 4**: cliff racers, ash storm (delay), Tong toll, smugglers, Ashlander tithe, Legion
