@@ -9,3 +9,7 @@ export * from './score';
 export * from './save';
 export * from './game';
 export * from './duel';
+export * from './bank';
+export * from './endings';
+export * from './contracts';
+export * from './books';

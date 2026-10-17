@@ -1,15 +1,20 @@
 // The game reducer: newGame() and step(). Pure: never mutates its input.
 import { C } from '../data';
-import type { Action, CharterState, Contract, GameState, Job, LogEntry, MarketCell, NewGameConfig, ScrollId } from './types';
+import type { Action, CharterState, Contract, GameState, Job, MarketCell, NewGameConfig, ScrollId } from './types';
 import { Rng, hashSeed } from './rng';
 import { D, shortDate } from './calendar';
-import { DEPTH, SAT_RECOVERY, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight, fairValue, holidayAt, legalityAt, marketOpen, midPrice, quotes } from './market';
+import { DEPTH, SAT_RECOVERY, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight, holidayAt, legalityAt, marketOpen, midPrice, quotes } from './market';
 import { MAX_LEG_DAYS, routeOptions, routeOptionsFrom, type RouteOption } from './travel';
 import { applyHistory, branchKey, catchUpHistory, clampRep, houseName } from './history';
 import { HEAT, addHeat, buildPending, contrabandValue, heatMult, rollEncounter, resolve } from './encounters';
 import { checkAchievements, netWorth } from './score';
 import { duelTurn, newDuel } from './duel';
 import { SCHEMA_VERSION } from './save';
+import { here, log, unlock } from './util';
+import { DEPOSIT_RATE, bankAction } from './bank';
+import { contractAction, makeOffers } from './contracts';
+import { bookAction } from './books';
+import { INDENTURE_RATIO, TONG_CUT, endingAction, milestones } from './endings';
 
 export const RED_YEAR_END = D(6, 12, 31);
 /** Titus Mede I takes the Imperial City: c. 4E 22 (D-10); day chosen as Emperor's Day (extrapolation). */
@@ -23,13 +28,6 @@ export const WAGES = { porter: { hire: 100, day: 4, max: 4 }, sellsword: { hire:
 export const LICENCE_PRICE = 300;
 export const RUMOR_PRICE = 5;
 export const BOARD_PER_DAY = 3;
-/** Endless play after the crossroads: the calendar runs on for a century. */
-export const ENDLESS_DAYS = 36500;
-/** Debt at this multiple of the original note turns into indenture instead of more killers. */
-export const INDENTURE_RATIO = 6;
-export const TONG_CUT = 0.3;
-/** Daily interest on deposits: Hlaalu pays more, the Imperial (EEC) house is steadier. */
-export const DEPOSIT_RATE = { hlaalu: 0.0008, eec: 0.0004 } as const;
 
 export interface StepResult { state: GameState; error?: string }
 
@@ -82,8 +80,6 @@ export function newGame(cfg: NewGameConfig): GameState {
   return s;
 }
 
-function unlock(s: GameState, id: string) { if (C.codex[id] && !s.codex.includes(id)) s.codex.push(id); }
-function log(s: GameState, text: string, tone: LogEntry['tone'] = 'neutral') { s.log.push({ day: s.day, text, tone }); if (s.log.length > 400) s.log.splice(0, s.log.length - 400); }
 
 function startChronicle(s: GameState, fresh: boolean) {
   s.mode = 'long-chronicle'; s.timeScale = 7; s.endDay = CORONATION_DAY; s.over = null;
@@ -105,18 +101,6 @@ export function jobPay(s: GameState, loc: string, job: Job): number {
   return Math.round(base * job.mult * (hard ? 1.25 : 1));
 }
 
-/** Milestones open early retirement ("retire now or carry on"). */
-function milestones(s: GameState) {
-  const got = (s.milestones ??= []);
-  const add = (id: string, title: string, text: string) => {
-    if (got.includes(id)) return;
-    got.push(id);
-    s.inbox.push({ kind: 'result', title, text: `${text} You can retire now (Bank tab) with your fortune as it stands, or carry on.` });
-  };
-  if (s.note.cleared && !s.indentured) add('debt', 'Free of debt', 'The Tong has no claim on you.');
-  if (s.charter.tier >= 3) add('charter', 'Charter-Holder', 'You hold a share of the Scathing Charter.');
-  if (s.player.mercy >= 60) add('mercy', 'A name for mercy', 'Refugees across Morrowind know your name.');
-}
 
 // ---------------------------------------------------------------- daily tick
 export function tickDay(s: GameState, rng: Rng): void {
@@ -216,20 +200,6 @@ export function tickDay(s: GameState, rng: Rng): void {
 function tickDays(s: GameState, rng: Rng, n: number) { for (let i = 0; i < n && !s.over; i++) tickDay(s, rng); }
 
 // ---------------------------------------------------------------- contracts
-function makeOffers(s: GameState, rng: Rng, loc: string) {
-  s.offers = s.offers.filter(o => o.origin !== loc);
-  const cands = C.contracts.filter(t => t.origins.includes(loc) && (t.from === undefined || s.day >= t.from) && (t.to === undefined || s.day < t.to) && (!t.flag || s.world.flags[t.flag]));
-  const licensed = s.charter.tier >= 1;
-  for (let i = 0; i < (licensed ? 3 : 2) && cands.length; i++) {
-    const t = licensed ? rng.weighted(cands, x => (x.mercy > 0 ? 3 : 1))! : rng.pick(cands);
-    const dests = t.destinations.filter(d => d !== loc && s.world.status[d] !== 'closed');
-    if (!dests.length) continue;
-    const good = rng.pick(t.goods); const destination = rng.pick(dests);
-    const qty = rng.int(t.qty[0], t.qty[1]);
-    const reward = Math.round(qty * fairValue(s, good) * t.payMult * (licensed && t.mercy > 0 ? C.charter.reliefPayBonus : 1));
-    s.offers.push({ id: `${t.id}-${s.day}-${i}-${rng.int(0, 9999)}`, templateId: t.id, good, qty, destination, deadline: s.day + t.deadline * (s.timeScale > 1 ? 4 : 1), reward, origin: loc });
-  }
-}
 
 // ---------------------------------------------------------------- arrival
 function arrive(s: GameState, rng: Rng, dest: string) {
@@ -273,7 +243,6 @@ export function step(state: GameState, action: Action): StepResult {
   return { state: s };
 }
 
-function here(s: GameState) { return C.locs[s.player.location]; }
 
 /** Note today's prices where the player stands (their price book). Closed markets leave the old entry. */
 function recordPrices(s: GameState) {
@@ -329,71 +298,11 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       if (!s.over) makeOffers(s, rng, s.player.location);
       return;
     }
-    case 'deposit': case 'withdraw': {
-      const key = branchKey(a.house, loc);
-      if (s.world.branches[key] !== 'open') return 'There is no open branch here.';
-      const amt = Math.floor(a.amount); if (amt <= 0) return 'Enter an amount.';
-      if (a.t === 'deposit') {
-        if (s.player.cash < amt) return 'Not enough cash.';
-        s.player.cash -= amt; s.deposits[key] = (s.deposits[key] ?? 0) + amt; unlock(s, `topic:house-${a.house}`);
-      } else {
-        const fee = Math.ceil(amt * (a.house === 'hlaalu' ? 0.01 : 0.02) * C.backgrounds[s.player.backgroundId].feeMult * (s.world.flags.hlaaluFees && a.house === 'hlaalu' ? 2 : 1));
-        if ((s.deposits[key] ?? 0) < amt) return 'Not that much on deposit here.';
-        s.deposits[key] -= amt; s.player.cash += amt - fee;
-      }
-      return;
-    }
-    case 'writ': {
-      const to = branchKey(a.house, loc), from = branchKey(a.house, a.from);
-      if (s.world.branches[to] !== 'open') return 'No open branch of that house here.';
-      if (s.world.branches[from] !== 'open') return 'That branch no longer honours writs.';
-      const amt = Math.floor(a.amount);
-      if (amt <= 0 || (s.deposits[from] ?? 0) < amt) return 'Not that much on deposit there.';
-      const fee = Math.ceil(amt * (a.house === 'hlaalu' ? 0.03 : 0.04) * C.backgrounds[s.player.backgroundId].feeMult * (s.world.flags.hlaaluFees && a.house === 'hlaalu' ? 2 : 1));
-      s.deposits[from] -= amt; s.deposits[to] = (s.deposits[to] ?? 0) + amt - fee;
-      log(s, `A writ of coin moves ${amt} septims from ${C.locs[a.from].name} (fee ${fee}).`);
-      return;
-    }
-    case 'pay': {
-      if (s.note.cleared) return 'Your note is cleared.';
-      if (loc !== s.note.seat && !s.note.agents.includes(loc)) return 'No Tong collector here.';
-      const amt = Math.min(Math.floor(a.amount), Math.ceil(s.note.balance), s.player.cash);
-      if (amt <= 0) return 'Enter an amount.';
-      s.player.cash -= amt; s.note.balance -= amt; s.note.lastPaymentDay = s.day;
-      if (s.note.balance < 1) { s.note.balance = 0; s.note.cleared = true; log(s, 'You paid off the Camonna Tong. You owe no one.', 'good'); s.inbox.push({ kind: 'result', title: 'Debt paid off', text: 'Gavas Drelloth counts the coin twice, then tears up your note. "Pleasure, outlander." You are free of the Tong.' }); }
-      return;
-    }
-    case 'borrow': {
-      // The Tong always lends; every advance raises the rate, and a bigger debt brings harder collectors (pressure()).
-      if (loc !== s.note.seat && !s.note.agents.includes(loc)) return 'No Tong agent here.';
-      const amt = Math.floor(a.amount);
-      if (amt <= 0) return 'Enter an amount.';
-      if (s.note.cleared) { s.note.cleared = false; s.note.balance = 0; s.note.lastPaymentDay = s.day; }
-      s.note.rate = Math.min(0.02 / s.timeScale, s.note.rate + 0.0015 * amt / s.note.original / s.timeScale);
-      s.note.extended += amt; s.note.balance += amt; s.player.cash += amt;
-      log(s, `You borrow ${amt} more from the Tong.`, 'bad');
-      return;
-    }
+    case 'deposit': case 'withdraw': case 'writ': case 'pay': case 'borrow': return bankAction(s, a, loc);
+    case 'accept': case 'deliver': return contractAction(s, a, loc);
+    case 'book': return bookAction(s, a);
+    case 'crossroads': case 'retire': return endingAction(s, a);
     case 'rumor': return rumor(s, rng);
-    case 'accept': {
-      const o = s.offers.find(x => x.id === a.id); if (!o) return 'That offer is gone.';
-      if (s.contracts.length >= 4) return 'You already carry four contracts.';
-      s.offers = s.offers.filter(x => x.id !== a.id); s.contracts.push(o); unlock(s, `faction:${C.contracts.find(t => t.id === o.templateId)!.faction}`);
-      return;
-    }
-    case 'deliver': {
-      const c = s.contracts.find(x => x.id === a.id); if (!c) return 'No such contract.';
-      if (c.destination !== loc) return `Deliver to ${C.locs[c.destination].name}.`;
-      const lot = s.player.cargo[c.good]; if (!lot || lot.qty < c.qty) return `You need ${c.qty} ${C.goods[c.good].name}.`;
-      lot.qty -= c.qty; if (lot.qty <= 0) delete s.player.cargo[c.good];
-      const t = C.contracts.find(x => x.id === c.templateId)!;
-      s.player.cash += c.reward; s.player.rep[t.faction] = clampRep(s.player.rep[t.faction] + t.rep); s.player.mercy += t.mercy;
-      if (t.mercy > 0) s.stats.reliefDelivered++;
-      s.stats.contractsDone++;
-      s.contracts = s.contracts.filter(x => x.id !== c.id);
-      log(s, `Delivered ${c.qty} ${C.goods[c.good].name} for ${t.issuer}: ${c.reward} septims.`, 'good');
-      return;
-    }
     case 'gear': {
       const g = C.gear[a.id]; if (!g) return 'Unknown item.';
       if (!here(s).outfitter || s.world.status[loc] === 'closed') return 'No outfitter here.';
@@ -433,16 +342,6 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       if (s.player.cash < cost) return `Healing costs ${cost}.`;
       s.player.cash -= cost; s.player.health = 100; return;
     }
-    case 'book': {
-      const b = C.books.find(x => x.id === a.id); if (!b) return 'No such book.';
-      if (!here(s).books) return 'No bookseller here.';
-      if (s.player.books.includes(b.id)) return 'You own it.';
-      if (b.from !== undefined && s.day < b.from) return 'Not yet written.';
-      if (s.player.cash < b.price) return `It costs ${b.price}.`;
-      s.player.cash -= b.price; s.player.books.push(b.id);
-      unlock(s, `book:${b.id}`); for (const u of b.unlocks) unlock(s, u);
-      return;
-    }
     case 'choose': {
       if (!s.pending) return 'Nothing to choose.';
       if (!s.pending.choices.includes(a.choice)) return 'Not an option.';
@@ -457,27 +356,6 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       if (s.over) { s.player.location = p.dest; return; }
       if (p.customs) return;
       arrive(s, rng, p.dest);
-      return;
-    }
-    case 'crossroads': {
-      // The last day: retire for good, or choose a way to play on without an end date (score frozen now).
-      if (s.over?.reason !== 'calendar' || s.ending) return 'Not now.';
-      if (a.choice === 'charter' && s.charter.tier < 2) return 'You need a charter tier of 2 or more.';
-      s.ending = { kind: a.choice, day: s.day, worth: netWorth(s) };
-      if (a.choice === 'retire') { log(s, 'You put away the ledger for good.', 'history'); return; }
-      s.over = null; s.endDay = s.day + ENDLESS_DAYS;
-      if (a.choice === 'tong') {
-        s.note.cleared = true; s.note.balance = 0; s.indentured = false;
-        s.player.rep.tong = clampRep(s.player.rep.tong + 30); addHeat(s, 30);
-        log(s, 'You take the Tong’s mark. Your debt is gone; now you carry what they tell you to.', 'history');
-      } else log(s, a.choice === 'charter' ? 'You take your seat among the Charter-Holders and keep trading.' : 'The ledger stays open. You keep trading.', 'history');
-      return;
-    }
-    case 'retire': {
-      if (!s.milestones?.length) return 'You have nothing to retire on yet.';
-      if (s.indentured) return 'The Tong does not let its runners retire.';
-      s.ending = { kind: 'retire', day: s.day, worth: netWorth(s) };
-      s.over = { reason: 'retired', day: s.day };
       return;
     }
     case 'appeal': {

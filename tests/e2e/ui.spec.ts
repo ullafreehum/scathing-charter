@@ -81,6 +81,7 @@ test('market: amount picker, buy and sell, filters, capped amounts, next-step hi
   await page.getByRole('radio', { name: 'All', exact: true }).click();
   // Max sells everything you own of it
   await page.getByRole('radio', { name: 'Max' }).click();
+  page.once('dialog', d => d.accept()); // selling at a loss asks first
   await row.getByRole('button', { name: /^Sell/ }).click();
   expect(await purse(page)).toBeGreaterThan(p1);
   expect((await load(page))[0]).toBe(0);
