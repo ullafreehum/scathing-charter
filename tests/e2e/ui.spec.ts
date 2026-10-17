@@ -257,7 +257,7 @@ test('settings: themes, fonts, text size, motion and sound persist', async ({ pa
   await dlg.getByRole('radio', { name: /^Atkinson Hyperlegible/ }).click();
   await expect(html).toHaveAttribute('data-caps', 'off');
   await dlg.getByRole('radio', { name: 'Text size 125%' }).click();
-  expect(await html.evaluate(e => e.style.fontSize)).toBe('125%');
+  expect(await html.evaluate(e => e.style.getPropertyValue('--ui-scale'))).toBe('1.25');
   await dlg.getByRole('checkbox', { name: 'Falling ash' }).uncheck();
   await expect(page.locator('canvas')).toHaveCount(0);
   await dlg.getByRole('checkbox', { name: 'Sound on' }).uncheck();
@@ -265,7 +265,7 @@ test('settings: themes, fonts, text size, motion and sound persist', async ({ pa
   await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-settings.png' });
   await page.reload();
   await expect(html).toHaveAttribute('data-theme', 'west-gash');
-  expect(await html.evaluate(e => e.style.fontSize)).toBe('125%');
+  expect(await html.evaluate(e => e.style.getPropertyValue('--ui-scale'))).toBe('1.25');
   await page.getByRole('button', { name: 'Settings' }).click();
   await expect(page.getByRole('checkbox', { name: 'Sound on' })).not.toBeChecked();
   await page.getByRole('button', { name: 'Reset to defaults' }).click();

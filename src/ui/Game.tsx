@@ -162,7 +162,7 @@ export function GameScreen() {
   // the Travel tab puts its destination list where the town panel sits, so the map lines up with the price list
   const [side, setSide] = useState<HTMLDivElement | null>(null);
   return (
-    <div className="relative z-10 p-2 sm:p-3 flex flex-col gap-3 max-w-[1500px] mx-auto"
+    <div className="relative z-10 p-2 sm:p-3 flex flex-col gap-3 max-w-[94rem] mx-auto"
       onKeyDown={e => { if ((e.target as HTMLElement).tagName === 'INPUT') return; const t = TABS.find(x => x.key === e.key); if (t) setTab(t.id); if (e.key === 'c') useGame.getState().openCodex(null); }} tabIndex={-1}>
       <TopBar g={g} />
       {hints && <NextSteps g={g} />}

@@ -25,10 +25,10 @@ const CHOICE: Record<string, { label: string; hint: (g: GameState) => string }> 
   decline: { label: 'Decline', hint: () => '' },
 };
 
-function Card({ children, wide = false, parchment = false, label }: { children: React.ReactNode; wide?: boolean; parchment?: boolean; label?: string }) {
+function Card({ children, wide = false, board = false, parchment = false, label }: { children: React.ReactNode; wide?: boolean; board?: boolean; parchment?: boolean; label?: string }) {
   return (
     <motion.div className="fixed inset-0 z-40 scrim flex items-center justify-center p-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-      <motion.div role="dialog" aria-modal="true" aria-label={label} className={`${parchment ? 'parchment' : 'panel-solid'} ${wide ? 'max-w-3xl' : 'max-w-xl'} w-full p-5 max-h-[90vh] overflow-auto scroll-thin`} initial={{ y: 24, scale: 0.97 }} animate={{ y: 0, scale: 1 }} exit={{ y: 14, opacity: 0 }} transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}>
+      <motion.div role="dialog" aria-modal="true" aria-label={label} className={`${parchment ? 'parchment' : 'panel-solid'} ${board ? 'max-w-6xl' : wide ? 'max-w-3xl' : 'max-w-xl'} w-full p-5 max-h-[90dvh] overflow-auto scroll-thin`} initial={{ y: 24, scale: 0.97 }} animate={{ y: 0, scale: 1 }} exit={{ y: 14, opacity: 0 }} transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}>
         {children}
       </motion.div>
     </motion.div>
@@ -41,7 +41,7 @@ export function Overlays() {
   if (!g) return null;
   const item = g.inbox[0];
   let node: React.ReactNode = null;
-  if (g.duel) node = <Card key="duel" wide label="Magistrate’s hearing"><DuelScreen d={g.duel} /></Card>;
+  if (g.duel) node = <Card key="duel" board label="Magistrate’s hearing"><DuelScreen d={g.duel} /></Card>;
   else if (g.pending) {
     const p = g.pending;
     node = (

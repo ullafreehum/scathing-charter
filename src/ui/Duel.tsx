@@ -23,7 +23,7 @@ const GEN = { stone: 'masons', steel: 'soldiers', magicka: 'mages' } as const;
 function Side({ s, title }: { s: DuelSide; title: string }) {
   const clip = (n: number) => ({ clipPath: `inset(${100 - Math.min(100, n)}% 0 0 0)` });
   return (
-    <div className="panel p-3 text-sm flex-1 min-w-[160px]">
+    <div className="panel p-3 text-sm flex-1 min-w-[10rem]">
       <div className="h-display text-xs uppercase text-ash-400">{title}</div>
       <div className="flex items-end gap-2 h-32 mt-2" aria-label={`Spire ${s.tower}, ward ${s.wall}`}>
         <img src={spire} alt="" className="h-full w-auto" style={clip(s.tower)} />
@@ -56,7 +56,7 @@ export function DuelScreen({ d }: { d: DuelState }) {
             <label className="flex items-center gap-1"><input type="checkbox" checked={discard} onChange={e => setDiscard(e.target.checked)} /> Discard instead of play</label>
             <span className="text-ash-400 text-xs">Turn {d.turn}</span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 max-w-[640px]">
+          <div className="grid grid-cols-4 lg:grid-cols-8 gap-2 mt-2">
             {d.you.hand.map((id, i) => {
               const c = DUEL_CARD[id]; const ok = discard || canPlay(d.you, id);
               return (
@@ -64,9 +64,9 @@ export function DuelScreen({ d }: { d: DuelState }) {
                   onClick={() => act({ t: 'duel', card: i, discard })}>
                   {artUrl(c.art) && <img src={artUrl(c.art)} alt="" className="absolute" style={{ left: '10%', top: '15.3%', width: '80%', height: '38.8%' }} />}
                   <img src={frame} alt="" className="absolute inset-0 w-full h-full" />
-                  <span className="absolute left-[10%] right-[10%] top-[4%] text-[11px] text-bone leading-tight">{c.name}</span>
-                  <span className={`absolute right-[8%] top-[4%] flex items-center gap-0.5 text-[11px] ${RES_LABEL[c.res].cls}`}><img src={RES_LABEL[c.res].icon} alt={RES_LABEL[c.res].name} className="w-3.5 h-3.5" />{c.cost}</span>
-                  <span className="absolute left-[10%] right-[10%] top-[57%] text-[11px] text-parchment leading-tight">{c.text}<span className="block italic text-ash-400 mt-1">{c.flavour}</span></span>
+                  <span className="absolute left-[10%] right-[10%] top-[4%] text-[0.69rem] text-bone leading-tight">{c.name}</span>
+                  <span className={`absolute right-[8%] top-[4%] flex items-center gap-0.5 text-[0.69rem] ${RES_LABEL[c.res].cls}`}><img src={RES_LABEL[c.res].icon} alt={RES_LABEL[c.res].name} className="w-3.5 h-3.5" />{c.cost}</span>
+                  <span className="absolute left-[10%] right-[10%] top-[57%] text-[0.69rem] text-parchment leading-tight">{c.text}<span className="block italic text-ash-400 mt-1">{c.flavour}</span></span>
                 </button>
               );
             })}

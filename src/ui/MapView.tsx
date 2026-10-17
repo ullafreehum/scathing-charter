@@ -234,7 +234,7 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
           </> : <div className="text-xs text-danger">No way through right now. <button className="linkish" onClick={() => setPlan(null)}>Cancel plan</button></div>}
         </div>
       )}
-      <div className="max-h-[560px] overflow-auto scroll-thin pr-1">
+      <div className="max-h-[35rem] overflow-auto scroll-thin pr-1">
         {dests.map((d, i) => {
           const best = d.options[0];
           const warn = travelWarnings(g, d.id, best.days).length;
@@ -269,7 +269,7 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
             <button className="btn btn-ghost px-2 py-0.5" aria-label="Zoom in" onClick={() => zoomAt(1 / 1.35)}>+</button>
           </div>
         </div>
-        <div ref={box} className="relative w-full h-[min(66vh,680px)] min-h-[340px] overflow-hidden rounded-md touch-none select-none cursor-grab active:cursor-grabbing"
+        <div ref={box} className="relative w-full h-[max(20rem,calc(100dvh-22rem))] overflow-hidden rounded-md touch-none select-none cursor-grab active:cursor-grabbing"
           onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}>
           <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} className="absolute inset-0 w-full h-full" role="img" aria-label="Map of eastern Tamriel">
             <defs>

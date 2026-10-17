@@ -13,6 +13,7 @@ and the Long Chronicle.
 - Books are no longer bought: you find them in towns with bookshops, they go into the Codex, and their perks are always on.
 - A round at the tavern gives a trade tip, any new warning, and one old tale or historians' quarrel, which goes into the Codex (new Tavern tales section).
 - The Red Year shows on the map: an ash haze over Vvardenfell that thickens toward the eruption, a red glow on Red Mountain once the omens start, ash-grey towns with a cracked ring afterwards, closed lines drawn as dotted red crosses, tents at the camps, refugee columns walking to Narsis and Mournhold, war fronts hatched around besieged and occupied towns, and a banner over occupied ones.
+- The game fits any screen from 1024×600 to 4K and ultrawide: the whole interface grows with the window (designed at 1280×720), stays centred on very wide screens, the map fills the free height, and the hearing shows all eight cards in one row. The Text size setting is now "Text and UI size" and scales on top of that.
 
 ## 0.9.6 (beta): fixes from a playtest
 - Crater salvage in Vivec, ruin clearing in Ebonheart and the rubble crew at Fort Frostmoth only appear after the eruption.

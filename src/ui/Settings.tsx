@@ -21,7 +21,7 @@ export function Settings() {
     <motion.div className="fixed inset-0 z-[55] scrim flex items-center justify-center p-3" onClick={closeSettings}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
       <motion.div role="dialog" aria-modal="true" aria-label="Settings" onClick={e => e.stopPropagation()}
-        className="panel-solid w-full max-w-3xl max-h-[90vh] overflow-auto scroll-thin p-5"
+        className="panel-solid w-full max-w-3xl max-h-[90dvh] overflow-auto scroll-thin p-5"
         initial={{ y: 16, scale: 0.98 }} animate={{ y: 0, scale: 1 }} exit={{ y: 10, scale: 0.98 }} transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="h-display text-2xl text-bone">Settings</h2>
@@ -64,8 +64,8 @@ export function Settings() {
           </div>
         </Group>
 
-        <Group title="Text size" note="Scales the whole interface.">
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Text size">
+        <Group title="Text and UI size" note="The game already grows with your screen; this scales it further.">
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Text and UI size">
             {TEXT_SCALES.map(x => (
               <button key={x} role="radio" aria-checked={Math.abs(s.textScale - x) < 0.001} aria-label={`Text size ${Math.round(x * 100)}%`}
                 className={`${pick(Math.abs(s.textScale - x) < 0.001)} px-3 py-1 bg-ash-900 text-bone`} onClick={() => setSettings({ textScale: x })}>

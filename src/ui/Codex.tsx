@@ -36,7 +36,7 @@ export function Codex() {
     <motion.div className="fixed inset-0 z-50 scrim flex items-center justify-center p-2 sm:p-6" onClick={closeCodex}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }}>
       <motion.div role="dialog" aria-label="Codex" onClick={e => e.stopPropagation()}
-        className="panel-solid w-full max-w-6xl h-[88vh] grid grid-cols-1 md:grid-cols-[220px_260px_1fr] overflow-hidden"
+        className="panel-solid w-full max-w-6xl h-[88dvh] grid grid-cols-1 md:grid-cols-[13.75rem_16.25rem_1fr] overflow-hidden"
         initial={{ opacity: 0, y: 18, scale: 0.975 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.98 }} transition={{ duration: 0.26, ease: EASE }}>
         <nav className="border-r border-ash-700 p-3 overflow-auto scroll-thin">
           <div className="h-display text-ember mb-2">Codex</div>

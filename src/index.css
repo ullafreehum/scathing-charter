@@ -41,6 +41,10 @@
 :root[data-kind="light"] { color-scheme: light; --shadow: rgba(70,50,30,.14); --shadow-strong: rgba(50,35,20,.3); }
 
 html, body, #root { height: 100%; }
+/* Screen fit: the UI is designed at 1280x720 and scales with the screen from 1024px wide up (16px at 1280x720,
+   24px at 1920x1080, capped at 32px); --ui-scale is the Text and UI size setting. Below 1024px the phone layout keeps 16px. */
+html { font-size: calc(16px * var(--ui-scale, 1)); }
+@media (min-width: 1024px) { html { font-size: calc(clamp(14px, min(1.25vw, 2.222vh), 32px) * var(--ui-scale, 1)); } }
 body {
   margin: 0; background: var(--c-bg); color: var(--c-text);
   font-family: var(--f-body); font-size: 1.0625rem; line-height: 1.5;
