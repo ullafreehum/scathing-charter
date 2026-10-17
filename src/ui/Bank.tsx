@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { C } from '../data';
-import { DEPOSIT_RATE, branchKey, houseName, pressure, shortDate, type GameState, type House } from '../engine';
+import { DEPOSIT_RATE, WITHDRAW_FEE, houseName, pressure, shortDate, strongboxCities, type GameState } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
@@ -74,8 +74,10 @@ export function Bank({ g }: { g: GameState }) {
   const [pay, setPay] = useState(100);
   const [loan, setLoan] = useState(500);
   const borrow = () => { if (loan > 0 && confirm(`Borrow ${loan} septims from the Tong? Every loan raises your interest rate.`)) act({ t: 'borrow', amount: loan }); };
-  const [amt, setAmt] = useState<Record<string, number>>({ hlaalu: 100, eec: 100 });
+  const [box, setBox] = useState(100);
   const loc = g.player.location;
+  const boxHere = g.world.branches[loc] === 'open';
+  const held = Math.floor(g.deposits[loc] ?? 0);
   const n = g.note;
   const atTong = loc === n.seat || n.agents.includes(loc);
   const pr = pressure(g);
@@ -106,37 +108,26 @@ export function Bank({ g }: { g: GameState }) {
         {!!g.milestones?.length && !g.indentured && <div className="mt-3 text-sm"><button className="btn btn-ember" onClick={() => { if (confirm('Retire now? The game ends here with your fortune as it stands.')) act({ t: 'retire' }); }}>Retire</button> <span className="text-ash-400 text-xs">End the game now and read your epilogue.</span></div>}
         <p className="text-xs text-ash-400 mt-3"><CodexLink id="faction:tong">About the Camonna Tong</CodexLink></p>
       </Section>
-      {(['hlaalu', 'eec'] as House[]).map(h => {
-        const name = houseName(h);
-        const key = branchKey(h, loc);
-        const here = g.world.branches[key] === 'open';
-        const held = Math.floor(g.deposits[key] ?? 0);
-        const a = amt[h] ?? 100;
-        return (
-          <Section key={h} title={name}>
-            <ul className="text-sm space-y-1">{C.branches[h].map(b => {
-              const k = branchKey(h, b); const open = g.world.branches[k] === 'open'; const amtB = Math.floor(g.deposits[k] ?? 0);
-              return <li key={b} className="flex items-center gap-2"><span className={open ? 'text-bone' : 'text-ash-400 line-through'}>{C.locs[b].name}</span>{b === loc && <span className="text-xs text-gold">(here)</span>}<span className="ml-auto"><Money v={amtB} /></span>
-                {here && open && b !== loc && amtB > 0 && <button className="btn btn-ghost" onClick={() => act({ t: 'writ', house: h, from: b, amount: amtB })} title={`Move all of it to the branch here (${h === 'hlaalu' ? 3 : 4}% fee)`}>Transfer here</button>}
-              </li>;
-            })}</ul>
-            {here ? (
-              <div className="mt-3">
-                <div className="flex flex-wrap gap-2 items-center">
-                  <input className="input w-28 num" type="number" min={1} value={a} onChange={e => setAmt({ ...amt, [h]: toInt(e.target.value) })} aria-label={`${name} amount`} />
-                  <button className="btn" onClick={e => { const el = e.currentTarget; if (act({ t: 'deposit', house: h, amount: a })) coinBurst('cash', el, coinsFor(a)); }}>Deposit</button>
-                  <button className="btn btn-ghost" disabled={held < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'withdraw', house: h, amount: Math.min(a, held) })) coinBurst(el, 'cash', coinsFor(Math.min(a, held))); }}>Withdraw</button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <button className="btn" disabled={g.player.cash < 1} onClick={e => { const el = e.currentTarget; const v = g.player.cash; if (act({ t: 'deposit', house: h, amount: v })) coinBurst('cash', el, coinsFor(v)); }}>Deposit all cash</button>
-                  <button className="btn btn-ghost" disabled={held < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'withdraw', house: h, amount: held })) coinBurst(el, 'cash', coinsFor(held)); }}>Withdraw all (<Money v={held} />)</button>
-                </div>
-              </div>
-            ) : <p className="text-xs text-ash-400 mt-2">No branch of this bank here. You can only use money at the branch where you deposited it.</p>}
-            <p className="text-xs text-ash-400 mt-2">Pays {(DEPOSIT_RATE[h] * 100).toFixed(2)}% interest a day; money in the bank is safe from robbers. {h === 'hlaalu' ? '1% fee to withdraw. Branches in Vvardenfell and southern Morrowind; they can be frozen in a crisis.' : 'Lower interest but steadier. 2% fee to withdraw. Branches in Imperial ports.'} A <CodexLink id="topic:writ-of-coin">transfer</CodexLink> moves money between branches of the same bank.</p>
-          </Section>
-        );
-      })}
+      <Section title="Strongboxes">
+        <ul className="text-sm space-y-1">{strongboxCities(C.branches).map(b => {
+          const open = g.world.branches[b] === 'open'; const amtB = Math.floor(g.deposits[b] ?? 0);
+          return <li key={b} className="flex items-center gap-2"><span className={open ? 'text-bone' : 'text-ash-400 line-through'}>{C.locs[b].name}</span>{b === loc && <span className="text-xs text-gold">(here)</span>}<span className="ml-auto"><Money v={amtB} /></span></li>;
+        })}</ul>
+        {boxHere ? (
+          <div className="mt-3">
+            <div className="flex flex-wrap gap-2 items-center">
+              <input className="input w-28 num" type="number" min={1} value={box} onChange={e => setBox(toInt(e.target.value))} aria-label="Strongbox amount" />
+              <button className="btn" onClick={e => { const el = e.currentTarget; if (act({ t: 'deposit', amount: box })) coinBurst('cash', el, coinsFor(box)); }}>Deposit</button>
+              <button className="btn btn-ghost" disabled={held < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'withdraw', amount: Math.min(box, held) })) coinBurst(el, 'cash', coinsFor(Math.min(box, held))); }}>Withdraw</button>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <button className="btn" disabled={g.player.cash < 1} onClick={e => { const el = e.currentTarget; const v = g.player.cash; if (act({ t: 'deposit', amount: v })) coinBurst('cash', el, coinsFor(v)); }}>Deposit all cash</button>
+              <button className="btn btn-ghost" disabled={held < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'withdraw', amount: held })) coinBurst(el, 'cash', coinsFor(held)); }}>Withdraw all (<Money v={held} />)</button>
+            </div>
+          </div>
+        ) : <p className="text-xs text-ash-400 mt-2">No strongbox here. Money stays in the city where you left it.</p>}
+        <p className="text-xs text-ash-400 mt-2">Strongboxes pay {(DEPOSIT_RATE * 100).toFixed(2)}% a day, keep your money safe from robbers, and charge {Math.round(WITHDRAW_FEE * 100)}% to take it out. A vault can be lost if its city falls.</p>
+      </Section>
       <CharterSection g={g} />
       {g.frozen.length > 0 && (
         <Section title="Frozen accounts">

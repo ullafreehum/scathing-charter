@@ -74,7 +74,7 @@ function upkeep(s: GameState, st: Strat): GameState {
   if (s.note.cleared && s.player.cash > 3000 && s.player.porters < 2) s = act(s, { t: 'hire', who: 'porter', delta: 1 });
   // careful bots bank their surplus, except while saving up for the next charter tier
   const saving = s.world.flags.relief && s.charter.tier < 3;
-  if ((st === 'prudent' || st === 'oracle') && !saving && s.note.cleared && s.player.cash > 25000 && (loc === 'imperial-city' || loc === 'solitude')) s = act(s, { t: 'deposit', house: 'eec', amount: s.player.cash - 15000 });
+  if ((st === 'prudent' || st === 'oracle') && !saving && s.note.cleared && s.player.cash > 25000 && (loc === 'imperial-city' || loc === 'solitude')) s = act(s, { t: 'deposit', amount: s.player.cash - 15000 });
   if (s.player.location === 'leyawiin' && !s.player.licence && s.player.cash > 2000) s = act(s, { t: 'licence' });
   // the Scathing Charter: renew when asked, buy the next tier when there is a cushion left over
   if (C.charter.offices.includes(loc)) {

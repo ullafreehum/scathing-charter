@@ -260,9 +260,8 @@ export type Action =
   | { t: 'appeal' }
   | { t: 'duel'; card: number; discard?: boolean }
   | { t: 'labour'; job: string; days: number }
-  | { t: 'deposit'; house: House; amount: number }
-  | { t: 'withdraw'; house: House; amount: number }
-  | { t: 'writ'; house: House; from: string; amount: number }
+  | { t: 'deposit'; amount: number }
+  | { t: 'withdraw'; amount: number }
   | { t: 'pay'; amount: number }
   | { t: 'borrow'; amount: number }
   | { t: 'rumor' }

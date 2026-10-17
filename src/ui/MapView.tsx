@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProp
 import { createPortal } from 'react-dom';
 import { animate, motion } from 'framer-motion';
 import { C } from '../data';
-import { branchKey, routeOptions, MODE_LABEL, type GameState, type RouteOption, type TravelMode } from '../engine';
+import { routeOptions, MODE_LABEL, type GameState, type RouteOption, type TravelMode } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section, StatusPill } from './widgets';
 import { themeById } from './themes';
@@ -183,7 +183,7 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
     const L = C.locs[id]; const out: typeof MARKERS = [];
     if (markers.has('contracts') && g.contracts.some(k => k.destination === id)) out.push(MARKERS[0]);
     if (markers.has('debt') && !g.note.cleared && (g.note.seat === id || g.note.agents.includes(id))) out.push(MARKERS[1]);
-    if (markers.has('banks') && (['hlaalu', 'eec'] as const).some(h => g.world.branches[branchKey(h, id)] === 'open')) out.push(MARKERS[2]);
+    if (markers.has('banks') && g.world.branches[id] === 'open') out.push(MARKERS[2]);
     if (markers.has('heal') && (L.temple || L.shrine) && g.world.status[id] !== 'closed') out.push(MARKERS[3]);
     return out;
   };

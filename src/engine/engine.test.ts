@@ -84,15 +84,15 @@ describe('game', () => {
   });
   it('the Red Year wipes the Vivec vault and freezes Balmora’s', () => {
     let s = drain(newGame(CFG));
-    s = act(s, { t: 'deposit', house: 'hlaalu', amount: 100 });
+    s = act(s, { t: 'deposit', amount: 100 });
     s.player.location = 'balmora';
     // fast-forward to the eruption
     while (s.day < D(5, 2, 3) && !s.over) s = act(drain(s), { t: 'wait', days: 7 });
     s = drain(s);
     expect(s.world.status.vivec).toBe('camp');
     expect(s.world.status.balmora === 'ruined' || s.world.status.balmora === 'rebuilding').toBe(true);
-    expect(s.world.branches['hlaalu:balmora']).toBe('closed');
-    expect(s.frozen.length + (s.deposits['hlaalu:narsis'] ?? 0) > 0 || s.over !== null).toBe(true);
+    expect(s.world.branches['balmora']).toBe('closed');
+    expect(s.frozen.length + (s.deposits['narsis'] ?? 0) > 0 || s.over !== null).toBe(true);
     expect(s.note.seat).toBe('narsis');
   });
   it('a broke trader works their passage instead of being stranded', () => {

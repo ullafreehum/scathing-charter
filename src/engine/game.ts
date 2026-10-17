@@ -113,7 +113,7 @@ export function tickDay(s: GameState, rng: Rng): void {
     log(s, 'You are indentured to the Camonna Tong.', 'bad');
   }
   milestones(s);
-  for (const k of Object.keys(s.deposits)) if (s.world.branches[k] === 'open') s.deposits[k] *= 1 + DEPOSIT_RATE[k.startsWith('hlaalu:') ? 'hlaalu' : 'eec'];
+  for (const k of Object.keys(s.deposits)) if (s.world.branches[k] === 'open') s.deposits[k] *= 1 + DEPOSIT_RATE;
   // wages
   const hold = s.player.conveyance === 'chartered-hold' ? 10 : 0;
   const wages = s.player.porters * WAGES.porter.day + s.player.sellswords * WAGES.sellsword.day + hold;
@@ -298,7 +298,7 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       if (!s.over) makeOffers(s, rng, s.player.location);
       return;
     }
-    case 'deposit': case 'withdraw': case 'writ': case 'pay': case 'borrow': return bankAction(s, a, loc);
+    case 'deposit': case 'withdraw': case 'pay': case 'borrow': return bankAction(s, a, loc);
     case 'accept': case 'deliver': return contractAction(s, a, loc);
     case 'book': return bookAction(s, a);
     case 'crossroads': case 'retire': return endingAction(s, a);

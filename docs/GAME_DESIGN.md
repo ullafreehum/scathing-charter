@@ -65,7 +65,7 @@ At 0.3% a day the note roughly triples in a year and grows ~27× over the campai
 
 At each location the player may, in any order:
 1. **Market**: buy and sell with 2–3 merchants, each with their own leanings, refusals and patter.
-2. **Counting-house / Lender**: deposit, withdraw, buy a *writ of coin* (transfer), pay or extend the note.
+2. **Counting-house / Lender**: deposit to or withdraw from the city strongbox, pay or extend the note.
 3. **Tavern**: buy a drink to hear rumours, take contracts, hire porters and sellswords.
 4. **Outfitter / Temple**: conveyance upgrades, arms and armour, scrolls, healing.
 5. **Travel**: pick a route and mode on the map. Days pass and encounters may fire on the road.
@@ -144,17 +144,14 @@ in Raven Rock until 4E 16.
   Skyrim and Cyrodiil. There are none in Black Marsh, where the Tong has no reach. Outcomes: pay a "visit
   fee", lose cargo, get hurt, or fight. Clearing the note ends enforcement and earns *Unbowed by the Tong*.
 
-### 4.5 Counting-houses (bank) — invented institutions on a canon idea
-"Banks can offer loans or letters of credit… a *writ of coin*" (canon, LORE_BIBLE §5.2). Deposits are held
-**per branch**:
-
-| House | Branches | Interest | Fees | Historical risk |
-|---|---|---|---|---|
-| **Hlaalu Council Counting-House** | Balmora, Vivec City, Narsis, Mournhold | 0.08%/day | 1% withdrawal; writ 3% | Vivec branch **wiped** 3 SD 4E 5; Balmora branch **frozen**, settled at "ten drakes on the hundred" months later; fees spike after Hlaalu loses its seat; Mournhold branch lost when Mournhold is sacked |
-| **East Empire Company strongroom** | Ebonheart, Raven Rock, Solitude, Imperial City | 0.04%/day | 2% withdrawal; writ 4% | Ebonheart **wiped** 3 SD 4E 5 (extrapolation); Raven Rock moves to Solitude in 4E 16 (Long Chronicle) |
-
-The hedge: foreshadowing gives months of warning, and moving deposits by writ to Narsis, Solitude or the
-Imperial City is the lore-literate play.
+### 4.5 Strongboxes (bank) — invented institutions on a canon idea
+Since 0.10 each city with a Hlaalu or East Empire Company vault (Balmora, Vivec City, Narsis, Mournhold,
+Ebonheart, Raven Rock, Solitude, Imperial City) has **one strongbox**: one balance per city, 0.05%/day
+interest, a 1% withdrawal fee, safe from robbers. There are no writs: money stays where you left it.
+History still strikes the vaults: Vivec and Ebonheart are **wiped** on 3 SD 4E 5; Balmora's is **frozen**
+and settled at "ten drakes on the hundred" months later; Mournhold's is lost when Mournhold is sacked.
+The hedge is to carry your savings to Narsis, Solitude or the Imperial City before the warnings come true.
+Saves from 0.9.x sum each city's house balances into its strongbox (schema v5).
 
 ### 4.6 Market memory, smuggling heat and the Scathing Charter (v0.9.0)
 - **Market memory.** Your trades push a market's price (saturation) and it recovers by 3% of the gap a day

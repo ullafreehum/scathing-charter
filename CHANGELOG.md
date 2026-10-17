@@ -4,6 +4,9 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.10.0 (beta): the focus release (in progress)
+- One strongbox per bank city instead of two houses: 0.05% a day, 1% to take money out, no transfers between cities. Old saves add up each city's balances.
+
 ## 0.9.6 (beta): fixes from a playtest
 - Crater salvage in Vivec, ruin clearing in Ebonheart and the rubble crew at Fort Frostmoth only appear after the eruption.
 - Borrowing from the Tong has its own amount box and asks before lending.

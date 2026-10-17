@@ -24,7 +24,7 @@ test('the Red Year strikes: chronicle card, disaster, ruined Balmora, wiped vaul
   let s = base(); s.player.cash = 5000;
   s = act(s, { t: 'travel', route: 'balmora~vivec', mode: 0 }); s = drain(s);
   if (s.pending) s = drain(act(s, { t: 'choose', choice: s.pending.choices.includes('pass') ? 'pass' : s.pending.choices.includes('wait-out') ? 'wait-out' : 'flee' }));
-  if (s.player.location === 'vivec') s = act(s, { t: 'deposit', house: 'hlaalu', amount: 500 });
+  if (s.player.location === 'vivec') s = act(s, { t: 'deposit', amount: 500 });
   s.player.location = 'balmora';
   s = until(s, D(5, 2, 2));
   await boot(page, s, errors);

@@ -123,14 +123,14 @@ test('tavern: free rumour on New Life, rest advances one day for 3 dr, porter ad
   expect(errors).toEqual([]);
 });
 
-test('counting-house: deposit, withdraw with fee, pay the note', async ({ page }) => {
+test('strongbox: deposit, withdraw with fee, pay the note', async ({ page }) => {
   const errors = await start(page);
   await page.keyboard.press('Tab');
   await page.getByRole('tab', { name: 'Market' }).click();
   await page.keyboard.press('b');
   await expect(page.getByRole('tab', { name: 'Bank' })).toHaveAttribute('aria-selected', 'true');
   const p0 = await purse(page);
-  await page.getByLabel('Hlaalu Council Bank amount').fill('200');
+  await page.getByLabel('Strongbox amount').fill('200');
   await page.getByRole('button', { name: 'Deposit', exact: true }).click();
   expect(await purse(page)).toBe(p0 - 200);
   expect(await vaults(page)).toBe(200);
@@ -141,8 +141,7 @@ test('counting-house: deposit, withdraw with fee, pay the note', async ({ page }
   const n0 = await note(page);
   await page.getByRole('button', { name: 'Pay', exact: true }).click();
   expect(await note(page)).toBe(n0 - 100);
-  // EEC has no branch in Balmora
-  await expect(page.getByText('No branch of this bank here.').first()).toBeVisible();
+  await expect(page.getByText('(here)')).toBeVisible();
   expect(errors).toEqual([]);
 });
 

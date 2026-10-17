@@ -1,7 +1,7 @@
 // Save serialisation with schema versioning and ordered migrations. Storage itself lives in src/save/.
 import type { GameState } from './types';
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 /** MIGRATIONS[n] upgrades a save from version n to n+1. */
 export const MIGRATIONS: Record<number, Migration> = {
@@ -15,6 +15,17 @@ export const MIGRATIONS: Record<number, Migration> = {
   // 2 → 3: smuggling heat (starts at 0).
   2: raw => ({ ...raw, player: { heat: 0, ...(raw.player as Record<string, unknown>) }, schemaVersion: 3 }),
   // 3 → 4: the Scathing Charter and its warehouse.
+  // 4 → 5 (0.10): one strongbox per city instead of house branches ("hlaalu:balmora" → "balmora").
+  4: raw => {
+    const byCity = <T,>(rec: Record<string, T>, merge: (a: T, b: T) => T) => {
+      const out: Record<string, T> = {};
+      for (const [k, v] of Object.entries(rec ?? {})) { const c = k.includes(':') ? k.split(':')[1] : k; out[c] = c in out ? merge(out[c], v) : v; }
+      return out;
+    };
+    const world = raw.world as Record<string, unknown>;
+    const branches = byCity(world.branches as Record<string, 'open' | 'closed'>, (a, b) => (a === 'open' || b === 'open' ? 'open' : 'closed'));
+    return { ...raw, deposits: byCity(raw.deposits as Record<string, number>, (a, b) => a + b), world: { ...world, branches }, schemaVersion: 5 };
+  },
   3: raw => ({ ...raw, charter: raw.charter ?? { tier: 0, paid: 0, renewDue: null, renewed: false, nextDividend: null, dividends: 0 }, warehouse: raw.warehouse ?? {}, schemaVersion: 4 }),
 };
 

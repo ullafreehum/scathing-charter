@@ -4,7 +4,11 @@ import type { Effect, GameState, HistoryEvent } from './types';
 import type { Rng } from './rng';
 import { shortDate } from './calendar';
 
-export function branchKey(house: string, loc: string) { return `${house}:${loc}`; }
+/** Strongboxes are kept per city (0.10): the house only says who runs the vault there. */
+export function branchKey(_house: string, loc: string) { return loc; }
+/** Every strongbox city, whichever house runs it. */
+export const strongboxCities = (branches: Readonly<Record<string, readonly string[]>>) => Object.values(branches).flat();
+export const vaultHouse = (branches: Readonly<Record<string, readonly string[]>>, loc: string) => Object.entries(branches).find(([, ls]) => ls.includes(loc))?.[0] ?? 'hlaalu';
 
 function resolveLocs(locs: readonly string[] | 'all'): string[] {
   if (locs === 'all') return C.locList.map(l => l.id);

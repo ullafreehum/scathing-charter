@@ -1,37 +1,27 @@
-// Banking and the Tong note: deposits, withdrawals, writs, paying and borrowing.
+// Strongboxes and the Tong note: deposits, withdrawals, paying and borrowing.
 import { C } from '../data';
 import type { Action, GameState } from './types';
-import { branchKey } from './history';
+import { vaultHouse } from './history';
 import { log, unlock } from './util';
 
-/** Daily interest on deposits: Hlaalu pays more, the Imperial (EEC) house is steadier. */
-export const DEPOSIT_RATE = { hlaalu: 0.0008, eec: 0.0004 } as const;
+/** Daily interest on every strongbox, and the fee for taking money out. */
+export const DEPOSIT_RATE = 0.0005;
+export const WITHDRAW_FEE = 0.01;
 
 export function bankAction(s: GameState, a: Action, loc: string): string | void {
   switch (a.t) {
     case 'deposit': case 'withdraw': {
-      const key = branchKey(a.house, loc);
-      if (s.world.branches[key] !== 'open') return 'There is no open branch here.';
+      // One strongbox per city: money stays where you leave it, earns a flat rate, and costs 1% to take out.
+      if (s.world.branches[loc] !== 'open') return 'There is no strongbox here.';
       const amt = Math.floor(a.amount); if (amt <= 0) return 'Enter an amount.';
       if (a.t === 'deposit') {
         if (s.player.cash < amt) return 'Not enough cash.';
-        s.player.cash -= amt; s.deposits[key] = (s.deposits[key] ?? 0) + amt; unlock(s, `topic:house-${a.house}`);
+        s.player.cash -= amt; s.deposits[loc] = (s.deposits[loc] ?? 0) + amt; unlock(s, `topic:house-${vaultHouse(C.branches, loc)}`);
       } else {
-        const fee = Math.ceil(amt * (a.house === 'hlaalu' ? 0.01 : 0.02) * C.backgrounds[s.player.backgroundId].feeMult * (s.world.flags.hlaaluFees && a.house === 'hlaalu' ? 2 : 1));
-        if ((s.deposits[key] ?? 0) < amt) return 'Not that much on deposit here.';
-        s.deposits[key] -= amt; s.player.cash += amt - fee;
+        const fee = Math.ceil(amt * WITHDRAW_FEE * C.backgrounds[s.player.backgroundId].feeMult);
+        if ((s.deposits[loc] ?? 0) < amt) return 'Not that much in the strongbox here.';
+        s.deposits[loc] -= amt; s.player.cash += amt - fee;
       }
-      return;
-    }
-    case 'writ': {
-      const to = branchKey(a.house, loc), from = branchKey(a.house, a.from);
-      if (s.world.branches[to] !== 'open') return 'No open branch of that house here.';
-      if (s.world.branches[from] !== 'open') return 'That branch no longer honours writs.';
-      const amt = Math.floor(a.amount);
-      if (amt <= 0 || (s.deposits[from] ?? 0) < amt) return 'Not that much on deposit there.';
-      const fee = Math.ceil(amt * (a.house === 'hlaalu' ? 0.03 : 0.04) * C.backgrounds[s.player.backgroundId].feeMult * (s.world.flags.hlaaluFees && a.house === 'hlaalu' ? 2 : 1));
-      s.deposits[from] -= amt; s.deposits[to] = (s.deposits[to] ?? 0) + amt - fee;
-      log(s, `A writ of coin moves ${amt} septims from ${C.locs[a.from].name} (fee ${fee}).`);
       return;
     }
     case 'pay': {

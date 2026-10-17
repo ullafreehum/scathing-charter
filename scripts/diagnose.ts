@@ -56,12 +56,12 @@ function randomAction(s: GameState, r: Rng): Action {
     const held = qs.filter(q => q.sell !== null && s.player.cargo[q.good]);
     if (held.length) { const q = r.pick(held); return { t: 'sell', good: q.good, qty: s.player.cargo[q.good].qty }; }
   }
-  if (roll < 0.52) return r.pick<Action>([{ t: 'rumor' }, { t: 'heal' }, { t: 'pay', amount: r.int(50, 2000) }, { t: 'deposit', house: r.pick(['hlaalu', 'eec'] as const), amount: r.int(20, 500) }, { t: 'withdraw', house: r.pick(['hlaalu', 'eec'] as const), amount: r.int(20, 500) }]);
+  if (roll < 0.52) return r.pick<Action>([{ t: 'rumor' }, { t: 'heal' }, { t: 'pay', amount: r.int(50, 2000) }, { t: 'deposit', amount: r.int(20, 500) }, { t: 'withdraw', amount: r.int(20, 500) }]);
   if (roll < 0.56) {
     const o = s.offers.filter(x => x.origin === loc); if (o.length) return { t: 'accept', id: r.pick(o).id };
     const c = s.contracts.filter(x => x.destination === loc); if (c.length) return { t: 'deliver', id: r.pick(c).id };
   }
-  if (roll < 0.6) return r.pick<Action>([{ t: 'gear', id: r.pick(C.gearList).id }, { t: 'hire', who: r.pick(['porter', 'sellsword'] as const), delta: r.pick([1, -1] as const) }, { t: 'book', id: r.pick(C.books).id }, { t: 'licence' }, { t: 'borrow', amount: r.int(100, 1000) }, { t: 'writ', house: 'hlaalu', from: r.pick(C.branches.hlaalu), amount: 50 }]);
+  if (roll < 0.6) return r.pick<Action>([{ t: 'gear', id: r.pick(C.gearList).id }, { t: 'hire', who: r.pick(['porter', 'sellsword'] as const), delta: r.pick([1, -1] as const) }, { t: 'book', id: r.pick(C.books).id }, { t: 'licence' }, { t: 'borrow', amount: r.int(100, 1000) }]);
   const opts = routeOptions(s).filter(o => o.fare <= s.player.cash);
   if (opts.length && roll < 0.93) { const o = r.pick(opts); return { t: 'travel', route: o.route.id, mode: o.modeIndex }; }
   return { t: 'wait', days: r.pick([1, 3, 7] as const) };
