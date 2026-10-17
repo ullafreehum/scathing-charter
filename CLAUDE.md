@@ -9,7 +9,6 @@ Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-comme
 > tag and publishes the release (pre-release while the version is 0.x).
 > Status: **playable** (M1–M7 done). Red Year campaign + Long Chronicle; see README.md to play.
 > Design: `docs/GAME_DESIGN.md` · Lore + sources + dispute register: `docs/LORE_BIBLE.md` · raw notes: `docs/research/`.
-> The unrelated `bandcamp.html` at the repo root predates this project — leave it alone.
 > Renamed from "Ashfall Ledger": internal ids (package name, `ashfall-ledger/` localStorage keys) keep the
 > old name on purpose so existing saves still load. Title art: `src/assets/scathing-charter-logo.jpg`.
 
