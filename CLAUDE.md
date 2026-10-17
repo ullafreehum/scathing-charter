@@ -3,7 +3,7 @@
 A lore-dense, Dope Wars–style trading game set in the Elder Scrolls universe at the dawn of the
 Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-commercial fan project.
 
-> Version **0.10.0** (beta): the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
+> Version **0.9.1** (beta): the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
 > bump it there and add a `CHANGELOG.md` entry for each release.
 > Status: **playable** (M1–M7 done). Red Year campaign + Long Chronicle; see README.md to play.
 > Design: `docs/GAME_DESIGN.md` · Lore + sources + dispute register: `docs/LORE_BIBLE.md` · raw notes: `docs/research/`.

@@ -447,7 +447,7 @@ armour, scrolls, reputations, Mercy, Lilmoth licence, codex unlocks, achievement
   recorded after every action. The Market shows the best price seen elsewhere; Travel estimates cargo
   value and buy-here-sell-there runs per destination. Balance bots already read live prices everywhere,
   so the price book gives the player less than the bots had and the difficulty targets still hold.
-- **Feel (v0.10)**: good icons (`ui/GoodIcon.tsx`), floating deltas on cash/debt/heat, a non-blocking travel
+- **Feel (v0.9.1)**: good icons (`ui/GoodIcon.tsx`), floating deltas on cash/debt/heat, a non-blocking travel
   banner, and a fortune chart (`ui/FortuneChart.tsx`) fed by weekly `stats.worth` samples taken in `tickDay`.
 - **Transitions**: the Codex and Settings slide and fade in over a blurred scrim while the dashboard eases
   back slightly; codex entries crossfade. All of it respects the Animations setting.
