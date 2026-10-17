@@ -22,6 +22,7 @@ export const WAGES = { porter: { hire: 100, day: 4, max: 4 }, sellsword: { hire:
 export const LICENCE_PRICE = 300;
 export const RUMOR_PRICE = 5;
 export const BOARD_PER_DAY = 3;
+export const LABOUR_PER_DAY = { calm: 8, hard: 14 } as const;
 
 export interface StepResult { state: GameState; error?: string }
 
@@ -250,7 +251,6 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
     case 'travel': {
       const opt = routeOptions(s).find(o => o.route.id === a.route && o.modeIndex === a.mode);
       if (!opt) return 'That route is not open.';
-      if (opt.blocked) return opt.blocked;
       s.stats.journeys++;
       unlock(s, `travel:${opt.mode}`);
       if (s.player.cash < opt.fare) {
@@ -268,6 +268,18 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       const cost = free ? 0 : BOARD_PER_DAY * a.days * s.timeScale;
       if (s.player.cash >= cost) s.player.cash -= cost;
       else { s.player.health = Math.max(1, s.player.health - 2 * a.days); log(s, 'You cannot pay for a bed, so you sleep rough in the ash.', 'bad'); }
+      tickDays(s, rng, a.days * s.timeScale);
+      if (!s.over) makeOffers(s, rng, s.player.location);
+      return;
+    }
+    case 'labour': {
+      // The broke can always hire on: hauling ash and rubble pays better where the Red Year hit hardest.
+      if (![3, 7].includes(a.days)) return 'Work 3 or 7 days.';
+      const hard = ['ruined', 'rebuilding', 'sacked', 'refugee-swollen'].includes(s.world.status[loc]);
+      const pay = (hard ? LABOUR_PER_DAY.hard : LABOUR_PER_DAY.calm) * a.days * s.timeScale;
+      s.player.health = Math.max(1, s.player.health - a.days);
+      s.player.cash += pay;
+      log(s, `You hire on ${hard ? 'clearing ash and rubble' : 'at the docks and stables'} for ${a.days * s.timeScale} days and earn ${pay} septims.`, 'good');
       tickDays(s, rng, a.days * s.timeScale);
       if (!s.over) makeOffers(s, rng, s.player.location);
       return;

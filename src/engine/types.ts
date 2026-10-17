@@ -56,7 +56,7 @@ export interface Location extends Sourced {
   status: LocStatus;
 }
 
-export interface RouteMode { mode: TravelMode; days: number; fare: number; risk: number; maxWeight?: number }
+export interface RouteMode { mode: TravelMode; days: number; fare: number; risk: number }
 export interface Route { id: string; a: string; b: string; modes: readonly RouteMode[]; closed?: boolean; note?: string }
 
 export type Effect =
@@ -240,6 +240,7 @@ export type Action =
   | { t: 'sell'; good: string; qty: number }
   | { t: 'travel'; route: string; mode: number }
   | { t: 'wait'; days: number }
+  | { t: 'labour'; days: number }
   | { t: 'deposit'; house: House; amount: number }
   | { t: 'withdraw'; house: House; amount: number }
   | { t: 'writ'; house: House; from: string; amount: number }

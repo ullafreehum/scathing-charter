@@ -4,6 +4,10 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.9.5 (beta)
+- No more weight limits on travel: Guild Guides take any load, so a full pack never strands you.
+- Running out of money no longer ends a run in practice: at any tavern you can hire on for 3 or 7 days of day labour (better pay in towns the Red Year hit), at a small cost in health.
+
 ## 0.9.4 (beta)
 - Travel tab: the destination list now sits in the left column, so the map lines up with the price list and the tabs stay put.
 - Save slots show who, where, the game date and when they were saved; saving shows a check mark, and a slot holding another game asks before it is overwritten.

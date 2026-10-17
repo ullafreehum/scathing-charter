@@ -13,7 +13,7 @@ describe('route planner', () => {
     expect(p.days).toBe(p.legs.reduce((a, l) => a + l.days, 0));
   });
   it('uses the fastest direct option for a neighbour', () => {
-    const direct = routeOptions(g).filter(o => !o.blocked)[0];
+    const direct = routeOptions(g)[0];
     const p = planRoute(g, direct.dest)!;
     expect(p.days).toBeLessThanOrEqual(direct.days);
   });

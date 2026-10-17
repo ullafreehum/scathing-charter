@@ -1,5 +1,5 @@
 import { C } from '../data';
-import { holidayAt, shortDate, RUMOR_PRICE, WAGES, BOARD_PER_DAY, type GameState } from '../engine';
+import { holidayAt, shortDate, RUMOR_PRICE, WAGES, BOARD_PER_DAY, LABOUR_PER_DAY, type GameState } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 
@@ -15,6 +15,7 @@ export function Tavern({ g }: { g: GameState }) {
         <div className="flex flex-wrap gap-2">
           <button className="btn btn-ember" onClick={() => act({ t: 'rumor' })}>Buy a round &amp; hear rumours {hol?.freeRumor ? '(free tonight)' : <>(<Money v={RUMOR_PRICE} />)</>}</button>
           {[1, 3, 7].map(d => <button key={d} className="btn" onClick={() => act({ t: 'wait', days: d })} title={hol?.freeRest ? 'Free rooms today' : `Room and board: ${BOARD_PER_DAY * d * g.timeScale} septims`}>Rest {d} day{d > 1 ? 's' : ''}{g.timeScale > 1 ? ` (×${g.timeScale})` : ''}</button>)}
+          {[3, 7].map(d => <button key={`w${d}`} className="btn" onClick={() => act({ t: 'labour', days: d })} title={`Day labour: about ${LABOUR_PER_DAY.calm}–${LABOUR_PER_DAY.hard} septims a day (more in towns the Red Year hit), costs a little health`}>Work {d} days{g.timeScale > 1 ? ` (×${g.timeScale})` : ''}</button>)}
         </div>
         <div className="mt-3 space-y-2">{heard.map(r => (
           <div key={r.id} className="text-sm border-l-2 border-ash-600 pl-2"><span className="fell italic text-parchment">{r.voice ? `${r.voice}: ` : ''}“{r.text}”</span>

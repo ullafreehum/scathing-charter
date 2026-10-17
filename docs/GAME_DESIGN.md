@@ -220,7 +220,7 @@ Days are in-game days. Fares are base septims, with freight added per stone.
 | Vivec – Ebonheart | road | 1 | 2 | 0 |
 | Vivec – Sadrith Mora | coastal boat | 2 | 30 | 1 |
 | Ebonheart – Sadrith Mora | coastal boat | 2 | 30 | 1 |
-| Guild halls (Balmora, Ald'ruhn, Sadrith Mora, Vivec) | Guild Guide | 1 | 120 | 0 (≤25 stone; ends Frostfall 4E 4) |
+| Guild halls (Balmora, Ald'ruhn, Sadrith Mora, Vivec) | Guild Guide | 1 | 120 | 0 (ends Frostfall 4E 4) |
 | Ald'ruhn – Fort Frostmoth | Khuul ferry + strider | 2 | 40 | 2 |
 | Fort Frostmoth – Raven Rock | road | 1 | 5 | 1 |
 | Ebonheart – Mournhold | Inner Sea ship + road | 3 | 45 | 1 |

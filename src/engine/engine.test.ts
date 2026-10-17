@@ -61,6 +61,13 @@ describe('game', () => {
     s = act(s, { t: 'wait', days: 7 });
     expect(s.note.balance).toBeCloseTo(DIFFICULTY.tong.debt * Math.pow(1.003, 7), 3);
   });
+  it('lets a broke trader hire on for wages', () => {
+    let s = drain(newGame(CFG));
+    const cash = s.player.cash, day = s.day;
+    s = drain(act(s, { t: 'labour', days: 3 }));
+    expect(s.day).toBe(day + 3);
+    expect(s.player.cash).toBeGreaterThan(cash);
+  });
   it('replays identically from seed and action log', () => {
     let s = drain(newGame(CFG));
     for (let i = 0; i < 25 && !s.over; i++) {
@@ -68,7 +75,7 @@ describe('game', () => {
       if (s.pending) { s = act(s, { t: 'choose', choice: s.pending.choices[0] === 'bribe' ? 'flee' : s.pending.choices[0] }); continue; }
       const q = quotes(s, s.player.location).filter(x => x.buy !== null && x.buy < s.player.cash / 4);
       if (q.length) { const r = step(s, { t: 'buy', good: q[0].good, qty: 1 }); if (!r.error) s = r.state; }
-      const opts = routeOptions(s).filter(o => !o.blocked && o.fare <= s.player.cash);
+      const opts = routeOptions(s).filter(o => o.fare <= s.player.cash);
       if (opts.length) s = act(s, { t: 'travel', route: opts[i % opts.length].route.id, mode: opts[i % opts.length].modeIndex });
       else s = act(s, { t: 'wait', days: 3 });
     }
@@ -91,7 +98,7 @@ describe('game', () => {
   it('a broke trader works their passage instead of being stranded', () => {
     let s = drain(newGame(CFG));
     s.player.cash = 0;
-    const o = routeOptions(s).find(x => !x.blocked)!;
+    const o = routeOptions(s)[0];
     const r = step(s, { t: 'travel', route: o.route.id, mode: o.modeIndex });
     expect(r.error).toBeUndefined();
     s = r.state;
@@ -146,7 +153,7 @@ describe('price book', () => {
     let s = drain(newGame(CFG));
     expect(s.seen.balmora.day).toBe(0);
     expect(Object.keys(s.seen.balmora.buy).length).toBeGreaterThan(5);
-    const opt = routeOptions(s).find(o => !o.blocked)!;
+    const opt = routeOptions(s)[0];
     s = act(s, { t: 'travel', route: opt.route.id, mode: opt.modeIndex });
     while (s.pending) s = act(s, { t: 'choose', choice: s.pending.choices.includes('pass') ? 'pass' : s.pending.choices[s.pending.choices.length - 1] });
     s = drain(s);

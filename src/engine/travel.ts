@@ -12,7 +12,7 @@ const SEA: TravelMode[] = ['boat', 'inner-sea', 'sea-of-ghosts', 'coastal'];
 
 export interface RouteOption {
   route: Route; dest: string; modeIndex: number; mode: TravelMode;
-  days: number; fare: number; risk: number; blocked?: string;
+  days: number; fare: number; risk: number;
 }
 
 export function routeOptions(s: GameState): RouteOption[] { return routeOptionsFrom(s, s.player.location); }
@@ -39,8 +39,7 @@ export function routeOptionsFrom(s: GameState, here: string): RouteOption[] {
       days = Math.max(1, days);
       risk = Math.max(0, Math.min(6, risk));
       const fare = Math.round(m.fare + FREIGHT[m.mode] * w);
-      const blocked = m.maxWeight !== undefined && w > m.maxWeight ? `Too heavy (≤${m.maxWeight} stone)` : undefined;
-      out.push({ route: r, dest, modeIndex: i, mode: m.mode, days, fare, risk, blocked });
+      out.push({ route: r, dest, modeIndex: i, mode: m.mode, days, fare, risk });
     });
   }
   return out.sort((a, b) => a.days - b.days);

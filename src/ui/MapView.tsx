@@ -218,13 +218,13 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
           <div className="text-gold">Route plan to {C.locs[plan].name}</div>
           {planned ? <>
             <div className="text-xs text-ash-400">{planned.path.map(id => C.locs[id].name).join(' → ')} · {planned.days * g.timeScale} days</div>
-            <div className="flex gap-2 mt-1.5"><button className="btn btn-ember" disabled={!!planned.legs[0].blocked} onClick={() => travel(planned.legs[0])}>Next stop: {C.locs[planned.path[1]].name}</button><button className="btn btn-ghost" onClick={() => setPlan(null)}>Cancel</button></div>
+            <div className="flex gap-2 mt-1.5"><button className="btn btn-ember" onClick={() => travel(planned.legs[0])}>Next stop: {C.locs[planned.path[1]].name}</button><button className="btn btn-ghost" onClick={() => setPlan(null)}>Cancel</button></div>
           </> : <div className="text-xs text-danger">No way through right now. <button className="linkish" onClick={() => setPlan(null)}>Cancel plan</button></div>}
         </div>
       )}
       <div className="max-h-[560px] overflow-auto scroll-thin pr-1">
         {dests.map((d, i) => {
-          const best = d.options.find(o => !o.blocked) ?? d.options[0];
+          const best = d.options[0];
           const warn = travelWarnings(g, d.id, best.days).length;
           return (
             <div key={d.id} className={`flex items-center gap-2 py-1.5 px-1 border-t border-ash-700 rounded transition-colors ${hover === d.id || sel === d.id ? 'bg-ash-800' : ''}`}
@@ -234,7 +234,7 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
                 <span className="text-bone">{C.locs[d.id].name}</span>{warn > 0 && <span className="text-danger text-xs" title="See warnings on the map card"> ⚠</span>}
                 <span className="block text-xs text-ash-400">{MODE_LABEL[best.mode]}{d.options.length > 1 ? ` (+${d.options.length - 1} more)` : ''} · {best.days * g.timeScale}d · <Money v={best.fare} /> · {bars(best.risk)}</span>
               </button>
-              <button className={`btn ${g.player.cash < best.fare ? '' : 'btn-ember'}`} disabled={!!best.blocked} onClick={() => travel(best)}>{g.player.cash < best.fare ? 'Work for passage' : 'Go'}</button>
+              <button className={`btn ${g.player.cash < best.fare ? '' : 'btn-ember'}`} onClick={() => travel(best)}>{g.player.cash < best.fare ? 'Work for passage' : 'Go'}</button>
             </div>
           );
         })}
@@ -350,8 +350,8 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
                   {selOpts.map(o => (
                     <div key={o.route.id + o.modeIndex} className="flex items-center gap-2 py-1.5 border-t border-ash-700">
                       <div className="flex-1 min-w-0"><CodexLink id={`travel:${o.mode}`} className="text-bone">{MODE_LABEL[o.mode]}</CodexLink>
-                        <div className="text-xs text-ash-400">{o.days * g.timeScale} day{o.days * g.timeScale > 1 ? 's' : ''} · fare <Money v={o.fare} /> · danger <span aria-label={`${o.risk} of 6`}>{bars(o.risk)}</span>{o.blocked && <span className="text-danger"> · {o.blocked}</span>}</div></div>
-                      <button data-go className={`btn ${g.player.cash < o.fare ? '' : 'btn-ember'}`} disabled={!!o.blocked} onClick={() => travel(o)} title={g.player.cash < o.fare ? 'You can’t pay the fare: work for your passage instead (+2 days, costs a little health)' : ''}>{g.player.cash < o.fare ? 'Work for passage' : 'Go'}</button>
+                        <div className="text-xs text-ash-400">{o.days * g.timeScale} day{o.days * g.timeScale > 1 ? 's' : ''} · fare <Money v={o.fare} /> · danger <span aria-label={`${o.risk} of 6`}>{bars(o.risk)}</span></div></div>
+                      <button data-go className={`btn ${g.player.cash < o.fare ? '' : 'btn-ember'}`} onClick={() => travel(o)} title={g.player.cash < o.fare ? 'You can’t pay the fare: work for your passage instead (+2 days, costs a little health)' : ''}>{g.player.cash < o.fare ? 'Work for passage' : 'Go'}</button>
                     </div>
                   ))}
                   <div className="mt-1 space-y-1"><Outlook g={g} dest={S.id} />{travelWarnings(g, S.id, selOpts[0].days).map((w, i) => <div key={i} className="text-xs text-danger">⚠ {w}</div>)}</div>
@@ -364,7 +364,7 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
                   <Outlook g={g} dest={S.id} />
                   {travelWarnings(g, S.id, preview.days).map((w, i) => <div key={i} className="text-xs text-danger">⚠ {w}</div>)}
                   <div className="flex flex-wrap gap-2 pt-1">
-                    <button data-go className="btn btn-ember" disabled={!!preview.legs[0].blocked} onClick={() => { setPlan(S.id); travel(preview.legs[0]); }}>Go to {C.locs[preview.path[1]].name}</button>
+                    <button data-go className="btn btn-ember" onClick={() => { setPlan(S.id); travel(preview.legs[0]); }}>Go to {C.locs[preview.path[1]].name}</button>
                     {plan === S.id ? <button className="btn btn-ghost" onClick={() => setPlan(null)}>Cancel plan</button> : <button className="btn" onClick={() => setPlan(S.id)}>Plan this route</button>}
                   </div>
                 </div>

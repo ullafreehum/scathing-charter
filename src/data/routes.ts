@@ -1,7 +1,7 @@
 import type { Route } from '../engine/types';
 
 const r = (a: string, b: string, ...modes: Route['modes']): Route => ({ id: `${a}~${b}`, a, b, modes });
-const m = (mode: Route['modes'][number]['mode'], days: number, fare: number, risk: number, maxWeight?: number) => ({ mode, days, fare, risk, ...(maxWeight ? { maxWeight } : {}) });
+const m = (mode: Route['modes'][number]['mode'], days: number, fare: number, risk: number) => ({ mode, days, fare, risk });
 
 export const ROUTES: Route[] = [
   r('balmora', 'vivec', m('strider', 1, 18, 1)),
@@ -9,9 +9,9 @@ export const ROUTES: Route[] = [
   r('vivec', 'ebonheart', m('road', 1, 2, 0)),
   r('vivec', 'sadrith-mora', m('boat', 2, 30, 1)),
   r('ebonheart', 'sadrith-mora', m('boat', 2, 30, 1)),
-  r('balmora', 'sadrith-mora', m('guide', 1, 120, 0, 25)),
-  r('aldruhn', 'sadrith-mora', m('guide', 1, 120, 0, 25)),
-  r('aldruhn', 'vivec', m('guide', 1, 120, 0, 25)),
+  r('balmora', 'sadrith-mora', m('guide', 1, 120, 0)),
+  r('aldruhn', 'sadrith-mora', m('guide', 1, 120, 0)),
+  r('aldruhn', 'vivec', m('guide', 1, 120, 0)),
   r('aldruhn', 'fort-frostmoth', m('boat', 2, 40, 2)),
   r('fort-frostmoth', 'raven-rock', m('road', 1, 5, 1)),
   r('ebonheart', 'mournhold', m('inner-sea', 3, 45, 1)),

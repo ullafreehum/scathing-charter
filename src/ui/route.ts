@@ -19,7 +19,6 @@ export function planRoute(g: GameState, dest: string, from = g.player.location):
     const base = dist.get(cur)!;
     const fastest = new Map<string, RouteOption>();
     for (const o of routeOptionsFrom(g, cur)) {
-      if (o.blocked) continue;
       const b = fastest.get(o.dest);
       if (!b || o.days < b.days || (o.days === b.days && o.fare < b.fare)) fastest.set(o.dest, o);
     }

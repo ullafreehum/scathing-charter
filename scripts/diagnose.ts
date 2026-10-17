@@ -62,7 +62,7 @@ function randomAction(s: GameState, r: Rng): Action {
     const c = s.contracts.filter(x => x.destination === loc); if (c.length) return { t: 'deliver', id: r.pick(c).id };
   }
   if (roll < 0.6) return r.pick<Action>([{ t: 'gear', id: r.pick(C.gearList).id }, { t: 'hire', who: r.pick(['porter', 'sellsword'] as const), delta: r.pick([1, -1] as const) }, { t: 'book', id: r.pick(C.books).id }, { t: 'licence' }, { t: 'borrow', amount: r.int(100, 1000) }, { t: 'writ', house: 'hlaalu', from: r.pick(C.branches.hlaalu), amount: 50 }]);
-  const opts = routeOptions(s).filter(o => !o.blocked && o.fare <= s.player.cash);
+  const opts = routeOptions(s).filter(o => o.fare <= s.player.cash);
   if (opts.length && roll < 0.93) { const o = r.pick(opts); return { t: 'travel', route: o.route.id, mode: o.modeIndex }; }
   return { t: 'wait', days: r.pick([1, 3, 7] as const) };
 }
