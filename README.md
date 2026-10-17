@@ -10,7 +10,7 @@ and you have three years. Buy low, sell high, and keep ahead of the debt through
 with sources you can click.
 
 > **Just want to play?** Download the offline edition from
-> [Releases](https://github.com/ullafreehum/bandcamp/releases), extract it into `C:\Games` and double-click
+> [Releases](https://github.com/ullafreehum/scathing-charter/releases), extract it into `C:\Games` and double-click
 > `Play The Scathing Charter.cmd` (needs Node.js and Google Chrome).
 
 > Unofficial, non-commercial fan game. *The Elder Scrolls* is a trademark of ZeniMax Media / Bethesda
@@ -36,17 +36,14 @@ You only do Steps 1–2 once. Allow about 10 minutes, mostly waiting for downloa
 
 ### Step 2: Download the game files
 
-1. Open the project page on GitHub: **https://github.com/ullafreehum/bandcamp**
-2. **If the game isn't on the main page yet**, open **Pull requests →
-   [#1](https://github.com/ullafreehum/bandcamp/pull/1)** and click **Merge pull request →
-   Confirm merge**. This copies the game into your main branch. You only need to do this once.
-3. Back on the project page, click the green **`<> Code`** button, then **Download ZIP**.
-4. Find the ZIP in your **Downloads** folder. Right-click it, choose **Extract All…**, then
+1. Open the project page on GitHub: **https://github.com/ullafreehum/scathing-charter**
+2. Click the green **`<> Code`** button, then **Download ZIP**.
+3. Find the ZIP in your **Downloads** folder. Right-click it, choose **Extract All…**, then
    **Extract**.
-5. Optional but tidy: move the extracted folder (`bandcamp-main`) somewhere easy, such as
+4. Optional but tidy: move the extracted folder (`scathing-charter-main`) somewhere easy, such as
    `Documents\The Scathing Charter`.
 
-> Prefer Git? `git clone https://github.com/ullafreehum/bandcamp.git` works too.
+> Prefer Git? `git clone https://github.com/ullafreehum/scathing-charter.git` works too.
 
 ### Step 3: Start the game
 
