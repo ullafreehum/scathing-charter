@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { C } from '../data';
-import { DEPTH, bulkBuyTotal, capacity, cargoWeight, fairValue, maxBuyQty, quotes, holidayAt, marketOpen, satRecoveryDays, type GameState, type Quote } from '../engine';
+import { DEPTH, bulkBuyTotal, capacity, cargoWeight, fairValue, maxBuyQty, quotes, routeOptions, FREIGHT, holidayAt, marketOpen, satRecoveryDays, type GameState, type Quote } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
@@ -28,6 +28,10 @@ export function Market({ g }: { g: GameState }) {
   const qs = quotes(g, loc);
   const hol = holidayAt(g, loc);
   const free = capacity(g) - cargoWeight(g);
+  // Cheapest trip out of here, with `extra` more stone aboard: "Keep fare" holds this back when buying.
+  const legs = routeOptions(g);
+  const fareWith = (extra: number) => legs.length ? Math.min(...legs.map(o => o.fare + Math.ceil(FREIGHT[o.mode] * extra))) : 0;
+  const [keepFare, setKeepFare] = useState(true);
   const tend = g.player.books.includes('pocket-guide');
   const cargoGoods = Object.keys(g.player.cargo).filter(id => !qs.find(q => q.good === id));
   const ratio = (q: Quote) => q.mid / fairValue(g, q.good);
@@ -58,7 +62,7 @@ export function Market({ g }: { g: GameState }) {
           <button className="btn btn-ember ml-auto" onClick={() => act({ t: 'deliver', id: c.id })}>Deliver</button>
         </div>
       ); })}
-      <Section title="Goods" right={<span className="text-xs text-ash-400">Cargo space left: {free}</span>}>
+      <Section title="Goods" right={<span className="text-xs text-ash-400">Cash <Money v={g.player.cash} className="text-gold" /> · cheapest trip <Money v={fareWith(0)} /> · space left {free}</span>}>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2 text-sm">
           <div className="flex items-center gap-1" role="radiogroup" aria-label="Trade amount">
             <span className="text-ash-400 mr-1">Amount</span>
@@ -73,6 +77,7 @@ export function Market({ g }: { g: GameState }) {
           </div>
           <label className="flex items-center gap-1"><span className="text-ash-400">Sort</span>
             <select className="input w-auto py-0.5" value={sort} onChange={e => setSort(e.target.value as Sort)}><option value="usual">Usual</option><option value="name">Name</option><option value="price">Cheapest first</option><option value="gain">Best profit elsewhere</option></select></label>
+          <label className="flex items-center gap-1" title="Buying leaves enough cash for the cheapest trip out of here, with the new cargo aboard"><input type="checkbox" checked={keepFare} onChange={e => setKeepFare(e.target.checked)} /><span className="text-ash-400">Keep fare</span></label>
           <button className="btn ml-auto" disabled={!profitable.length} onClick={e => { const el = e.currentTarget; let sum = 0; for (const q of profitable) { const n = g.player.cargo[q.good].qty; if (act({ t: 'sell', good: q.good, qty: n })) sum += n * (q.sell ?? 0); } if (sum) coinBurst(el, 'cash', coinsFor(sum)); }}
             title="Sell every good whose price here is above what you paid">Sell all at a profit{profitable.length ? ` (${profitable.length})` : ''}</button>
         </div>
@@ -86,7 +91,7 @@ export function Market({ g }: { g: GameState }) {
               {rows.map((q, i) => {
                 const G = C.goods[q.good]; const lot = g.player.cargo[q.good];
                 const r = ratio(q);
-                const maxBuy = maxBuyQty(q.buy, DEPTH[G.category], g.player.cash, free, G.weight);
+                const maxBuy = maxBuyQty(q.buy, DEPTH[G.category], keepFare ? Math.max(0, g.player.cash - fareWith(free)) : g.player.cash, free, G.weight);
                 const nBuy = amt === 'max' ? maxBuy : Math.min(amt, maxBuy);
                 const nSell = lot && q.sell !== null ? (amt === 'max' ? lot.qty : Math.min(amt, lot.qty)) : 0;
                 const margin = lot && q.sell !== null ? Math.round(q.sell - lot.cost) : null;

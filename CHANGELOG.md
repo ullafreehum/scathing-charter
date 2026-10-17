@@ -10,6 +10,8 @@ and the Long Chronicle.
 - No leg between neighbouring places takes more than 3 days, and the guar cart no longer slows road and caravan legs.
 - The Camonna Tong always lends, at Balmora or its agents, with no cap: each advance raises the rate, and a bigger debt brings harder collectors. You can borrow again after paying off.
 - Bank deposits earn interest (Hlaalu 0.08% a day, East Empire Company 0.04%) and are safe from robbers.
+- The top bar (date, cash, debt) stays on screen while you scroll. The market shows your cash and the cheapest trip out, and **Keep fare** (on by default) stops a purchase from leaving you unable to pay for the next trip.
+- Every round at the tavern now brings one true trade tip with real numbers (buy here, sell within two legs, or where your cargo sells best), as well as the usual talk.
 - After the eruption Vivec City, Ebonheart and Fort Frostmoth become survivors' camps where merchants still trade, with scarcer stock and crisis prices, instead of vanishing from the map.
 
 ## 0.9.4 (beta)

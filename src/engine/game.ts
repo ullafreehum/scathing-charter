@@ -3,8 +3,8 @@ import { C } from '../data';
 import type { Action, CharterState, Contract, GameState, Job, LogEntry, MarketCell, NewGameConfig, ScrollId } from './types';
 import { Rng, hashSeed } from './rng';
 import { D, shortDate } from './calendar';
-import { DEPTH, SAT_RECOVERY, bulkBuyTotal, capacity, cargoWeight, fairValue, holidayAt, marketOpen, quotes } from './market';
-import { MAX_LEG_DAYS, routeOptions, type RouteOption } from './travel';
+import { DEPTH, SAT_RECOVERY, bulkBuyTotal, capacity, cargoWeight, fairValue, holidayAt, legalityAt, marketOpen, midPrice, quotes } from './market';
+import { MAX_LEG_DAYS, routeOptions, routeOptionsFrom, type RouteOption } from './travel';
 import { applyHistory, branchKey, catchUpHistory, clampRep, houseName } from './history';
 import { HEAT, addHeat, buildPending, contrabandValue, heatMult, rollEncounter, resolve } from './encounters';
 import { checkAchievements, netWorth } from './score';
@@ -547,6 +547,30 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
   s.stats.trades++;
 }
 
+type Tip = { good: string; at: string; buy: number; sell: number };
+/** The best buy-here, sell-nearby spread within two legs, or the best seller for your cargo. */
+function tradeTip(s: GameState): string | null {
+  const loc = s.player.location;
+  const near = new Set<string>();
+  for (const o of routeOptions(s)) { near.add(o.dest); for (const o2 of routeOptionsFrom(s, o.dest)) if (o2.dest !== loc) near.add(o2.dest); }
+  let best = null as Tip | null;
+  const consider = (good: string, buy: number) => {
+    for (const d of near) {
+      const p = midPrice(s, d, good);
+      if (p !== null && p > buy * 1.3 && (!best || (p - buy) / C.goods[good].weight > (best.sell - best.buy) / C.goods[best.good].weight)) best = { good, at: d, buy, sell: p };
+    }
+  };
+  for (const good of Object.keys(here(s).tendencies)) {
+    const m = midPrice(s, loc, good);
+    if (m !== null && s.markets[loc][good].stock && legalityAt(s, loc, good) !== 'contraband') consider(good, m);
+  }
+  const found = best as Tip | null;
+  if (found) return `${C.goods[found.good].name} goes for about ${Math.round(found.buy)} here and about ${Math.round(found.sell)} in ${C.locs[found.at].name}.`;
+  for (const [good, lot] of Object.entries(s.player.cargo)) consider(good, lot.cost);
+  const sold = best as Tip | null;
+  return sold ? `Your ${C.goods[sold.good].name.toLowerCase()} would fetch about ${Math.round(sold.sell)} in ${C.locs[sold.at].name}.` : null;
+}
+
 function rumor(s: GameState, rng: Rng): string | void {
   const loc = s.player.location;
   const free = holidayAt(s, loc)?.freeRumor;
@@ -561,21 +585,9 @@ function rumor(s: GameState, rng: Rng): string | void {
   const pool = C.rumors.filter(r => (r.kind !== 'foreshadow' || fore.includes(r.id)) &&
     (!r.regions || r.regions === 'any' || r.regions.includes(region)) &&
     (r.from === undefined || s.day >= r.from) && (r.to === undefined || s.day < r.to) && (!r.flag || s.world.flags[r.flag]));
-  const roll = rng.next();
-  if (roll < 0.28) {
-    // a price tip: true 75% of the time
-    const goods = C.goodList.filter(g => g.legality[s.world.jurisdiction[loc]] !== 'contraband');
-    const g = rng.pick(goods);
-    const markets = C.locList.filter(L => L.tendencies[g.id] !== undefined && s.world.status[L.id] !== 'closed' && L.id !== loc);
-    if (markets.length) {
-      const truthful = rng.chance(0.75);
-      const best = truthful ? markets.reduce((a, b) => ((s.markets[a.id][g.id].drift * s.markets[a.id][g.id].shock * (a.tendencies[g.id] ?? 1)) > (s.markets[b.id][g.id].drift * s.markets[b.id][g.id].shock * (b.tendencies[g.id] ?? 1)) ? a : b)) : rng.pick(markets);
-      const text = `They say ${g.name.toLowerCase()} fetches a fine price in ${best.name} these days.`;
-      s.inbox.push({ kind: 'result', notice: true, title: 'Rumour (price tip)', text: `${text} (Tips like this are right about three times in four.)` });
-      log(s, `Price tip: ${text}`);
-      return;
-    }
-  }
+  // Every round buys one true, useful tip with real numbers, then the talk of the tavern.
+  const tip = tradeTip(s);
+  if (tip) { s.inbox.push({ kind: 'result', notice: true, title: 'Rumour (trade tip)', text: tip }); log(s, `Trade tip: ${tip}`); }
   const unheard = pool.filter(r => !s.heard.includes(r.id));
   const fresh = unheard.filter(r => r.kind === 'foreshadow');
   const r = (fresh.length && rng.chance(s.player.books.includes('progress-of-truth') ? 0.9 : 0.7) ? rng.pick(fresh) : unheard.length ? rng.pick(unheard) : pool.length ? rng.pick(pool) : undefined);
