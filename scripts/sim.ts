@@ -11,7 +11,7 @@ function play(seed: string): GameState {
     while (s.inbox.length) s = act(s, { t: 'ack' });
     if (s.pending) {
       const ch = s.pending.choices;
-      const pick = ch.includes('bribe') && s.player.cash > s.pending.bribe * 3 ? 'bribe' : ch.includes('wait-out') ? 'wait-out' : ch.includes('pass') ? 'pass' : ch.includes('decline') ? 'decline' : ch.includes('submit') ? 'submit' : 'flee';
+      const pick = ch.includes('bribe') && s.player.cash > s.pending.bribe * 3 ? 'bribe' : ch.includes('wait-out') ? 'wait-out' : ch.includes('pass') ? 'pass' : ch.includes('decline') ? 'decline' : ch.includes('declare') ? 'declare' : 'flee';
       s = act(s, { t: 'choose', choice: pick }); continue;
     }
     const loc = s.player.location;

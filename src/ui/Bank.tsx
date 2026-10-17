@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { C } from '../data';
-import { DEPOSIT_RATE, MARK_RATIO, WITHDRAW_FEE, houseName, pressure, shortDate, strongboxCities, type GameState } from '../engine';
+import { DEPOSIT_RATE, MARK_RATIO, charterPrice, WITHDRAW_FEE, houseName, pressure, shortDate, strongboxCities, type GameState } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
@@ -20,7 +20,7 @@ function CharterSection({ g }: { g: GameState }) {
   const carried = Object.entries(g.player.cargo);
   if (!g.world.flags.relief && ch.tier === 0) return null;
   const fee = Math.round(ch.paid * C.charter.renewalFee);
-  const why = next?.tier === 3 && !g.note.cleared ? 'Pay off the Camonna Tong first.' : !atOffice ? `Sold in ${offices}.` : next && g.player.cash < next.price ? `You need ${Math.ceil(next.price - g.player.cash).toLocaleString('en-US')} more.` : '';
+  const why = next?.tier === 3 && !g.note.cleared ? 'Pay off the Camonna Tong first.' : !atOffice ? `Sold in ${offices}.` : next && g.player.cash < charterPrice(g, next.tier) ? `You need ${Math.ceil(charterPrice(g, next.tier) - g.player.cash).toLocaleString('en-US')} more.` : '';
   return (
     <Section title="The Scathing Charter" className="xl:col-span-2">
       <p className="text-sm text-parchment">Rights to supply and rebuild the ruined Vivec region, sold by the Grand Council in {offices}. <CodexLink id="topic:scathing-charter">More</CodexLink></p>
@@ -28,7 +28,7 @@ function CharterSection({ g }: { g: GameState }) {
         {C.charter.tiers.map(t => { const owned = ch.tier >= t.tier; return (
           <li key={t.tier} className="text-sm flex items-start gap-2">
             <span className={`num w-4 ${owned ? 'text-moss' : 'text-ash-400'}`} aria-hidden="true">{owned ? '✓' : t.tier}</span>
-            <div className="flex-1"><span className={owned ? 'text-moss' : 'text-bone'}>{t.name}</span> <span className="text-ash-400">· <Money v={t.price} />{owned ? ' · yours' : ''}</span><div className="text-xs text-ash-400">{t.text}</div></div>
+            <div className="flex-1"><span className={owned ? 'text-moss' : 'text-bone'}>{t.name}</span> <span className="text-ash-400">· <Money v={owned ? t.price : charterPrice(g, t.tier)} />{owned ? ' · yours' : ''}</span><div className="text-xs text-ash-400">{t.text}</div></div>
           </li>
         ); })}
       </ol>
@@ -40,7 +40,7 @@ function CharterSection({ g }: { g: GameState }) {
       )}
       {next ? (
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-          <button className="btn btn-ember" disabled={!!why || ch.renewDue !== null || !g.world.flags.relief} onClick={() => act({ t: 'charter' })}>Buy {next.name} (<Money v={next.price} />)</button>
+          <button className="btn btn-ember" disabled={!!why || ch.renewDue !== null || !g.world.flags.relief} onClick={() => act({ t: 'charter' })}>Buy {next.name} (<Money v={charterPrice(g, next.tier)} />)</button>
           {why && <span className="text-xs text-ash-400">{why}</span>}
         </div>
       ) : <p className="mt-3 text-sm text-moss">You hold the full charter. Dividends so far: <Money v={ch.dividends} />{ch.nextDividend !== null && <>; next on {shortDate(ch.nextDividend)}</>}.</p>}
@@ -75,7 +75,7 @@ function GoalTrack({ g }: { g: GameState }) {
   const steps = [
     { done: g.note.cleared, text: 'Pay off the Camonna Tong' },
     { done: tier >= 2, text: `Climb the Charter: ${C.charter.tiers[0].name}, then ${C.charter.tiers[1].name} (optional)` },
-    { done: tier >= 3, text: <>Buy {top.name} (<Money v={top.price} />) before {shortDate(g.endDay)}</> },
+    { done: tier >= 3, text: <>Buy {top.name} (<Money v={charterPrice(g, 3)} />) before {shortDate(g.endDay)}</> },
   ];
   return (
     <Section title="Your goal" className="xl:col-span-2">

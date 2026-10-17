@@ -1,29 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { C } from '../data';
-import { choiceOdds, conductTitles, depositsTotal, cargoValue, formatDate, netWorth, power, wealthTitle, type GameState } from '../engine';
+import { cardOptions, conductTitles, depositsTotal, cargoValue, formatDate, netWorth, wealthTitle, type GameState } from '../engine';
 import { useGame } from '../store/game';
 import { exportFile } from '../save/storage';
 import { CodexLink, Money, Sources } from './widgets';
 import { FortuneChart } from './FortuneChart';
 import { DuelScreen } from './Duel';
-
-const CHOICE: Record<string, { label: string; hint: (g: GameState) => string }> = {
-  fight: { label: 'Fight', hint: g => `Your strength ${power(g).toFixed(1)} against their ${g.pending!.threat}.` },
-  flee: { label: 'Flee', hint: () => 'Easier with a light load.' },
-  bribe: { label: 'Pay', hint: g => `${g.pending!.bribe} septims.${g.pending!.customs ? ' The Legion takes less notice of you if it works.' : ''}` },
-  surrender: { label: 'Hand over cargo', hint: () => 'Lose goods, keep your skin.' },
-  submit: { label: 'Submit to the search', hint: g => `Contraband is confiscated and fined (${g.player.heat >= 60 ? '40%, you are wanted' : '20%'}). The Legion takes less notice of you.` },
-  chameleon: { label: 'Use a Chameleon scroll', hint: g => `Slip by unseen (${g.pending?.customs ? '3 in 4' : '9 in 10'}). You have ${g.player.scrolls.chameleon}.` },
-  almsivi: { label: 'Almsivi Intervention', hint: g => `Teleport to the nearest Tribunal temple, if the spell still works (${g.world.flags.almsivi ?? 95}% chance). You keep only 20 stone of cargo.` },
-  divine: { label: 'Divine Intervention', hint: () => 'Teleport to the nearest Imperial shrine. You keep only 20 stone of cargo.' },
-  give: { label: 'Give food and potions', hint: () => 'A good deed. The Temple and House Redoran will think better of you.' },
-  'sell-dear': { label: 'Sell to them at a high price', hint: () => 'Three times the usual price. They will pay, but people will remember.' },
-  pass: { label: 'Pass by', hint: () => '' },
-  'press-on': { label: 'Press on', hint: () => 'Risk the cargo, save time.' },
-  'wait-out': { label: 'Wait it out', hint: () => 'Lose days, keep the cargo.' },
-  deal: { label: 'Deal', hint: () => 'Take what is offered.' },
-  decline: { label: 'Decline', hint: () => '' },
-};
 
 function Card({ children, wide = false, board = false, parchment = false, label }: { children: React.ReactNode; wide?: boolean; board?: boolean; parchment?: boolean; label?: string }) {
   return (
@@ -50,9 +32,12 @@ export function Overlays() {
         <h2 className="h-display text-2xl text-bone mb-2">{p.title}</h2>
         <p className="fell text-lg text-parchment mb-4">{p.text}</p>
         <div className="grid sm:grid-cols-2 gap-2">
-          {p.choices.map(c => (
-            <button key={c} className={`btn justify-start text-left py-2 ${c === 'fight' || c === 'give' ? 'btn-ember' : ''}`} disabled={c === 'bribe' && g.player.cash < p.bribe} onClick={() => act({ t: 'choose', choice: c })}>
-              <span className="flex flex-col items-start normal-case tracking-normal font-body"><span className="h-display uppercase tracking-wider text-[.8rem]">{CHOICE[c]?.label ?? c}</span><span className="hint text-xs font-body">{choiceOdds(g, c) !== undefined && c !== 'bribe' || (c === 'bribe' && p.customs) ? <b>{Math.round(choiceOdds(g, c)! * 100)}% chance. </b> : null}{CHOICE[c]?.hint(g)}</span></span>
+          {cardOptions(g).map(o => (
+            <button key={o.id} className="btn justify-start text-left py-2" disabled={!!o.disabled} title={o.disabled} aria-label={`${o.label}${o.odds !== undefined ? `, ${Math.round(o.odds * 100)}% chance` : ''}. ${o.disabled ?? o.stake}`} onClick={() => act({ t: 'choose', choice: o.id })}>
+              <span className="flex w-full items-start gap-2 normal-case tracking-normal font-body">
+                <span className="flex flex-col items-start flex-1"><span className="h-display uppercase tracking-wider text-[.8rem]">{o.label}</span><span className="hint text-xs font-body">{o.disabled ?? o.stake}</span></span>
+                {o.odds !== undefined && <b className="text-sm text-bone tabular-nums">{Math.round(o.odds * 100)}%</b>}
+              </span>
             </button>
           ))}
         </div>

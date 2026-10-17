@@ -6,7 +6,7 @@ async function clearModals(page: Page) {
   for (let i = 0; i < 15; i++) {
     const cont = page.locator('[role=dialog] button').filter({ hasText: /^(Continue|Onward)$/ });
     if (await cont.count()) { await cont.first().click({ force: true, timeout: 3000 }).catch(() => {}); await page.waitForTimeout(300); continue; }
-    const choice = page.locator('[role=dialog]:not([aria-label=Codex]) button').filter({ hasText: /Flee|Pass by|Decline|Wait it out|Submit/ });
+    const choice = page.locator('[role=dialog]:not([aria-label=Codex]) button').filter({ hasText: /^(Flee|Pass by|Decline|Wait \d+ days?|Declare it|Run)/ });
     if (await choice.count()) { await choice.first().click({ force: true, timeout: 3000 }).catch(() => {}); await page.waitForTimeout(300); continue; }
     return;
   }

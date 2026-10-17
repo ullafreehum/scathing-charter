@@ -155,6 +155,17 @@ export interface MarketCell { drift: number; shock: number; sat: number; stock: 
 export interface PriceMod { goods: readonly string[] | 'all'; locs: readonly string[]; mult: number; start: number; end: number }
 export interface Frozen { amount: number; ratio: number; settleDay: number; settleAt: string; house: House }
 
+/** One choice on a crossing card, with its stakes spelled out before the player picks (see cardOptions). */
+export interface CardOption {
+  id: string; label: string;
+  /** what this choice costs or risks, in septims and percentages */
+  stake: string;
+  /** chance it works out, exactly as resolve() rolls it; absent when nothing is rolled */
+  odds?: number;
+  /** why it cannot be picked right now */
+  disabled?: string;
+}
+
 export interface PendingEncounter {
   defId: string; kind: EncounterKind; title: string; text: string;
   threat: number; bribe: number; choices: readonly string[];
@@ -191,6 +202,8 @@ export interface CharterState {
   /** day by which the new council's renewal fee must be paid, or null */
   renewDue: number | null; renewed: boolean;
   nextDividend: number | null; dividends: number;
+  /** goodwill with the council from relief given at cost on the road; each point takes 5% off the next tier (max 25%) */
+  favour?: number;
 }
 
 export interface NoteState { original: number; balance: number; rate: number; lastPaymentDay: number; seat: string; agents: string[]; extended: number; cleared: boolean }

@@ -11,7 +11,7 @@ async function clear(p: Page) {
   for (let i = 0; i < 10; i++) {
     const b = p.locator('[role=dialog] button').filter({ hasText: /^(Continue|Onward)$/ });
     if (await b.count()) { await b.first().click({ force: true, timeout: 2000 }).catch(() => {}); await p.waitForTimeout(150); continue; }
-    const c = p.locator('[role=dialog]:not([aria-label=Codex]) button').filter({ hasText: /Pass by|Decline|Wait it out|Flee|Submit/ });
+    const c = p.locator('[role=dialog]:not([aria-label=Codex]) button').filter({ hasText: /^(Pass by|Decline|Wait \d+ days?|Flee|Declare it|Run)/ });
     if (await c.count()) { await c.first().click({ force: true, timeout: 2000 }).catch(() => {}); await p.waitForTimeout(150); continue; }
     return;
   }

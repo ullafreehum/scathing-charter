@@ -6,8 +6,8 @@ import { D, shortDate } from './calendar';
 import { DEPTH, SAT_RECOVERY, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight, holidayAt, legalityAt, marketOpen, midPrice, quotes } from './market';
 import { MAX_LEG_DAYS, routeOptions, routeOptionsFrom, type RouteOption } from './travel';
 import { applyHistory, branchKey, catchUpHistory, clampRep, houseName } from './history';
-import { HEAT, addHeat, buildPending, contrabandValue, heatMult, rollEncounter, resolve } from './encounters';
-import { checkAchievements, netWorth } from './score';
+import { HEAT, addHeat, buildPending, cardOptions, contrabandValue, heatMult, rollEncounter, resolve } from './encounters';
+import { charterPrice, checkAchievements, netWorth } from './score';
 import { duelTurn, newDuel } from './duel';
 import { SCHEMA_VERSION } from './save';
 import { here, log, unlock } from './util';
@@ -200,7 +200,7 @@ function tickDays(s: GameState, rng: Rng, n: number) { for (let i = 0; i < n && 
 // ---------------------------------------------------------------- contracts
 
 // ---------------------------------------------------------------- arrival
-function arrive(s: GameState, rng: Rng, dest: string) {
+function arrive(s: GameState, rng: Rng, dest: string, afterCard = false) {
   let to = dest; let guard = 0;
   while (s.world.status[to] === 'closed' && guard++ < 5) to = C.locs[to].refuge;
   if (to !== dest) s.inbox.push({ kind: 'result', title: `${C.locs[dest].name} is gone`, text: `Where ${C.locs[dest].name} stood there is only ash and steam. The boatmen put you ashore at ${C.locs[to].name}.` });
@@ -212,7 +212,7 @@ function arrive(s: GameState, rng: Rng, dest: string) {
   unlock(s, `faction:${C.locs[to].faction.toLowerCase().includes('hlaalu') ? 'hlaalu' : 'none'}`);
   makeOffers(s, rng, to);
   // customs
-  const cv = contrabandValue(s, to);
+  const cv = afterCard ? 0 : contrabandValue(s, to);
   if (cv > 0) {
     const bg = C.backgrounds[s.player.backgroundId];
     const p = Math.min(0.9, C.locs[to].enforcement * 0.07 * bg.customsMod * 0.7 /* Moon-Sugar: A Report, always on since 0.10 */ * heatMult(s.player.heat));
@@ -343,17 +343,20 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
     case 'choose': {
       if (!s.pending) return 'Nothing to choose.';
       if (!s.pending.choices.includes(a.choice)) return 'Not an option.';
+      const blocked = cardOptions(s).find(o => o.id === a.choice)?.disabled;
+      if (blocked) return blocked;
       const res = resolve(s, rng, a.choice);
       if (res.fail) return res.fail;
       const p = s.pending; s.pending = null;
       s.inbox.push({ kind: 'result', title: p.title, text: res.text });
       log(s, `${p.title}: ${res.text}`, res.good ? 'good' : 'bad');
       if (s.player.health <= 0) { s.over = { reason: 'death', day: s.day }; return; }
-      if (res.teleport) { arrive(s, rng, res.teleport); return; }
+      // One card per journey: after a road card, arrival brings no customs search.
+      if (res.teleport) { arrive(s, rng, res.teleport, true); return; }
       tickDays(s, rng, ((res.delay ?? 0) + p.remainingDays) * s.timeScale);
       if (s.over) { s.player.location = p.dest; return; }
       if (p.customs) return;
-      arrive(s, rng, p.dest);
+      arrive(s, rng, p.dest, true);
       return;
     }
     case 'appeal': {
@@ -435,12 +438,13 @@ function charter(s: GameState, kind: 'charter' | 'renew'): string | void {
   const next = C.charter.tiers[ch.tier];
   if (!next) return 'You already hold the full charter.';
   if (next.tier === 3 && !s.note.cleared) return 'The council will not sell the Scathing Charter to a trader who still owes the Camonna Tong.';
-  if (s.player.cash < next.price) return `The ${next.name} costs ${next.price} septims.`;
-  s.player.cash -= next.price; ch.paid += next.price; ch.tier = next.tier;
+  const price = charterPrice(s, next.tier);
+  if (s.player.cash < price) return `The ${next.name} costs ${price} septims.`;
+  s.player.cash -= price; ch.paid += price; ch.tier = next.tier;
   if (s.world.flags.charterRenewal) ch.renewed = true; // granted by the new council itself
   if (next.tier === 3) ch.nextDividend = s.day + C.charter.dividendEvery;
   unlock(s, 'topic:scathing-charter');
-  log(s, `You buy the ${next.name} for ${next.price} septims.`, 'good');
+  log(s, `You buy the ${next.name} for ${price} septims.`, 'good');
   s.inbox.push({ kind: 'result', title: next.name, text: next.text });
   if (next.tier === 3 && s.mode === 'red-year') win(s);
 }

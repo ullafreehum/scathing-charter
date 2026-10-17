@@ -1,7 +1,8 @@
 // Save serialisation with schema versioning and ordered migrations. Storage itself lives in src/save/.
-import type { GameState } from './types';
+import type { EncounterKind, GameState, ScrollId } from './types';
+import { choicesFor } from './encounters';
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 /** MIGRATIONS[n] upgrades a save from version n to n+1. */
 export const MIGRATIONS: Record<number, Migration> = {
@@ -30,6 +31,13 @@ export const MIGRATIONS: Record<number, Migration> = {
     const rest = { ...raw }; delete rest.indentured;
     rest.achievements = ((raw.achievements as string[]) ?? []).filter(a => a !== 'bookworm'); // books are found, not bought
     return { ...rest, ...(ending ? { ending: { ...ending, kind: kind[ending.kind] ?? 'retire' } } : {}), deposits: byCity(raw.deposits as Record<string, number>, (a, b) => a + b), world: { ...world, branches }, schemaVersion: 5 };
+  },
+  // 5 → 6 (0.10): crossing cards print their stakes; a card left open in a save gets the new choice set.
+  5: raw => {
+    const p = raw.pending as { kind: EncounterKind } | null | undefined;
+    if (!p) return { ...raw, schemaVersion: 6 };
+    const scrolls = ((raw.player as Record<string, unknown>).scrolls ?? {}) as Partial<Record<ScrollId, number>>;
+    return { ...raw, pending: { ...p, choices: choicesFor(p.kind, scrolls) }, schemaVersion: 6 };
   },
   3: raw => ({ ...raw, charter: raw.charter ?? { tier: 0, paid: 0, renewDue: null, renewed: false, nextDividend: null, dividends: 0 }, warehouse: raw.warehouse ?? {}, schemaVersion: 4 }),
 };

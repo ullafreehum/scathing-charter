@@ -1,7 +1,7 @@
 // Gameplay balance diagnostics: archetype bots × seeds, compared against design targets.
 // Usage: npm run balance -- [seedsPerStrategy=30]
 import { C } from '../src/data';
-import {
+import { CARD,
   newGame, step, quotes, routeOptions, netWorth, capacity, cargoWeight, power, shortDate, D, DEPTH,
   DIFFICULTY, type Action, type Difficulty, type GameState, type RouteOption,
 } from '../src/engine';
@@ -25,10 +25,11 @@ function nextHop(s: GameState, to: string): string | null {
 
 function choose(s: GameState, st: Strat): string {
   const p = s.pending!; const ch = p.choices; const has = (c: string) => ch.includes(c);
-  if (p.kind === 'mercy') return st === 'prudent' || st === 'contractor' || st === 'oracle' ? 'give' : has('sell-dear') && st !== 'idle' ? 'sell-dear' : 'pass';
+  if (p.kind === 'mercy') return st === 'prudent' || st === 'contractor' || st === 'oracle' ? 'at-cost' : has('sell-dear') && st !== 'idle' ? 'sell-dear' : 'pass';
   if (p.kind === 'hazard') return st === 'greedy' || st === 'smuggler' ? 'press-on' : 'wait-out';
+  if (p.kind === 'enforcer') return s.player.cash >= CARD.tongPay * 2 ? 'pay-note' : st === 'greedy' || st === 'smuggler' ? 'flee' : 'ask-time';
   if (p.kind === 'opportunity') return st === 'smuggler' || (p.defId === 'buried-caravan') ? 'deal' : 'decline';
-  if (p.customs) return has('chameleon') ? 'chameleon' : s.player.cash >= p.bribe * 2 ? 'bribe' : 'submit';
+  if (p.customs) return has('chameleon') ? 'chameleon' : s.player.cash >= p.bribe * 2 ? 'bribe' : 'declare';
   if (has('fight') && power(s) > p.threat + 2) return 'fight';
   if (has('bribe') && s.player.cash >= p.bribe * 3) return 'bribe';
   if (has('chameleon') && st === 'smuggler') return 'chameleon';

@@ -1,7 +1,7 @@
 // Engine diagnostics: random-play fuzzing with invariant checks across seeds, backgrounds and difficulties.
 // Usage: npx tsx scripts/diagnose.ts [gamesPerCombo=4]
 import { C } from '../src/data';
-import {
+import { cardOptions,
   newGame, step, replay, serialize, quotes, routeOptions, capacity, cargoWeight, netWorth, Rng, hashSeed,
   type Action, type GameState, type NewGameConfig, type Difficulty,
 } from '../src/engine';
@@ -41,7 +41,7 @@ function check(s: GameState, prevDay: number, ctx: string) {
 function randomAction(s: GameState, r: Rng): Action {
   if (s.inbox.length) return { t: 'ack' };
   if (s.pending) {
-    const ok = s.pending.choices.filter(c => c !== 'bribe' || s.player.cash >= s.pending!.bribe);
+    const ok = cardOptions(s).filter(o => !o.disabled).map(o => o.id);
     return { t: 'choose', choice: r.pick(ok) };
   }
   if (s.over) return { t: 'chronicle' };

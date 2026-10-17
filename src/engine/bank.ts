@@ -30,8 +30,7 @@ export function bankAction(s: GameState, a: Action, loc: string): string | void 
       if (loc !== s.note.seat && !s.note.agents.includes(loc)) return 'No Tong collector here.';
       const amt = Math.min(Math.floor(a.amount), Math.ceil(s.note.balance), s.player.cash);
       if (amt <= 0) return 'Enter an amount.';
-      s.player.cash -= amt; s.note.balance -= amt; s.note.lastPaymentDay = s.day;
-      if (s.note.balance < 1) { s.note.balance = 0; s.note.cleared = true; log(s, 'You paid off the Camonna Tong. You owe no one.', 'good'); s.inbox.push({ kind: 'result', title: 'Debt paid off', text: 'Gavas Drelloth counts the coin twice, then tears up your note. "Pleasure, outlander." You are free of the Tong.' }); }
+      payNote(s, amt);
       return;
     }
     case 'borrow': {
@@ -48,4 +47,10 @@ export function bankAction(s: GameState, a: Action, loc: string): string | void 
       return;
     }
   }
+}
+
+/** Pays `amt` off the Tong note (at a counter or to collectors on the road) and clears it when nothing is left. */
+export function payNote(s: GameState, amt: number): void {
+  s.player.cash -= amt; s.note.balance -= amt; s.note.lastPaymentDay = s.day;
+  if (s.note.balance < 1) { s.note.balance = 0; s.note.cleared = true; log(s, 'You paid off the Camonna Tong. You owe no one.', 'good'); s.inbox.push({ kind: 'result', title: 'Debt paid off', text: 'Gavas Drelloth counts the coin twice, then tears up your note. "Pleasure, outlander." You are free of the Tong.' }); }
 }
