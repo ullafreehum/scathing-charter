@@ -4,6 +4,18 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.9.5 (beta)
+- No more weight limits on travel: Guild Guides take any load, so a full pack never strands you.
+- Running out of money no longer ends a run: every place has three day-labour jobs at the tavern (1, 3 or 7 days). A day's wage pays for about two trips to the nearest town, more in towns the Red Year hit; heavier jobs cost health.
+- No leg between neighbouring places takes more than 3 days, and the guar cart no longer slows road and caravan legs.
+- The Camonna Tong always lends, at Balmora or its agents, with no cap: each advance raises the rate, and a bigger debt brings harder collectors. You can borrow again after paying off.
+- Bank deposits earn interest (Hlaalu 0.08% a day, East Empire Company 0.04%) and are safe from robbers.
+- The top bar (date, cash, debt) stays on screen while you scroll. The market shows your cash and the cheapest trip out, and **Keep fare** (on by default) stops a purchase from leaving you unable to pay for the next trip.
+- Every round at the tavern now brings one true trade tip with real numbers (buy here, sell within two legs, or where your cargo sells best), as well as the usual talk.
+- Endings: on the last day a crossroads lets you retire (with an epilogue), keep trading with no end date, take a Charter seat (tier 2+), or take the Tong's mark (debt wiped, play on as their smuggler). Paying off the debt, reaching the top charter tier or high Mercy lets you retire early from the Bank tab. A debt over six times the note makes you indentured: no interest or killers, but the Tong takes 30% of every sale until it is paid.
+- Magistrate's hearing: when customs seizes your goods you can contest it in town with a Daedric tower duel (the rules of the classic card game Ants: raise your spire to 100 or topple the advocate's, with ebony, bindings and magicka). Win and you get your goods and fine back; lose and the fine doubles.
+- After the eruption Vivec City, Ebonheart and Fort Frostmoth become survivors' camps where merchants still trade, with scarcer stock and crisis prices, instead of vanishing from the map.
+
 ## 0.9.4 (beta)
 - Travel tab: the destination list now sits in the left column, so the map lines up with the price list and the tabs stay put.
 - Save slots show who, where, the game date and when they were saved; saving shows a check mark, and a slot holding another game asks before it is overwritten.

@@ -123,6 +123,8 @@ Each dispute becomes a codex "Historians Disagree" card and a pair of competing 
 ---
 
 ## 3. Places (game locations)
+
+> Game rules, not lore: after the eruption Vivec City, Ebonheart and Fort Frostmoth stay on the map as **survivors' camps** where a few merchants still trade among the ruins `[extrapolation]`. Day-labour jobs in every place (`src/data/jobs.ts`) are `[invented]`, built on each town's canon trades.
 Status codes used in data: `thriving · uneasy · ruined · rebuilding · besieged · sacked · occupied · refugee-swollen · closed`.
 
 ### 3.1 Vvardenfell

@@ -8,3 +8,4 @@ export * from './encounters';
 export * from './score';
 export * from './save';
 export * from './game';
+export * from './duel';

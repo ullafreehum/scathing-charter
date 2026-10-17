@@ -52,6 +52,7 @@ const STATUS: Record<LocStatus, { label: string; cls: string; glyph: string }> =
   ruined: { label: 'Ruined', cls: 'text-ember', glyph: '▲' }, rebuilding: { label: 'Rebuilding', cls: 'text-gold', glyph: '△' },
   besieged: { label: 'Besieged', cls: 'text-danger', glyph: '✕' }, sacked: { label: 'Sacked', cls: 'text-danger', glyph: '✖' },
   occupied: { label: 'Occupied', cls: 'text-lilac', glyph: '■' }, 'refugee-swollen': { label: 'Full of refugees', cls: 'text-ice', glyph: '●' },
+  camp: { label: 'Survivors’ camp', cls: 'text-ember', glyph: '▴' },
   closed: { label: 'Destroyed', cls: 'text-ash-400', glyph: '○' },
 };
 export function StatusPill({ status }: { status: LocStatus }) {

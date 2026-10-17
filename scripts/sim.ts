@@ -27,7 +27,7 @@ function play(seed: string): GameState {
     // choose best (route, good)
     let best: { a: Action; buy?: Action; score: number } | null = null;
     for (const o of routeOptions(s)) {
-      if (o.blocked || o.fare > s.player.cash) continue;
+      if (o.fare > s.player.cash) continue;
       for (const q of quotes(s, loc)) {
         if (q.buy === null || q.legality !== 'legal') continue;
         const dm = midPrice(s, o.dest, q.good); if (dm === null) continue;
@@ -39,7 +39,7 @@ function play(seed: string): GameState {
     }
     if (best && best.score > 0) { if (best.buy) s = act(s, best.buy); const n = act(s, best.a); s = n === s ? act(s, { t: 'wait', days: 1 }) : n; }
     else {
-      const o = routeOptions(s).filter(o => !o.blocked);
+      const o = routeOptions(s);
       s = o.length ? act(s, { t: 'travel', route: o[turn % o.length].route.id, mode: o[turn % o.length].modeIndex }) : act(s, { t: 'wait', days: 3 });
     }
   }

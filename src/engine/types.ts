@@ -1,5 +1,6 @@
 // Core types shared by the engine and the content data. No React, no DOM.
 import type { RngState } from './rng';
+import type { DuelState } from './duel';
 
 /** Lore status of any piece of content. Anything but 'canon' gets a badge in the UI. */
 export type Canon = 'canon' | 'unverified' | 'disputed' | 'extrapolation' | 'invented';
@@ -9,7 +10,7 @@ export type Region = 'vvardenfell' | 'mainland' | 'solstheim' | 'skyrim' | 'cyro
 export type Jurisdiction = 'vvardenfell' | 'morrowind' | 'solstheim' | 'skyrim' | 'cyrodiil' | 'argonia' | 'elsweyr';
 export type Legality = 'legal' | 'restricted' | 'contraband';
 export type GoodCategory = 'food' | 'drink' | 'material' | 'luxury' | 'narcotic' | 'magic' | 'medicine';
-export type LocStatus = 'thriving' | 'uneasy' | 'ruined' | 'rebuilding' | 'besieged' | 'sacked' | 'occupied' | 'refugee-swollen' | 'closed';
+export type LocStatus = 'thriving' | 'uneasy' | 'ruined' | 'rebuilding' | 'besieged' | 'sacked' | 'occupied' | 'refugee-swollen' | 'camp' | 'closed';
 export type TravelMode = 'strider' | 'boat' | 'inner-sea' | 'sea-of-ghosts' | 'coastal' | 'caravan' | 'road' | 'barge' | 'guide';
 export type House = 'hlaalu' | 'eec';
 export type FactionId = 'tong' | 'hlaalu' | 'redoran' | 'telvanni' | 'temple' | 'eec' | 'legion' | 'anxileel' | 'skaal';
@@ -56,7 +57,10 @@ export interface Location extends Sourced {
   status: LocStatus;
 }
 
-export interface RouteMode { mode: TravelMode; days: number; fare: number; risk: number; maxWeight?: number }
+/** A day-labour job in one place (data/jobs.ts). `mult` scales the local wage; `hurt` is health lost per day. */
+export interface Job extends Sourced { id: string; name: string; text: string; mult: number; hurt: number }
+
+export interface RouteMode { mode: TravelMode; days: number; fare: number; risk: number }
 export interface Route { id: string; a: string; b: string; modes: readonly RouteMode[]; closed?: boolean; note?: string }
 
 export type Effect =
@@ -232,14 +236,30 @@ export interface GameState {
   achievements: string[];
   stats: Stats;
   actions: Action[];
-  over: null | { reason: 'calendar' | 'death' | 'ruin'; day: number };
+  over: null | { reason: 'calendar' | 'death' | 'ruin' | 'retired'; day: number };
+  /** what the player chose at the end of the calendar (or when retiring); endless play continues after some */
+  ending?: { kind: Ending; day: number; worth: number };
+  /** milestones that open early retirement: 'debt', 'charter', 'mercy' */
+  milestones?: string[];
+  /** Tong indenture: interest stops, collectors stand down, 30% of every sale goes to the note until it is paid */
+  indentured?: boolean;
+  /** goods seized by customs that can still be contested before the magistrate in this town */
+  appeal?: { loc: string; goods: Record<string, Lot>; fine: number } | null;
+  duel?: DuelState | null;
 }
+
+export type Ending = 'retire' | 'tong' | 'charter' | 'trade';
 
 export type Action =
   | { t: 'buy'; good: string; qty: number }
   | { t: 'sell'; good: string; qty: number }
   | { t: 'travel'; route: string; mode: number }
   | { t: 'wait'; days: number }
+  | { t: 'crossroads'; choice: Ending }
+  | { t: 'retire' }
+  | { t: 'appeal' }
+  | { t: 'duel'; card: number; discard?: boolean }
+  | { t: 'labour'; job: string; days: number }
   | { t: 'deposit'; house: House; amount: number }
   | { t: 'withdraw'; house: House; amount: number }
   | { t: 'writ'; house: House; from: string; amount: number }

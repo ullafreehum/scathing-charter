@@ -1,5 +1,5 @@
 import { C } from '../data';
-import { holidayAt, shortDate, RUMOR_PRICE, WAGES, BOARD_PER_DAY, type GameState } from '../engine';
+import { holidayAt, shortDate, RUMOR_PRICE, WAGES, BOARD_PER_DAY, jobPay, type GameState } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 
@@ -20,6 +20,16 @@ export function Tavern({ g }: { g: GameState }) {
           <div key={r.id} className="text-sm border-l-2 border-ash-600 pl-2"><span className="fell italic text-parchment">{r.voice ? `${r.voice}: ` : ''}“{r.text}”</span>
             {r.dispute && <> <CodexLink id={`dispute:${r.dispute}`} className="text-lilac text-xs">({r.dispute}: historians disagree)</CodexLink></>}</div>
         ))}{!heard.length && <p className="text-sm text-ash-400">Buy a round and listen. Rumours give price tips, warnings about what is coming, and arguments about what really happened.</p>}</div>
+      </Section>
+      <Section title="Day labour">
+        <p className="text-sm text-ash-400 mb-1">Short of coin? Hire on here. A day’s wage pays for about two trips to the nearest town.</p>
+        {(C.jobs[L.id] ?? []).map(j => (
+          <div key={j.id} className="border-t border-ash-700/60 py-2 text-sm">
+            <div className="flex flex-wrap items-center gap-2"><span className="text-bone">{j.name}</span><span className="text-xs text-ash-400"><Money v={jobPay(g, L.id, j)} />/day{j.hurt ? ` · −${j.hurt} health/day` : ''}</span>
+              <span className="ml-auto flex gap-1">{[1, 3, 7].map(d => <button key={d} className="btn" onClick={() => act({ t: 'labour', job: j.id, days: d })}>{d * g.timeScale} day{d * g.timeScale > 1 ? 's' : ''}</button>)}</span></div>
+            <div className="text-parchment">{j.text}</div>
+          </div>
+        ))}
       </Section>
       <Section title="Contracts">
         {offers.length === 0 && <p className="text-sm text-ash-400">No one here has work for you today.</p>}

@@ -123,7 +123,7 @@ export const EXTRA_CODEX: C[] = [
   t('person:nerevarine', 'person', 'The Nerevarine', 'Destroyer of Dagoth Ur in 3E 427, who refused power and is rumoured to have sailed for Akavir.', 'canon', [U('Nerevarine')]),
   t('person:lymdrenn', 'person', 'Lymdrenn Tenvanni', 'Telvanni noble whose journal of 4E 6, Second Seed, Middas records the Argonians closing in. His son Brandyl became Brand-Shei.', 'canon', [UG('Skyrim', "Lymdrenn_Tenvanni's_Journal")]),
   t('travel:strider', 'travel', 'Silt striders', 'Giant arthropods that carry passengers between Vvardenfell’s towns. The Red Year ends the network.', 'canon', [UG('Morrowind', 'Transport')]),
-  t('travel:guide', 'travel', 'Guild Guides', 'Mages Guild teleportation between guildhalls, for a fee. Light loads only (25 stone here).', 'canon', [UG('Morrowind', 'Transport')]),
+  t('travel:guide', 'travel', 'Guild Guides', 'Mages Guild teleportation between guildhalls, for a fee.', 'canon', [UG('Morrowind', 'Transport')]),
   t('travel:boat', 'travel', 'Coastal boats', 'Small craft that work Vvardenfell’s shores.', 'unverified', [UG('Morrowind', 'Transport')]),
   t('travel:inner-sea', 'travel', 'The Inner Sea', 'The water between Vvardenfell and the mainland; tsunamis cross it in the Red Year.', 'canon', [U('Baar_Dau')]),
   t('travel:sea-of-ghosts', 'travel', 'The Sea of Ghosts', 'Misty northern waters full of glaciers and icebergs, named for Ysgramor’s drowned son Yngol. Winter crossings are longer and worse.', 'canon', [U('Sea_of_Ghosts')]),
