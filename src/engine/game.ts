@@ -72,7 +72,7 @@ export function newGame(cfg: NewGameConfig): GameState {
     actions: [], over: null,
   };
   if (cfg.mode === 'long-chronicle') { startChronicle(s, true); catchUpHistory(s, rng); s.stats.visited = ['narsis']; }
-  for (const id of ['loc:balmora', 'faction:tong', 'topic:the-note', 'topic:calendar', 'holiday:new-life', 'topic:writ-of-coin', `background:${bg.id}`]) unlock(s, id);
+  for (const id of ['loc:balmora', 'faction:tong', 'topic:the-note', 'topic:calendar', 'holiday:new-life', 'topic:writ-of-coin', 'topic:red-mountain', `background:${bg.id}`]) unlock(s, id);
   applyHistory(s, rng);
   makeOffers(s, rng, s.player.location);
   recordPrices(s);

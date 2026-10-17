@@ -4,6 +4,10 @@ import { C } from '../data';
 import type { CodexEntry } from '../engine';
 import { useGame } from '../store/game';
 import { Badge, Sources } from './widgets';
+import redMountain from '../assets/places/red-mountain.jpg';
+
+/** Pictures shown as a 2:1 banner at the top of a codex entry. */
+const BANNER: Record<string, string> = { 'topic:red-mountain': redMountain };
 
 const CATS: { id: CodexEntry['category']; label: string }[] = [
   { id: 'place', label: 'Places' }, { id: 'good', label: 'Goods' }, { id: 'faction', label: 'Factions' }, { id: 'person', label: 'People' },
@@ -54,6 +58,7 @@ export function Codex() {
             <motion.div key={entry?.id ?? 'none'} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16, ease: EASE }}>
               {entry ? (
                 <>
+                  {BANNER[entry.id] && <img src={BANNER[entry.id]} alt="" className="w-full aspect-[2/1] object-cover rounded mb-3" />}
                   <h2 className="h-display text-2xl text-bone">{entry.title}</h2>
                   <div className="my-2"><Badge canon={entry.canon} /></div>
                   {entry.body.split('\n\n').map((p, i) => <p key={i} className="mb-3 text-[1.02rem] text-parchment">{p}</p>)}

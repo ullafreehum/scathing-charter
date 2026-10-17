@@ -7,6 +7,9 @@ import { CodexLink, Money, Sources } from './widgets';
 import { FortuneChart } from './FortuneChart';
 import { DuelScreen } from './Duel';
 
+/** Event pictures: src/assets/events/<event-id>.jpg, shown 16:9 at the top of that event's chronicle card. */
+const EVENT_ART = import.meta.glob<string>('../assets/events/*.jpg', { eager: true, query: '?url', import: 'default' });
+
 function Card({ children, wide = false, board = false, parchment = false, label }: { children: React.ReactNode; wide?: boolean; board?: boolean; parchment?: boolean; label?: string }) {
   return (
     <motion.div className="fixed inset-0 z-40 scrim flex items-center justify-center p-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
@@ -48,6 +51,7 @@ export function Overlays() {
     const ev = C.history.find(h => h.id === item.eventId)!;
     node = (
       <Card key={`chr-${ev.id}`} wide parchment>
+        {EVENT_ART[`../assets/events/${ev.id}.jpg`] && <img src={EVENT_ART[`../assets/events/${ev.id}.jpg`]} alt="" className="w-full aspect-video object-cover rounded mb-3" />}
         <div className="fell italic text-[#6b4a2b]">{formatDate(ev.day)}</div>
         <h2 className="h-display text-3xl text-[#3a1a0c] mb-1">{ev.title}</h2>
         <div className="mb-3" />

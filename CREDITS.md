@@ -2,6 +2,8 @@
 
 In this repository the duel art lives in `src/assets/duel/` (the `art/` paths below), the card paintings in
 `src/assets/duel/cards-painted/`, and the per-file Wesnoth sources and artists in `docs/CREDITS-sourced.md`.
+Sinan's own pictures (the duel backdrop, eight card paintings, the event pictures in `src/assets/events/` and the
+Red Mountain codex banner) carry no credit, at his request.
 
 Card icons for the non-Daedra cards come from [game-icons.net](https://game-icons.net), licensed under
 [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). They are recoloured and set on our own backgrounds.

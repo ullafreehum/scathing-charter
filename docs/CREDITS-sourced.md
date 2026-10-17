@@ -96,3 +96,20 @@ Artist credits follow Wesnoth's own practice: per art set, from each campaign's 
 Suggested one-line in-game credit: *Painted art from The Battle for Wesnoth (wesnoth.org) by Kathrin Polikeit (Kitty), Emilien Rotival (LordBob), Blarumyrran, J.W. Bjerk and the Wesnoth art team, GPL v2+. Stone textures from Golgotha (Crack dot Com, CC0). Mountain painting by JAP (CC0).*
 
 > 2026-10-17 (Sorcerer): `mountain-lava-field` is **no longer used**. Sinan's own painting replaced it as the duel backdrop, so drop its in-game credit.
+
+## Card art v2 (cards-v2/<card-id>.jpg, 384x264), 2026-10-17
+
+All from The Battle for Wesnoth, **GPL v2+**. Artists are listed by art set in the section above (core = Wesnoth art team; quenoth = Under the Burning Suns).
+
+| Card id | Wesnoth source |
+|---|---|
+| ordinator | core/images/portraits/humans/royal-warrior.webp |
+| dwemer-centurion | core/images/portraits/dwarves/dragonguard.webp |
+| guar-rider | campaigns/Under_the_Burning_Suns/images/portraits/quenoth/tauroch_rider.webp |
+| legion-cohort | core/images/portraits/humans/spearman-2.webp |
+| morag-tong | core/images/portraits/humans/huntsman.webp |
+| dark-brotherhood | core/images/portraits/undead/banebow.webp |
+| redoran-charge | campaigns/Under_the_Burning_Suns/images/portraits/quenoth/tauroch_flagbearer.webp |
+| archer | core/images/portraits/elves/marksman.webp |
+| watchtower | core/images/story/landscape-mountains-04.webp (cropped, ash-graded) |
+| foundation | core/images/story/grim-altar.jpg (ash-graded) |
