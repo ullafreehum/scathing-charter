@@ -2,7 +2,8 @@
 #  - a version tag (v1.2.3) is pushed, or
 #  - release notes docs/releases/v<version>.md (or this workflow) are pushed on any branch
 #    and that version has not been released yet (the release step creates the tag).
-# It builds the offline edition and attaches it with checksums.
+# It creates the release, then a Windows runner builds the desktop app (Electron, unsigned) and attaches
+# the installer and the portable .exe.
 name: Release
 
 on:
@@ -17,6 +18,9 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.v.outputs.skip }}
+      tag: ${{ steps.v.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,14 +36,6 @@ jobs:
           if [ ! -f "docs/releases/$V.md" ]; then echo "No docs/releases/$V.md: nothing to release."; echo "skip=1" >> "$GITHUB_OUTPUT"; exit 0; fi
           if [ "$GITHUB_REF_TYPE" = branch ] && git ls-remote --exit-code --tags origin "refs/tags/$V" >/dev/null; then echo "$V is already released."; echo "skip=1" >> "$GITHUB_OUTPUT"; fi
       - if: steps.v.outputs.skip != '1'
-        run: npm ci
-      - if: steps.v.outputs.skip != '1'
-        name: Build the offline edition
-        run: npm run package:offline
-      - if: steps.v.outputs.skip != '1'
-        name: Checksums
-        run: cd release && sha256sum *.zip > SHA256SUMS.txt && cat SHA256SUMS.txt
-      - if: steps.v.outputs.skip != '1'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.v.outputs.tag }}
@@ -47,6 +43,22 @@ jobs:
           name: The Scathing Charter ${{ steps.v.outputs.tag }}${{ startsWith(steps.v.outputs.tag, 'v0.') && ' (beta)' || '' }}
           body_path: docs/releases/${{ steps.v.outputs.tag }}.md
           prerelease: ${{ startsWith(steps.v.outputs.tag, 'v0.') }}
+  windows:
+    needs: release
+    if: needs.release.outputs.skip != '1'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build the Windows app (unsigned)
+        run: npm run package:win
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.release.outputs.tag }}
           files: |
-            release/AshGame-offline-*.zip
-            release/SHA256SUMS.txt
+            release/electron/ScathingCharter-Setup-*.exe
+            release/electron/ScathingCharter-Portable-*.exe

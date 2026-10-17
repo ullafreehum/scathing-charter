@@ -1,0 +1,35 @@
+# Windows desktop build. appId and productName are permanent: changing either moves the
+# save folder (%APPDATA%\The Scathing Charter) and players lose their saves.
+appId: io.github.ullafreehum.scathing-charter
+productName: The Scathing Charter
+copyright: Unofficial, non-commercial fan project. GPL-3.0-only.
+directories:
+  output: release/electron
+  buildResources: build
+files:
+  - dist/**/*
+  - electron/main.cjs
+  - electron/preload.cjs
+  - build/icon.png
+  - package.json
+  - "!node_modules/**/*"
+extraMetadata:
+  main: electron/main.cjs
+asar: true
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: The Scathing Charter
+  artifactName: ScathingCharter-Setup-${version}.${ext}
+portable:
+  artifactName: ScathingCharter-Portable-${version}.${ext}
+publish: null

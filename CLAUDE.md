@@ -5,8 +5,8 @@ Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-comme
 
 > Version **0.9.6** (beta): the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
 > bump it there and add a `CHANGELOG.md` entry for each release. To publish: write `docs/releases/v<version>.md`,
-> and push it (or push the tag `v<version>`); `.github/workflows/release.yml` builds the offline ZIP, creates the
-> tag and publishes the release (pre-release while the version is 0.x).
+> and push it (or push the tag `v<version>`); `.github/workflows/release.yml` creates the
+> tag, publishes the release and a Windows runner attaches the Electron Setup and Portable .exe (pre-release while the version is 0.x).
 > Status: **playable** (M1–M7 done). Red Year campaign + Long Chronicle; see README.md to play.
 > Design: `docs/GAME_DESIGN.md` · Lore + sources + dispute register: `docs/LORE_BIBLE.md` · raw notes: `docs/research/`.
 > Renamed from "Ashfall Ledger": internal ids (package name, `ashfall-ledger/` localStorage keys) keep the
@@ -16,7 +16,8 @@ Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-comme
 | What | Command |
 |---|---|
 | Install | `npm install` |
-| Dev server | `npm run dev` (`npm start` also opens the browser; players can double-click `PLAY.cmd` / run `./play.sh`) |
+| Dev server | `npm run dev` (`npm start` also opens the browser) |
+| Desktop app (Electron) | `npm run desktop` (build + open); `npm run package:win` → `release/electron/` Setup + Portable .exe (Windows/CI). `electron/main.cjs` + `preload.cjs`, `electron-builder.yml`. Never change `appId`/`productName`: they fix the save folder. Game-side hooks in `src/ui/desktop.ts` (no-ops in a browser). |
 | Type-check + production build (static, offline, relative paths) | `npm run build` → `dist/` |
 | Preview the build | `npm run preview` |
 | Unit tests (engine, data validation) | `npm test` (watch: `npm run test:watch`) |

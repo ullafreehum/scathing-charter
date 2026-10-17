@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useDialogMark } from './desktop';
 import { nextSteps, type Hint } from './hints';
 import { planRoute } from './route';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -50,6 +51,7 @@ function TopBar({ g }: { g: GameState }) {
   const { openCodex, openSettings, setScreen } = useGame();
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  useDialogMark('menu', menu);
   // The ☰ menu closes on Escape, on a click or tap outside it, and when focus leaves it.
   useEffect(() => {
     if (!menu) return;

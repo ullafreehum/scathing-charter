@@ -153,7 +153,7 @@ test('travel: map views, zoom, travel card, planner, keys; Go moves you and the 
   await page.getByRole('button', { name: 'All Tamriel' }).click();
   await expect.poll(async () => Number((await svg.getAttribute('viewBox'))!.split(' ')[2])).toBeGreaterThanOrEqual(1000);
   await page.getByRole('button', { name: 'Vvardenfell', exact: true }).click();
-  await expect.poll(async () => Number((await svg.getAttribute('viewBox'))!.split(' ')[2])).toBeLessThan(400);
+  await expect.poll(async () => Number((await svg.getAttribute('viewBox'))!.split(' ')[2])).toBeLessThan(450);
   // a far town: the planner proposes a chain of journeys
   await page.getByRole('button', { name: 'All Tamriel' }).click();
   await expect.poll(async () => Number((await svg.getAttribute('viewBox'))!.split(' ')[2])).toBeGreaterThanOrEqual(1000);

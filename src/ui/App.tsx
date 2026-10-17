@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect } from 'react';
+import { useDesktopBridge } from './desktop';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { useGame } from '../store/game';
 import { ERUPTION_DAY } from '../data/history';
@@ -31,6 +32,7 @@ export function App() {
   const intensity = game ? ashIntensity(game.day, region) : 0.35;
   const ember = !!game?.world.flags.erupted;
   const codexOpen = codex !== undefined;
+  useDesktopBridge();
   useLayoutEffect(() => { applyAppearance(st.theme, st.font, st.textScale); }, [st.theme, st.font, st.textScale]);
   useLayoutEffect(() => { document.documentElement.dataset.anim = st.animations ? 'on' : 'off'; }, [st.animations]);
   useEffect(() => {

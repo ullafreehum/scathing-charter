@@ -1,8 +1,0 @@
-@echo off
-cd /d "%~dp0"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$d=[Environment]::GetFolderPath('Desktop'); $s=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $d 'The Scathing Charter.lnk')); $s.TargetPath=(Join-Path '%~dp0' 'Play The Scathing Charter.cmd'); $s.WorkingDirectory='%~dp0'; $s.WindowStyle=7; $s.Description='The Scathing Charter (offline)'; $s.Save()"
-if errorlevel 1 (echo Could not create the shortcut. & pause & exit /b 1)
-echo.
-echo   Done. There is now a "The Scathing Charter" shortcut on your desktop.
-echo.
-pause

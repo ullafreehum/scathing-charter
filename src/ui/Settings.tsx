@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '../store/game';
 import { FONTS, TEXT_SCALES, THEMES } from './themes';
+import { desktop } from './desktop';
 
 function Group({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
   return (
@@ -15,6 +16,9 @@ function Group({ title, note, children }: { title: string; note?: string; childr
 
 export function Settings() {
   const { meta, setSettings, resetSettings, closeSettings } = useGame();
+  // Desktop app only: the full-screen switch follows F11, Alt+Enter and Esc too.
+  const [full, setFull] = useState(false);
+  useEffect(() => { const d = desktop(); if (!d) return; d.isFullScreen().then(setFull); return d.onFullScreenChange(setFull); }, []);
   const s = meta.settings;
   const pick = (on: boolean) => `rounded-lg border-2 text-left transition-colors ${on ? 'border-ember' : 'border-ash-600 hover:border-ash-400'}`;
   return (
@@ -75,6 +79,10 @@ export function Settings() {
           </div>
         </Group>
 
+        {desktop() && <Group title="Window">
+          <label className="flex items-center gap-2"><input type="checkbox" checked={full} onChange={e => desktop()?.setFullScreen(e.target.checked)} />Full screen (F11 or Alt+Enter)</label>
+        </Group>}
+
         <Group title="Motion">
           <label className="flex items-center gap-2"><input type="checkbox" checked={s.ash} onChange={e => setSettings({ ash: e.target.checked })} />Falling ash</label>
           <label className="flex items-center gap-2 mt-1"><input type="checkbox" checked={s.animations} onChange={e => setSettings({ animations: e.target.checked })} />Animations (sliding panels and cards)</label>
@@ -85,7 +93,7 @@ export function Settings() {
         </Group>
 
         <div className="flex items-center justify-between mt-5 pt-3 border-t border-ash-600">
-          <span className="text-xs text-ash-400">Settings are saved in this browser and apply to every game. · The Scathing Charter v{__APP_VERSION__}</span>
+          <span className="text-xs text-ash-400">Settings are saved on this computer and apply to every game. · The Scathing Charter v{__APP_VERSION__}</span>
           <button className="btn btn-ghost" onClick={resetSettings}>Reset to defaults</button>
         </div>
       </motion.div>
