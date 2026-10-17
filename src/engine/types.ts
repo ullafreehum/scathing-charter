@@ -204,7 +204,7 @@ export interface CharterState {
   nextDividend: number | null; dividends: number;
   /** day the highest tier was bought; the next tier needs it held C.charter.holdDays (absent in older saves: held long enough) */
   boughtDay?: number;
-  /** goodwill with the council from relief given at cost on the road; each point takes 2% off the next tier (max 10%) */
+  /** goodwill with the council from relief given at cost on the road; each point takes 0.3% off the next tier (max 1.5%) */
   favour?: number;
 }
 

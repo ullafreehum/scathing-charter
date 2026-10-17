@@ -27,10 +27,11 @@ One goal, one choice per trip, and a Red Year you can see on the map. Now a Wind
   - Customs: the bribe is 12% of the contraband (was 35%); if it fails they keep it and charge the duty too, instead of seizing everything.
   - Tong collectors keep 60 of the 300 as a fee; asking for time adds 0.05% a day (0.1% before, and far too much in the Long Chronicle).
   - Pushing through a storm can also cost a share of your other cargo (35% chance); a guide charges 40 or 6% of the cargo's value.
-  - Charter favour takes 2% off per point (at most 10%). Each charter tier must be held a while before the next: 30 days, then 60.
+  - Charter favour takes 0.3% off per point (at most 1.5%). Each charter tier must be held a while before the next: 30 days, then 60.
   - The Chartered hold costs 8,000 (was 14,000).
   - Borrowing raises the rate less (0.08% per note borrowed), and the Borrow question says how many days until your debt passes six times the note.
   - Only a payment of at least 30 days' interest keeps the collectors away.
+  - Final values (round 2): charter tiers cost 15,000, 40,000 and 130,000; customs duty is 40% and Chameleon works 85% of the time at a gate; Tong collectors catch a runner 35% of the time; luxuries, magic goods and medicine sell in bigger amounts before the price drops; ruined towns and camps pay less of a premium; price spikes are smaller.
 - Saves from 0.9.x load and carry on (save format v7).
 
 ## 0.9.6 (beta): fixes from a playtest

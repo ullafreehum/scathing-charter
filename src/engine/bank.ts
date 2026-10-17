@@ -5,8 +5,8 @@ import type { Action, GameState } from './types';
 import { vaultHouse } from './history';
 import { log, unlock } from './util';
 
-/** Daily interest on each city's strongbox: highest in the cities the Red Year threatens, so keeping money there is
- *  the eruption gamble. And the fee for taking money out. */
+/** Daily interest on each city's strongbox (the eruption gamble: the game never says which cities are doomed),
+ *  and the fee for taking money out. */
 export const DEPOSIT_RATES: Readonly<Record<string, number>> = {
   vivec: 0.0012, ebonheart: 0.0012, balmora: 0.0012, mournhold: 0.0008,
   narsis: 0.0003, 'raven-rock': 0.0003, solitude: 0.0003, 'imperial-city': 0.0003,
@@ -71,7 +71,7 @@ export function daysUntil(balance: number, rate: number, limit: number, timeScal
 /** Pays `amt` off the Tong note (at a counter or to collectors on the road) and clears it when nothing is left.
  *  Only a payment worth at least 30 days of interest resets the "late" clock that sends collectors. */
 export function payNote(s: GameState, amt: number): void {
-  if (amt >= s.note.balance * s.note.rate * 30 * s.timeScale) s.note.lastPaymentDay = s.day;
+  if (amt >= s.note.balance * s.note.rate * 30 * s.timeScale || amt >= s.note.balance - 1) s.note.lastPaymentDay = s.day;
   s.player.cash -= amt; s.note.balance -= amt;
   if (s.note.balance < 1) { s.note.balance = 0; s.note.cleared = true; log(s, 'You paid off the Camonna Tong. You owe no one.', 'good'); s.inbox.push({ kind: 'result', title: 'Debt paid off', text: 'Gavas Drelloth counts the coin twice, then tears up your note. "Pleasure, outlander." You are free of the Tong.' }); }
 }

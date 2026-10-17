@@ -11,13 +11,13 @@ import { payNote } from './bank';
 /** Crossing-card knobs: every card prints its stakes from these before the player chooses. */
 export const CARD = {
   /** customs: duty on declared contraband; the bribe as a share of the contraband (at least 40); Chameleon odds at a gate */
-  duty: 0.25, bribeShare: 0.12, chameleonAtGate: 0.55,
+  duty: 0.4, bribeShare: 0.12, chameleonAtGate: 0.85,
   /** hazards: the guide's fee (guideFee, or guideShare of your cargo's value if more); the share of each perishable lot that
    *  spoils when you push through; and the chance pushing through also costs the card's loss share of everything else */
   guideFee: 40, guideShare: 0.06, spoil: 0.3, stormChance: 0.35,
   /** Tong collectors: payment asked, the share of it they keep as a fee, rate rise for more time (per day of game time),
    *  chance they catch a runner, days the route stays watched */
-  tongPay: 300, tongFee: 0.2, tongRate: 0.0005, tongCatch: 0.4, watchDays: 30,
+  tongPay: 300, tongFee: 0.2, tongRate: 0.0005, tongCatch: 0.35, watchDays: 30,
   /** relief: units per good handed over (sold dear or at cost) */
   reliefUnits: 10,
 } as const;

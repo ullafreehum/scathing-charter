@@ -19,6 +19,8 @@ import { checkMark, endingAction, milestones, timeUp, win } from './endings';
 export const RED_YEAR_END = D(6, 12, 31);
 /** Titus Mede I takes the Imperial City: c. 4E 22 (D-10); day chosen as Emperor's Day (extrapolation). */
 export const CORONATION_DAY = D(22, 10, 30);
+/** How far a price spike lifts a good (a multiplier range); dips go to 0.3–0.5. */
+export const SPIKE_UP = [1.6, 2.6] as const;
 export const DIFFICULTY = {
   fair: { cash: 700, debt: 2000, rate: 0.002 },
   tong: { cash: 550, debt: 4000, rate: 0.003 },
@@ -141,7 +143,7 @@ export function tickDay(s: GameState, rng: Rng): void {
       c.stock = tend <= 0.9 ? camp === 1 || rng.chance(camp) : rng.chance((tend >= 1.25 ? 0.4 : 0.75) * camp);
       if (rng.chance(0.011)) {
         const up = rng.chance(0.55);
-        c.shock = up ? rng.range(2, 3.4) : rng.range(0.3, 0.5);
+        c.shock = up ? rng.range(SPIKE_UP[0], SPIKE_UP[1]) : rng.range(0.3, 0.5);
         if (up) c.stock = true;
         const line = rng.pick(up ? g.spikes : g.crashes);
         s.world.news.push({ day: s.day, loc: L.id, text: `${L.name}: ${line}`, up });

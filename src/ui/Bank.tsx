@@ -139,7 +139,7 @@ export function Bank({ g }: { g: GameState }) {
       <Section title="Strongboxes">
         <ul className="text-sm space-y-1">{strongboxCities(C.branches).map(b => {
           const open = g.world.branches[b] === 'open'; const amtB = Math.floor(g.deposits[b] ?? 0);
-          return <li key={b} className="flex items-center gap-2"><span className={open ? 'text-bone' : 'text-ash-400 line-through'}>{C.locs[b].name}</span>{b === loc && <span className="text-xs text-gold">(here)</span>}<span className="text-xs text-ash-400 num">{(depositRate(b) * 100).toFixed(2)}% a day</span><span className="ml-auto"><Money v={amtB} /></span></li>;
+          return <li key={b} className="flex items-center gap-2"><span className={open ? 'text-bone' : 'text-ash-400 line-through'}>{C.locs[b].name}</span>{b === loc && <span className="text-xs text-gold">(here)</span>}<span className="ml-auto"><Money v={amtB} /></span></li>;
         })}</ul>
         {boxHere ? (
           <div className="mt-3">
@@ -154,7 +154,7 @@ export function Bank({ g }: { g: GameState }) {
             </div>
           </div>
         ) : <p className="text-xs text-ash-400 mt-2">No strongbox here. Money stays in the city where you left it.</p>}
-        <p className="text-xs text-ash-400 mt-2">Strongboxes pay the daily rate shown, keep your money safe from robbers, and charge {Math.round(WITHDRAW_FEE * 100)}% to take it out. The cities in the Red Year’s path pay most, but a vault can be lost if its city falls.</p>
+        <p className="text-xs text-ash-400 mt-2">{boxHere ? `This strongbox pays ${(depositRate(loc) * 100).toFixed(2)}% a day; rates differ by city. ` : 'Rates differ by city. '}Strongboxes keep your money safe from robbers and charge {Math.round(WITHDRAW_FEE * 100)}% to take it out. A vault can be lost if its city falls.</p>
       </Section>
       <CharterSection g={g} />
       {g.frozen.length > 0 && (

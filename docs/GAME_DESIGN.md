@@ -166,9 +166,9 @@ Saves from 0.9.x sum each city's house balances into its strongbox (schema v5).
 - **The Scathing Charter** (invented; data in `src/data/charter.ts`). After House Redoran's relief (the `relief`
   flag) the Grand Council sells rights to rebuild the Vivec region, in Mournhold, Narsis or Balmora, to traders who
   owe the Tong nothing:
-  1. *Relief supplier licence* (12,000): three contract offers instead of two, relief contracts weighted ×3 and paid ×1.25.
-  2. *Warehouse at Narsis* (30,000): store cargo without spoilage (Ebonheart, the obvious port, is destroyed).
-  3. *The Scathing Charter* (55,000): 4,000 every 30 days, halved while the war lasts; title *Charter-Holder*.
+  1. *Relief supplier licence* (15,000): three contract offers instead of two, relief contracts weighted ×3 and paid ×1.25.
+  2. *Warehouse at Narsis* (40,000): store cargo without spoilage (Ebonheart, the obvious port, is destroyed).
+  3. *The Scathing Charter* (130,000): 4,000 every 30 days, halved while the war lasts; title *Charter-Holder*.
   Rights count toward net worth at 70% of the price paid. When House Hlaalu loses its seat, holders must pay 20% of
   what they paid within 60 days or lose their highest tier.
 
@@ -306,13 +306,13 @@ follows ("This ledger follows UESP's c. 4E 22; the Imperial Library timeline say
 risk-1 hop, 51% on a 9-day risk-3 trek. Enforcers add their pressure odds on top. It (a road card also replaces the customs search on
 arrival). `cardOptions()` in encounters.ts gives every option a label, a stake line in septims and
 percentages and the rolled odds from `choiceOdds()`; a disabled option says why and `step` refuses it.
-Four scenes set the shape: **customs** (declare and pay 25% duty; bribe for 12% of the contraband, and if it
+Four scenes set the shape: **customs** (declare and pay 40% duty; bribe for 12% of the contraband, and if it
 fails they keep it and charge the duty too; or Chameleon, which loses the whole lot if it fails); **mercy**
 (sell at cost for Mercy +2 and Charter favour +1, or at the crisis price); **hazards** (wait, hire a guide for
 40 or 6% of the cargo's value, or push through: 30% of perishables spoil and there is a 35% chance of losing the
 card's loss share of everything else); **Tong collectors** (pay 300, of which 240 comes off the note; ask for
-time at +0.05% a day; or run with a 40% chance of being caught; the route is *watched*, doubling enforcer odds,
-for 30 days). Charter favour takes 2% per point off charter tiers (max 10%). Each charter tier must be held
+time at +0.05% a day; or run with a 35% chance of being caught; the route is *watched*, doubling enforcer odds,
+for 30 days). Charter favour takes 0.3% per point off charter tiers (max 1.5%). Each charter tier must be held
 30 (tier 1) or 60 (tier 2) days before the next is sold, so the earliest win is day 517. Only a payment of at
 least 30 days' interest resets the collectors' clock; borrowing raises the rate by 0.08% per note borrowed.
 Schema v6 gives an open card in an old save the new choice set; v7 adds `charter.boughtDay`.

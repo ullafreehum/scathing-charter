@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { C } from '../data';
-import { CARD, buildPending, cardChance, cardOptions, charterPrice, choiceOdds, contrabandValue, fairValue, migrate, newGame, serialize, step, type Action, type GameState, type NewGameConfig } from './index';
+import { CARD, FAVOUR_DISCOUNT, FAVOUR_MAX, buildPending, cardChance, cardOptions, charterPrice, choiceOdds, contrabandValue, fairValue, migrate, newGame, serialize, step, type Action, type GameState, type NewGameConfig } from './index';
 
 const CFG: NewGameConfig = { seed: 'cards', backgroundId: 'hlaalu-bastard', name: 'Tester', difficulty: 'tong' };
 function act(s: GameState, a: Action): GameState { const r = step(s, a); if (r.error) throw new Error(r.error); return r.state; }
@@ -172,12 +172,12 @@ describe('crossing cards', () => {
     }
   });
 
-  it('Charter favour takes 2% off each point, at most 10%', () => {
+  it('Charter favour takes FAVOUR_DISCOUNT off each point, at most FAVOUR_MAX points', () => {
     const s = start();
     const base = C.charter.tiers[2].price;
     expect(charterPrice(s, 3)).toBe(base);
-    s.charter.favour = 2; expect(charterPrice(s, 3)).toBe(Math.round(base * 0.96));
-    s.charter.favour = 9; expect(charterPrice(s, 3)).toBe(Math.round(base * 0.9));
+    s.charter.favour = 2; expect(charterPrice(s, 3)).toBe(Math.round(base * (1 - 2 * FAVOUR_DISCOUNT)));
+    s.charter.favour = 9; expect(charterPrice(s, 3)).toBe(Math.round(base * (1 - FAVOUR_MAX * FAVOUR_DISCOUNT)));
   });
 
   it('migrates a v5 save with an open card to the new choices', () => {
