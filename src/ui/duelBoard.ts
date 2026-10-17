@@ -84,7 +84,7 @@ export class DuelBoard {
     view.addEventListener('pointerdown', () => { if (this.busy) this.rush = true; });
     this.ro = new ResizeObserver(([e]) => {
       const r = Math.min(3, (window.devicePixelRatio || 1) * Math.max(1, e.contentRect.width / W));
-      if (Math.abs(r - this.app.renderer.resolution) > 0.05) { this.app.renderer.resolution = r; this.app.renderer.resize(W, H); }
+      if (Math.abs(r - this.app.renderer.resolution) > 0.05) { this.app.renderer.resolution = r; this.app.renderer.resize(W, H); view.style.width = '100%'; view.style.height = '100%'; } // autoDensity resets the size to 1280×720 px
     });
     this.ro.observe(host);
     this.app.stage.addChild(this.root);

@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useRef } from 'react';
 import { C } from '../data';
 import { cardOptions, conductTitles, depositsTotal, cargoValue, formatDate, netWorth, wealthTitle, type GameState } from '../engine';
 import { useGame } from '../store/game';
@@ -6,6 +7,13 @@ import { exportFile } from '../save/storage';
 import { CodexLink, Money, Sources } from './widgets';
 import { FortuneChart } from './FortuneChart';
 import { DuelScreen } from './Duel';
+
+/** Continue, focused without scrolling, so a tall card opens at its top (its picture) rather than at the button. */
+function ContinueButton({ className, onClick }: { className: string; onClick: () => void }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  useEffect(() => { ref.current?.focus({ preventScroll: true }); }, []);
+  return <button ref={ref} className={className} onClick={onClick}>Continue</button>;
+}
 
 /** Event pictures: src/assets/events/<event-id>.jpg, shown 16:9 at the top of that event's chronicle card. */
 const EVENT_ART = import.meta.glob<string>('../assets/events/*.jpg', { eager: true, query: '?url', import: 'default' });
@@ -51,7 +59,7 @@ export function Overlays() {
     const ev = C.history.find(h => h.id === item.eventId)!;
     node = (
       <Card key={`chr-${ev.id}`} wide parchment>
-        {EVENT_ART[`../assets/events/${ev.id}.jpg`] && <img src={EVENT_ART[`../assets/events/${ev.id}.jpg`]} alt="" className="w-full aspect-video object-cover rounded mb-3" />}
+        {EVENT_ART[`../assets/events/${ev.id}.jpg`] && <img src={EVENT_ART[`../assets/events/${ev.id}.jpg`]} alt="" className="w-full aspect-video max-h-[40dvh] object-cover object-[50%_40%] rounded mb-3" />}
         <div className="fell italic text-[#6b4a2b]">{formatDate(ev.day)}</div>
         <h2 className="h-display text-3xl text-[#3a1a0c] mb-1">{ev.title}</h2>
         <div className="mb-3" />
@@ -59,7 +67,7 @@ export function Overlays() {
         {ev.dateNote && <p className="text-sm italic text-[#6b4a2b] mt-3">About the date: {ev.dateNote}</p>}
         {ev.disputes && <p className="text-sm mt-2">Historians disagree: {ev.disputes.map(d => <CodexLink key={d} id={`dispute:${d}`} className="mr-2 text-[#5a2d7a]">{d}</CodexLink>)}</p>}
         <div className="[&_*]:!text-[#6b4a2b]"><Sources list={ev.sources} /></div>
-        <button className="btn btn-ember mt-4" autoFocus onClick={() => act({ t: 'ack' })}>Continue</button>
+        <ContinueButton className="btn btn-ember mt-4" onClick={() => act({ t: 'ack' })} />
       </Card>
     );
   } else if (item && item.kind !== 'achievement') {
@@ -76,7 +84,7 @@ export function Overlays() {
             <p className="fell text-lg text-parchment whitespace-pre-line">{it.text}</p>
           </div>
         ))}
-        <button className="btn btn-ember mt-4" autoFocus onClick={() => act({ t: 'ack', n: items.length })}>Continue</button>
+        <ContinueButton className="btn btn-ember mt-4" onClick={() => act({ t: 'ack', n: items.length })} />
       </Card>
     );
   } else if (item) {
@@ -85,7 +93,7 @@ export function Overlays() {
     node = (
       <Card key={`ach-${item.id}`}>
         <div className="text-center"><div className="text-4xl text-gold">★</div><h2 className="h-display text-xl text-gold">{a?.name}</h2><p className="text-parchment">{a?.text}</p>
-          <button className="btn mt-4" autoFocus onClick={() => act({ t: 'ack' })}>Continue</button></div>
+          <ContinueButton className="btn mt-4" onClick={() => act({ t: 'ack' })} /></div>
       </Card>
     );
   } else if (g.over) node = <EndScreen key="end" g={g} />;
