@@ -449,6 +449,11 @@ armour, scrolls, reputations, Mercy, Lilmoth licence, codex unlocks, achievement
   so the price book gives the player less than the bots had and the difficulty targets still hold.
 - **Feel (v0.9.1)**: good icons (`ui/GoodIcon.tsx`), floating deltas on cash/debt/heat, a non-blocking travel
   banner, and a fortune chart (`ui/FortuneChart.tsx`) fed by weekly `stats.worth` samples taken in `tickDay`.
+- **Time and touch (v0.9.2)**: campaign timeline (`ui/TimeRibbon.tsx`), a ticking date, a night dip when days
+  pass and coin flights between purse, debt and the clicked control (`ui/fx.tsx`). Rolling counters, sliding tab
+  underline with direction-aware content, tactile buttons, row glow and arrival cascade in the Market. All gated by
+  `ui/motion.ts` (the Animations setting plus `prefers-reduced-motion`); CSS motion is switched off via
+  `html[data-anim=off]`.
 - **Transitions**: the Codex and Settings slide and fade in over a blurred scrim while the dashboard eases
   back slightly; codex entries crossfade. All of it respects the Animations setting.
 - **Audio**: procedural Web Audio (coins, wind drone, strider bell, encounter sting) with mute and volume;

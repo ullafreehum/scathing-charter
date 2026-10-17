@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, animate, motion } from 'framer-motion';
+import { useAnimationsOn } from './motion';
 import { C } from '../data';
 import { dateOf, moons, PHASES, holidayAt, type Canon, type GameState, type LocStatus } from '../engine';
 import { useGame } from '../store/game';
@@ -10,6 +11,30 @@ export function Money({ v, className = '' }: { v: number; className?: string }) 
 }
 
 // Lore-status badges are shown in the Codex only.
+/** A value that glides to its target instead of jumping (0.5 s, eased). */
+function useRolling(value: number, on: boolean): number {
+  const [shown, setShown] = useState(value);
+  const cur = useRef(value);
+  useEffect(() => {
+    if (!on || Math.abs(value - cur.current) < 1) { cur.current = value; setShown(value); return; }
+    const ctl = animate(cur.current, value, { duration: 0.5, ease: [0.22, 1, 0.36, 1], onUpdate: v => { cur.current = v; setShown(v); } });
+    return () => ctl.stop();
+  }, [value, on]);
+  return shown;
+}
+/** Money that rolls to its new value with a small springy bump (top-bar counters). */
+export function RollingMoney({ v, className = '' }: { v: number; className?: string }) {
+  const on = useAnimationsOn();
+  const shown = useRolling(v, on);
+  const [bump, setBump] = useState(0); const last = useRef(Math.round(v));
+  useEffect(() => { if (Math.round(v) !== last.current) { last.current = Math.round(v); setBump(b => b + 1); } }, [v]);
+  return (
+    <motion.span key={bump} className="inline-block origin-center" initial={bump && on ? { scale: 1.12 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 520, damping: 16 }}>
+      <Money v={shown} className={className} />
+    </motion.span>
+  );
+}
+
 const BADGE: Record<Exclude<Canon, 'canon'>, { label: string; cls: string; tip: string }> = {
   unverified: { label: 'Unverified', cls: 'text-gold', tip: 'Not confirmed by a sourced page.' },
   disputed: { label: 'Historians disagree', cls: 'text-lilac', tip: 'Sources conflict. See the Historians Disagree section of the codex.' },
@@ -54,7 +79,17 @@ export function MoonIcon({ phase, size = 18, color }: { phase: number; size?: nu
 }
 
 export function DateWidget({ g }: { g: GameState }) {
-  const d = dateOf(g.day); const m = moons(g.day);
+  // The date counts through each day that passes; the moons turn with it.
+  const on = useAnimationsOn();
+  const [shown, setShown] = useState(g.day); const prev = useRef(g.day);
+  useEffect(() => {
+    const a = prev.current, b = g.day; prev.current = b;
+    if (!on || b <= a || b - a > 800) { setShown(b); return; }
+    const ctl = animate(a, b, { duration: Math.min(1.1, 0.35 + (b - a) * 0.07), ease: 'easeInOut', onUpdate: v => setShown(Math.round(v)) });
+    return () => ctl.stop();
+  }, [g.day, on]);
+  const ticking = shown !== g.day;
+  const d = dateOf(shown); const m = moons(shown); const left = Math.max(0, g.endDay - g.day);
   const hol = g.player.location !== 'road' ? holidayAt(g, g.player.location) : undefined;
   return (
     <div className="flex items-center gap-3">
@@ -62,10 +97,11 @@ export function DateWidget({ g }: { g: GameState }) {
         <MoonIcon phase={m.masser} color="#e8b98a" size={22} /><MoonIcon phase={m.secunda} color="#c9d4dc" size={15} />
       </div>
       <div className="leading-tight">
-        <div className="h-display text-[.95rem] text-bone">{d.dom} {d.monthName}, 4E {d.year}</div>
+        <div className={`h-display text-[.95rem] transition-colors duration-500 ${ticking ? 'text-ember' : 'text-bone'}`}>{d.dom} {d.monthName}, 4E {d.year}</div>
         <div className="text-xs text-ash-400"><span className="italic">{d.weekday}</span>
           {hol && <> · <CodexLink id={`holiday:${hol.id}`} className="text-gold">{hol.name}</CodexLink></>}
           {g.mode === 'long-chronicle' && <span className="text-lilac"> · Long Chronicle</span>}
+          <span title="Days until the campaign ends"> · {left.toLocaleString('en-US')} days left</span>
         </div>
       </div>
     </div>

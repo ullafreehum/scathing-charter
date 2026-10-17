@@ -12,6 +12,7 @@ import { Codex } from './Codex';
 import { Settings } from './Settings';
 import { Toasts } from './Toasts';
 import { TravelBanner } from './TravelBanner';
+import { FxLayer, NightDip } from './fx';
 import { applyAppearance, themeById } from './themes';
 import { startWind, stopWind } from '../audio/sfx';
 
@@ -31,6 +32,7 @@ export function App() {
   const ember = !!game?.world.flags.erupted;
   const codexOpen = codex !== undefined;
   useLayoutEffect(() => { applyAppearance(st.theme, st.font, st.textScale); }, [st.theme, st.font, st.textScale]);
+  useLayoutEffect(() => { document.documentElement.dataset.anim = st.animations ? 'on' : 'off'; }, [st.animations]);
   useEffect(() => {
     if (screen === 'game' && st.sound) startWind(intensity); else stopWind();
   }, [screen, intensity, st.sound]);
@@ -59,6 +61,8 @@ export function App() {
       <AnimatePresence>{settingsOpen && <Settings key="settings" />}</AnimatePresence>
       {screen === 'game' && <Toasts />}
       {screen === 'game' && <TravelBanner />}
+      {screen === 'game' && <NightDip />}
+      <FxLayer />
       <AnimatePresence>
         {error && <motion.div key={errorTick} role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] panel px-4 py-2 text-danger shake" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>{error}</motion.div>}
       </AnimatePresence>

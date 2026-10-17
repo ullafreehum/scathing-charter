@@ -1,7 +1,7 @@
 {
   "name": "ashfall-ledger",
   "private": true,
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "The Scathing Charter — a lore-dense Elder Scrolls trading game at the dawn of the Fourth Era (unofficial fan game).",
   "type": "module",
   "scripts": {

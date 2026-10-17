@@ -3,7 +3,7 @@
 A lore-dense, Dope Wars–style trading game set in the Elder Scrolls universe at the dawn of the
 Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-commercial fan project.
 
-> Version **0.9.1** (beta): the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
+> Version **0.9.2** (beta): the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
 > bump it there and add a `CHANGELOG.md` entry for each release.
 > Status: **playable** (M1–M7 done). Red Year campaign + Long Chronicle; see README.md to play.
 > Design: `docs/GAME_DESIGN.md` · Lore + sources + dispute register: `docs/LORE_BIBLE.md` · raw notes: `docs/research/`.
@@ -44,7 +44,8 @@ src/
             in themes.test.ts). Tailwind colour names in index.css map onto those variables, so never
             hardcode hex colours in components. Settings.tsx = the in-game settings dialog.
             hints.ts (next-step strip, travel warnings), prices.ts (reads the price book) and route.ts
-            (route planner) are pure helpers over GameState.
+            (route planner) are pure helpers over GameState. Decorative motion goes through motion.ts
+            (Animations setting + reduced motion); fx.tsx holds coin flights and the night dip.
   audio/    Procedural Web Audio (no audio files needed).
 tests/e2e/  Playwright specs; screenshots go to tests/e2e/__screenshots__/.
 docs/       GAME_DESIGN.md, LORE_BIBLE.md, research/ (raw researcher notes).

@@ -4,6 +4,20 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.9.2 (beta): time passing, responsive controls
+
+- **Campaign timeline** under the top bar: fills as days pass, gold diamonds for events lived through, hollow ones
+  for events the rumours hint at; hover for details. "N days left" beside the date.
+- **The date counts through each day** that passes (glowing while it ticks); the moons turn with it.
+- **A brief dusk** dims the screen whenever days pass, deeper for longer rests.
+- **Money moves visibly**: coins fly between your purse and the Buy/Sell/Deposit/Withdraw button you clicked, and
+  from your purse into the debt when you pay the Tong. Top-bar counters roll to their new value with a small bump.
+- **Market**: the traded row glows and its owned count pops; rows settle in one after another when you arrive and
+  glide into place when re-sorted. The town's name comes into focus on arrival.
+- **Tabs and buttons**: the tab underline glides to the new tab and content slides in from that side; buttons lift
+  on hover, press in on click and spring back; primary buttons get a soft light sweep.
+- All of it follows the Animations setting and the system's reduced-motion preference.
+
 ## 0.9.1 (beta): look and feel
 
 - An icon for each of the 16 goods, in the Market and cargo lists.

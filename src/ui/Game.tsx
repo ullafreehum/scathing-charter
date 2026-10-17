@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { nextSteps, type Hint } from './hints';
 import { planRoute } from './route';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -6,13 +6,20 @@ import { C } from '../data';
 import { capacity, cargoWeight, netWorth, depositsTotal, pressure, heatLevel, type GameState } from '../engine';
 import { useGame, type Tab } from '../store/game';
 import { exportFile, type Slot } from '../save/storage';
-import { CodexLink, DateWidget, Delta, Meter, Money, StatusPill } from './widgets';
+import { CodexLink, DateWidget, Delta, Meter, RollingMoney, StatusPill } from './widgets';
+import { TimeRibbon } from './TimeRibbon';
 import { Market } from './Market';
 import { Bank } from './Bank';
 import { Tavern } from './Tavern';
 import { Outfitter } from './Outfitter';
 import { MapView } from './MapView';
 import { Ledger } from './Ledger';
+
+const SLIDE = {
+  enter: (d: number) => ({ opacity: 0, x: 16 * d }),
+  center: { opacity: 1, x: 0 },
+  exit: (d: number) => ({ opacity: 0, x: -12 * d }),
+};
 
 const TABS: { id: Tab; label: string; key: string }[] = [
   { id: 'market', label: 'Market', key: 'm' }, { id: 'map', label: 'Travel', key: 't' }, { id: 'bank', label: 'Bank', key: 'b' },
@@ -28,13 +35,13 @@ function TopBar({ g }: { g: GameState }) {
       <div className="h-display text-ember text-lg mr-2 hidden md:block">THE SCATHING CHARTER</div>
       <DateWidget g={g} />
       <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm ml-auto items-center">
-        <span title="Cash on hand">Cash <Money v={g.player.cash} className="text-bone" /><Delta value={g.player.cash} /></span>
-        <span title={`Your debt to the Camonna Tong${g.note.cleared ? '' : ` (interest about ${Math.round(g.note.balance * g.note.rate)} a day)`}`}><CodexLink id="topic:the-note">Debt</CodexLink> {g.note.cleared ? <span className="text-moss">cleared</span> : <><Money v={g.note.balance} className={pr >= 2 ? 'text-danger' : 'text-ember'} /><Delta value={g.note.balance} upIsGood={false} /></>}{pr > 0 && !g.note.cleared && <span className="text-danger ml-1" title="The Camonna Tong is losing patience">{'⚠'.repeat(pr)}</span>}</span>
-        <span title="All deposits in banks (frozen ones at their expected payout)">Bank <Money v={depositsTotal(g)} /></span>
+        <span title="Cash on hand" id="cash-counter">Cash <RollingMoney v={g.player.cash} className="text-bone" /><Delta value={g.player.cash} /></span>
+        <span title={`Your debt to the Camonna Tong${g.note.cleared ? '' : ` (interest about ${Math.round(g.note.balance * g.note.rate)} a day)`}`}><CodexLink id="topic:the-note">Debt</CodexLink> {g.note.cleared ? <span className="text-moss">cleared</span> : <><span id="debt-counter"><RollingMoney v={g.note.balance} className={pr >= 2 ? 'text-danger' : 'text-ember'} /></span><Delta value={g.note.balance} upIsGood={false} /></>}{pr > 0 && !g.note.cleared && <span className="text-danger ml-1" title="The Camonna Tong is losing patience">{'⚠'.repeat(pr)}</span>}</span>
+        <span title="All deposits in banks (frozen ones at their expected payout)">Bank <RollingMoney v={depositsTotal(g)} /></span>
         <span title="Cargo weight / capacity">Cargo <span className="num">{cargoWeight(g)}/{capacity(g)}</span></span>
         <span className="flex items-center gap-1" title="Health">♥ <Meter v={g.player.health} color={g.player.health < 35 ? 'var(--c-bad)' : 'var(--c-good)'} /></span>
         {g.player.heat > 0 && <span title={`Legion attention from smuggling: ${g.player.heat}/100. Watched (30+): searched more often. Wanted (60+): patrols on the roads and double fines. Falls by 1 a day; bribing customs lowers it.`}>Heat <span className={`num ${heatLevel(g.player.heat) === 'wanted' ? 'text-danger' : heatLevel(g.player.heat) === 'watched' ? 'text-gold' : ''}`}>{g.player.heat}</span><Delta value={g.player.heat} upIsGood={false} />{heatLevel(g.player.heat) !== 'quiet' && <span className={heatLevel(g.player.heat) === 'wanted' ? 'text-danger' : 'text-gold'}> ({heatLevel(g.player.heat) === 'wanted' ? 'wanted' : 'watched'})</span>}</span>}
-        <span title="Cash + bank deposits + cargo value − debt">Net worth <Money v={netWorth(g)} className="text-gold" /></span>
+        <span title="Cash + bank deposits + cargo value − debt">Net worth <RollingMoney v={netWorth(g)} className="text-gold" /></span>
         <button className="btn" onClick={() => openCodex(null)} title="Codex (c)">Codex</button>
         <button className="btn btn-ghost" onClick={openSettings} aria-label="Settings" title="Settings: sound, theme, font, text size"><span aria-hidden="true">⚙</span><span className="hidden xl:inline">Settings</span></button>
         <div className="relative">
@@ -48,6 +55,7 @@ function TopBar({ g }: { g: GameState }) {
           )}
         </div>
       </div>
+      <TimeRibbon g={g} />
     </header>
   );
 }
@@ -89,7 +97,8 @@ function LocationPanel({ g }: { g: GameState }) {
     <aside className="panel p-4 flex flex-col gap-3">
       <div>
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="h-display text-2xl text-bone"><CodexLink id={`loc:${L.id}`}>{L.name}</CodexLink></h2>
+          {/* arriving somewhere: the name comes into focus */}
+          <motion.h2 key={L.id} className="h-display text-2xl text-bone" initial={{ opacity: 0, y: 6, filter: 'blur(5px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}><CodexLink id={`loc:${L.id}`}>{L.name}</CodexLink></motion.h2>
           <StatusPill status={g.world.status[L.id]} />
         </div>
         <div className="text-sm text-gold">{g.world.faction[L.id]}</div>
@@ -117,6 +126,10 @@ function LocationPanel({ g }: { g: GameState }) {
 export function GameScreen() {
   const g = useGame(s => s.game)!;
   const { tab, setTab } = useGame();
+  // content slides in from the side of the tab you moved toward
+  const order = TABS.findIndex(t => t.id === tab); const prevOrder = useRef(order);
+  const dir = order >= prevOrder.current ? 1 : -1;
+  useEffect(() => { prevOrder.current = order; }, [order]);
   const hints = useGame(s => s.meta.settings.hints);
   return (
     <div className="relative z-10 p-2 sm:p-3 flex flex-col gap-3 max-w-[1500px] mx-auto"
@@ -127,12 +140,17 @@ export function GameScreen() {
         {tab !== 'map' && <LocationPanel g={g} />}
         <main className="flex flex-col gap-3 min-w-0">
           <nav className="panel flex flex-wrap px-2" role="tablist">
-            {TABS.map(t => <button key={t.id} role="tab" aria-selected={tab === t.id} className="tab" onClick={() => setTab(t.id)} title={`Shortcut: ${t.key}`}>{t.label}</button>)}
+            {TABS.map(t => (
+              <button key={t.id} role="tab" aria-selected={tab === t.id} className="tab relative" onClick={() => setTab(t.id)} title={`Shortcut: ${t.key}`}>
+                {t.label}
+                {tab === t.id && <motion.span layoutId="tab-underline" className="absolute left-2 right-2 -bottom-px h-[2px] rounded-full bg-ember" transition={{ type: 'spring', stiffness: 520, damping: 40 }} />}
+              </button>
+            ))}
           </nav>
           {g.player.location === 'road' ? (
             <div className="panel p-6 fell text-lg text-parchment">On the road{g.pending ? ` to ${C.locs[g.pending.dest]?.name ?? '…'}` : ''}. Something blocks the way: make your choice to continue.</div>
-          ) : <AnimatePresence mode="wait">
-            <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.15 }}>
+          ) : <AnimatePresence mode="wait" custom={dir}>
+            <motion.div key={tab} custom={dir} variants={SLIDE} initial="enter" animate="center" exit="exit" transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}>
               {tab === 'market' && <Market g={g} />}
               {tab === 'map' && <MapView g={g} />}
               {tab === 'bank' && <Bank g={g} />}
