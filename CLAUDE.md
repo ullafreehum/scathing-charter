@@ -22,7 +22,7 @@ Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-comme
 | UI smoke tests + screenshots | `npm run test:e2e` (uses Playwright's Chromium; in the cloud container launch with `executablePath: '/opt/pw-browsers/chromium'` if versions differ — never `playwright install` there) |
 | Lint | `npm run lint` |
 | Balance simulation | `npm run sim` (headless bot runs over many seeds) |
-| Balance diagnostics | `npm run balance -- 24` (6 archetype bots, difficulty sweep, economy scan, design targets); `npm run balance -- blood 40` |
+| Balance diagnostics | `npm run balance -- 24` (6 archetype bots, difficulty sweep, economy scan, design targets); `npm run balance -- blood 40`; `npm run balance -- debt 10 4500,5000:700` (Normal debt[:cash] sweep for careful bots) |
 | Engine diagnostics | `npm run diagnose -- 4` (random-play fuzzing, invariants, replay checks; exits 1 on violations) |
 
 All npm scripts must work unchanged in **Windows PowerShell**: no `rm -rf`, no `VAR=x cmd`, no bash-only
@@ -59,7 +59,8 @@ docs/       GAME_DESIGN.md, LORE_BIBLE.md, research/ (raw researcher notes).
   normals use Irwin–Hall sums; `Math.sqrt` (IEEE-exact) is fine. ESLint bans `Math.random`/`Date.now` in `src/engine`.
 - Key files: `engine/game.ts` (newGame, step, tickDay), `market.ts` (prices/quotes), `travel.ts`,
   `encounters.ts`, `history.ts` (world events), `score.ts`, `save.ts` (schema + migrations).
-- Balance knobs: `DIFFICULTY` (game.ts), `SELL_FACTOR`/`DEPTH` (market.ts), encounter odds (encounters.ts),
+- Balance knobs: `DIFFICULTY` (game.ts), `SELL_FACTOR`/`DEPTH`/`SAT_RECOVERY` (market.ts), encounter odds and
+  `HEAT` (encounters.ts), the charter's prices and dividends (`src/data/charter.ts`),
   goods/tendencies in `src/data`. Re-run `npm run sim` after changing them.
 - Time advances only through actions (travel, wait). Each elapsed day runs `tickDay()`:
   interest, price drift, history timeline, contracts expiry, spoilage.

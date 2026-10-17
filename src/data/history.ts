@@ -68,7 +68,7 @@ export const HISTORY: HistoryEvent[] = [
   { id: 'hlaalu-expelled', day: D(5, 7, 20), mode: 'both', major: true, canon: 'extrapolation', sources: [U('House_Hlaalu'), U('House_Sadras'), U('House_Redoran'), U('Narsis')],
     title: 'House Hlaalu loses its seat', dateNote: 'UESP: “soon after” the Red Year. The day is ours.',
     text: 'Anti-Imperial anger finds a scapegoat in the House that grew rich on the Empire. House Hlaalu is stripped of its rank as a Great House, and the obscure House Sadras, whose prior status and holdings are unknown, takes the fifth seat on the Council. The Hlaalu believe Redoran arranged it and will hold the grudge for centuries. Hlaalu’s counting-house raises its fees to stay alive.',
-    effects: [{ type: 'flag', key: 'hlaaluFees', value: 1 }, { type: 'faction', loc: 'narsis', faction: 'House Hlaalu (disgraced)' }, { type: 'faction', loc: 'balmora', faction: 'Redoran relief council' },
+    effects: [{ type: 'flag', key: 'hlaaluFees', value: 1 }, { type: 'flag', key: 'charterRenewal', value: 1 }, { type: 'faction', loc: 'narsis', faction: 'House Hlaalu (disgraced)' }, { type: 'faction', loc: 'balmora', faction: 'Redoran relief council' },
       { type: 'price', goods: 'all', locs: ['narsis'], mult: 0.85, days: 60 }, { type: 'rep', faction: 'hlaalu', delta: -5 }],
     foreshadow: { lead: 80, rumors: ['omen-hlaalu', 'omen-sadras'] } },
   { id: 'invasion-begins', unlocks: ['topic:slavery', 'faction:anxileel'], day: D(5, 10, 12), mode: 'both', major: true, canon: 'canon', disputes: ['D-05', 'D-12', 'D-06'], sources: [U('Accession_War'), U('An-Xileel'), IL('fourth-era')],

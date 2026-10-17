@@ -8,9 +8,9 @@ import { CodexLink, Money, Sources } from './widgets';
 const CHOICE: Record<string, { label: string; hint: (g: GameState) => string }> = {
   fight: { label: 'Fight', hint: g => `Your strength ${power(g).toFixed(1)} against their ${g.pending!.threat}.` },
   flee: { label: 'Flee', hint: () => 'Easier with a light load.' },
-  bribe: { label: 'Pay', hint: g => `${g.pending!.bribe} septims.` },
+  bribe: { label: 'Pay', hint: g => `${g.pending!.bribe} septims.${g.pending!.customs ? ' Lowers your heat if it works.' : ''}` },
   surrender: { label: 'Hand over cargo', hint: () => 'Lose goods, keep your skin.' },
-  submit: { label: 'Submit to the search', hint: () => 'Contraband is confiscated and fined.' },
+  submit: { label: 'Submit to the search', hint: g => `Contraband is confiscated and fined (${g.player.heat >= 60 ? '40%, you are wanted' : '20%'}). Your heat drops.` },
   chameleon: { label: 'Use a Chameleon scroll', hint: g => `Slip by unseen (${g.pending?.customs ? '3 in 4' : '9 in 10'}). You have ${g.player.scrolls.chameleon}.` },
   almsivi: { label: 'Almsivi Intervention', hint: g => `Teleport to the nearest Tribunal temple, if the spell still works (${g.world.flags.almsivi ?? 95}% chance). You keep only 20 stone of cargo.` },
   divine: { label: 'Divine Intervention', hint: () => 'Teleport to the nearest Imperial shrine. You keep only 20 stone of cargo.' },

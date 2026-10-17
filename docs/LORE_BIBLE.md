@@ -360,6 +360,9 @@ Everything here is marked in data (`canon: 'invented' | 'extrapolation'`) and ba
 | Lilmoth trade licence as a purchasable permit | extrapolation | Canon: only licensed foreigners may enter [il:Infernal_City_Black_Marsh] |
 | Holiday effects for 4E 4–6 | extrapolation | Customs attested for 3E 389–417 |
 | Player backgrounds and their perks | invented | — |
+| **The Scathing Charter**: council trade rights in three tiers (licence, Narsis warehouse, full charter), sold in Mournhold, Narsis and Balmora after the relief, with dividends | invented | Scathing Bay itself is canon [uesp:Scathing_Bay] |
+| Charter renewal demanded by the new council after House Hlaalu loses its seat | invented | Hlaalu's loss of Great House rank [uesp:House_Hlaalu] |
+| Smuggling **heat** and Legion road patrols for wanted smugglers | invented (patrols: extrapolation) | The Legion enforces Imperial law on Vvardenfell [uesp:Imperial_Legion] |
 
 ### Excluded (fan)
 Tamriel Rebuilt / Tamriel Data books ("Ebonheart: A History", "King Helseth, A Biography"), Beyond Skyrim pages (Synod, College of Whispers), Project Tamriel, the Uutak Mythos calendar, user-page fan timelines (e.g. Hlaalu expelled "4E 7"), forum theories (Sadras founded by the Nerevarine). None are used.

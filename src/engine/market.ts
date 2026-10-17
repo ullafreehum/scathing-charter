@@ -16,6 +16,16 @@ const STATUS_MULT: Partial<Record<LocStatus, Partial<Record<GoodCategory, number
   occupied: { food: 1.6, medicine: 1.7, luxury: 0.5 },
 };
 
+/** Daily recovery of market saturation toward normal (1 = none). Higher = markets remember your trades longer. */
+export const SAT_RECOVERY = 0.97;
+/** Days until a market you flooded or bought out is back within 5% of its normal price. */
+export function satRecoveryDays(sat: number): number {
+  const gap = Math.abs(sat - 1);
+  if (gap <= 0.05) return 0;
+  let d = 0; for (let g = gap; g > 0.05 && d < 400; g *= SAT_RECOVERY) d++;
+  return d;
+}
+
 export function legalityAt(s: GameState, loc: string, good: string): Legality {
   const j = s.world.jurisdiction[loc];
   return s.world.legal[j]?.[good] ?? C.goods[good].legality[j];

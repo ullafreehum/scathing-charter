@@ -63,4 +63,7 @@ export const ENCOUNTERS: EncounterDef[] = [
     title: 'The Thtachalxan', text: 'The “drykillers”, Lilmoth’s only non-Argonian guards, check your licence and your cargo with equal disdain.' },
   { id: 'senchal-watch', kind: 'customs', regions: ['elsweyr'], weight: 0, threat: 0, loss: 0, canon: 'extrapolation', sources: [U('Senchal')],
     title: 'The harbour watch', text: 'Senchal’s watch wants its cut of anything stronger than sugar.' },
+  // Only raised by the heat mechanic (weight 0): wanted smugglers meet patrols on the road.
+  { id: 'legion-patrol', kind: 'customs', regions: 'any', weight: 0, threat: 0, loss: 0, canon: 'extrapolation', sources: [UG('Morrowind', 'Crime'), U('Imperial_Legion')],
+    title: 'A patrol on the road', text: 'Soldiers block the road. Their sergeant already knows your name: someone has been talking about you.' },
 ];

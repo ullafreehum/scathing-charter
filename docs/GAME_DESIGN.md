@@ -156,6 +156,24 @@ in Raven Rock until 4E 16.
 The hedge: foreshadowing gives months of warning, and moving deposits by writ to Narsis, Solitude or the
 Imperial City is the lore-literate play.
 
+### 4.6 Market memory, smuggling heat and the Scathing Charter (v0.9.0)
+- **Market memory.** Your trades push a market's price (saturation) and it recovers by 3% of the gap a day
+  (`SAT_RECOVERY` in market.ts; half-life about 23 days, was 8). Repeating one run wears it out. The Market tags
+  flooded and bought-out goods with the days until they recover.
+- **Heat** (0–100, `HEAT` in encounters.ts). Selling contraband adds 2 + value/250 (max 15 a sale); fencing
+  Company goods adds a little; slipping past customs by Chameleon (+5) or flight (+8) adds more. It falls by 1 a day,
+  bribing customs takes 10 off, and being caught takes 40 off. *Watched* (30+): customs searches and informers ×1.5.
+  *Wanted* (60+): ×2, confiscation fines double to 40%, and a carrier of contraband meets a Legion patrol on 30% of
+  journeys.
+- **The Scathing Charter** (invented; data in `src/data/charter.ts`). After House Redoran's relief (the `relief`
+  flag) the Grand Council sells rights to rebuild the Vivec region, in Mournhold, Narsis or Balmora, to traders who
+  owe the Tong nothing:
+  1. *Relief supplier licence* (12,000): three contract offers instead of two, relief contracts weighted ×3 and paid ×1.25.
+  2. *Warehouse at Narsis* (30,000): store cargo without spoilage (Ebonheart, the obvious port, is destroyed).
+  3. *The Scathing Charter* (55,000): 4,000 every 30 days, halved while the war lasts; title *Charter-Holder*.
+  Rights count toward net worth at 70% of the price paid. When House Hlaalu loses its seat, holders must pay 20% of
+  what they paid within 60 days or lose their highest tier.
+
 ---
 
 ## 5. World
@@ -498,6 +516,29 @@ Changes the diagnostics drove:
 
 Known and accepted: smuggling remains the high-risk, high-reward path, at about 2.5× the legal median. Its risk shows up
 as confiscations and stings rather than ruin. This is deliberate (Dope Wars; "smuggling is big business on Vvardenfell").
+
+### 14.2 Second balance pass (v0.9.0, 24 seeds per archetype, Tong Terms)
+| Measure | v0.8.8 | v0.9.0 |
+|---|---|---|
+| Prudent median net worth / ruined | 112k / 4% | 82k / 13% |
+| Careful bots ruined (prudent, contractor, oracle) | 15% | 19% |
+| Smuggler median / ruined | 283k (2.5× prudent) / 8% | 148k (1.8×) / 13% |
+| Best single run | 528k | 343k |
+| Prudent's best route, share of its trading profit | 17% (12 seeds) | 11% |
+| Careful bots with a charter licence / the full charter | — | 67% / 10% |
+| Smuggler's average peak heat | — | 39 (watched) |
+| Prudent clears the note | 21 Second Seed 4E 4 | 27 Second Seed 4E 4 |
+
+Net worth now counts charter rights at 70% of the price paid, so part of the drop is money invested in the charter.
+Raising Normal debt to 4,500 was tried and reverted. It moved the prudent bot's payoff by about a month but cut careful
+players' median net worth by about a third and pushed the contractor bot to 33% ruined. The early payoff stays; the
+Scathing Charter carries the second half instead.
+
+Still open:
+- Smuggling stays about 1.8× the honest median with the same ruin rate. Its risk shows as a much wider spread
+  (p10 −55k vs −18k) and as heat. Part of the gap is that the smuggler bot also trades Company-restricted ebony and
+  glass, which the honest bots never touch.
+- The full charter sits at the bottom of its 10–30% target.
 
 ## 15. Milestones
 | # | Milestone | Done when |

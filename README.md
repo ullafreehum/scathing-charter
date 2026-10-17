@@ -185,6 +185,13 @@ what's wrong.
   broke, you can **work your passage** instead: free, but slower.
 - **Bank:** money is deposited in a *particular town's branch* and can only be used there. A
   *transfer* (writ of coin) moves it between branches of the same bank. Branches can be destroyed by history.
+- **Markets remember you:** selling a lot of one good floods that town's market for a few weeks
+  (the Market shows *Flooded · 12d*). Spread your trade around.
+- **Heat:** smuggling draws the Legion's attention (shown in the top bar). *Watched* (30+) means more
+  searches; *wanted* (60+) means road patrols and double fines. It falls by 1 a day; lie low or bribe.
+- **The Scathing Charter:** after the Red Year, once your debt is paid, buy trade rights to rebuild the
+  Vivec region in Mournhold, Narsis or Balmora (Bank tab): a relief licence, a warehouse at Narsis, then the
+  full charter, which pays a share every 30 days. Renew it when the council changes hands.
 - **Road events:** each choice shows its real chance of success.
 - **Tavern:** rumours (tips, omens, and historians arguing), contracts, hired porters (+12 stone) and
   sellswords, books, and rest.

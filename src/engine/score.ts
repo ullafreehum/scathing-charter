@@ -1,6 +1,6 @@
 import { C } from '../data';
 import type { GameState } from './types';
-import { cargoValue } from './market';
+import { cargoValue, fairValue } from './market';
 
 export function depositsTotal(s: GameState): number {
   let t = 0;
@@ -8,8 +8,15 @@ export function depositsTotal(s: GameState): number {
   for (const f of s.frozen) t += f.amount * f.ratio;
   return t;
 }
+/** Cargo stored in the charter warehouse, at fair value. */
+export function warehouseValue(s: GameState): number {
+  let v = 0; for (const [g, lot] of Object.entries(s.warehouse)) v += lot.qty * fairValue(s, g);
+  return v;
+}
+/** What the charter rights would fetch: a share of the price paid. */
+export function charterValue(s: GameState): number { return s.charter.paid * C.charter.bookValue; }
 export function netWorth(s: GameState): number {
-  return Math.round(s.player.cash + depositsTotal(s) + cargoValue(s) - (s.note.cleared ? 0 : s.note.balance));
+  return Math.round(s.player.cash + depositsTotal(s) + cargoValue(s) + warehouseValue(s) + charterValue(s) - (s.note.cleared ? 0 : s.note.balance));
 }
 
 export const WEALTH_TITLES: [number, string][] = [
@@ -27,6 +34,7 @@ export function conductTitles(s: GameState): string[] {
   if (s.achievements.includes('unbowed')) t.push('Unbowed by the Tong');
   if (s.achievements.includes('witness')) t.push('Witness at Scathing Bay');
   if (s.stats.smuggled >= 50) t.push('Smuggler of the Bitter Coast');
+  if (s.charter.tier === 3) t.push('Charter-Holder');
   return t;
 }
 

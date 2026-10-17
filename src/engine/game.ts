@@ -1,12 +1,12 @@
 // The game reducer: newGame() and step(). Pure: never mutates its input.
 import { C } from '../data';
-import type { Action, Contract, GameState, LogEntry, MarketCell, NewGameConfig, ScrollId } from './types';
+import type { Action, CharterState, Contract, GameState, LogEntry, MarketCell, NewGameConfig, ScrollId } from './types';
 import { Rng, hashSeed } from './rng';
 import { D, shortDate } from './calendar';
-import { DEPTH, capacity, cargoWeight, fairValue, holidayAt, marketOpen, quotes } from './market';
+import { DEPTH, SAT_RECOVERY, capacity, cargoWeight, fairValue, holidayAt, marketOpen, quotes } from './market';
 import { routeOptions, type RouteOption } from './travel';
 import { applyHistory, branchKey, catchUpHistory, clampRep, houseName } from './history';
-import { buildPending, contrabandValue, rollEncounter, resolve } from './encounters';
+import { HEAT, addHeat, buildPending, contrabandValue, heatMult, rollEncounter, resolve } from './encounters';
 import { checkAchievements, netWorth } from './score';
 import { SCHEMA_VERSION } from './save';
 
@@ -49,7 +49,7 @@ export function newGame(cfg: NewGameConfig): GameState {
       conveyance: 'pack-guar', porters: 0, sellswords: 0, unpaidDays: 0,
       weapon: bg.startItems?.weapon ?? 'chitin-dagger', armor: 'netch-jerkin',
       scrolls: { chameleon: 0, almsivi: 1, divine: 0, ...bg.startItems?.scrolls },
-      cargo: {}, licence: bg.licence, mercy: 0, profiteering: 0, rep, books: [],
+      cargo: {}, licence: bg.licence, mercy: 0, profiteering: 0, heat: 0, rep, books: [],
     },
     note: { original: diff.debt, balance: diff.debt, rate: diff.rate, lastPaymentDay: 0, seat: 'balmora', agents: ['vivec', 'narsis'], extended: 0, cleared: false },
     deposits: {}, frozen: [], markets: initMarkets(rng),
@@ -59,7 +59,7 @@ export function newGame(cfg: NewGameConfig): GameState {
       faction: Object.fromEntries(C.locList.map(l => [l.id, l.faction])),
       routes: {}, priceMods: [], legal: {}, branches, flags: { guides: 1, almsivi: 95 }, fired: [], news: [],
     },
-    offers: [], contracts: [], heard: [], seen: {}, pending: null, inbox: [], log: [], codex: [], achievements: [],
+    offers: [], contracts: [], heard: [], seen: {}, charter: { tier: 0, paid: 0, renewDue: null, renewed: false, nextDividend: null, dividends: 0 }, warehouse: {}, pending: null, inbox: [], log: [], codex: [], achievements: [],
     stats: { trades: 0, profit: 0, maxNetWorth: 0, journeys: 0, encounters: 0, fightsWon: 0, smuggled: 0, visited: ['balmora'], reliefDelivered: 0, contractsDone: 0 },
     actions: [], over: null,
   };
@@ -97,6 +97,7 @@ export function tickDay(s: GameState, rng: Rng): void {
       s.player.porters = 0; s.player.sellswords = 0; log(s, 'Unpaid, your porters and sellswords walk off in the night.', 'bad');
     }
   }
+  if (s.player.heat > 0) s.player.heat = Math.max(0, s.player.heat - HEAT.decayPerDay);
   // spoilage
   for (const [g, lot] of Object.entries(s.player.cargo)) {
     const rate = C.goods[g].perishable; if (!rate) continue;
@@ -110,7 +111,7 @@ export function tickDay(s: GameState, rng: Rng): void {
       const g = C.goods[good]; const c = s.markets[L.id][good];
       c.drift = Math.min(2.4, Math.max(0.45, c.drift + 0.07 * (1 - c.drift) + g.volatility * rng.gauss() * c.drift));
       c.shock = 1 + (c.shock - 1) * 0.86;
-      c.sat = 1 + (c.sat - 1) * 0.92;
+      c.sat = 1 + (c.sat - 1) * SAT_RECOVERY;
       c.stock = tend <= 0.9 ? true : rng.chance(tend >= 1.25 ? 0.4 : 0.75);
       if (rng.chance(0.011)) {
         const up = rng.chance(0.55);
@@ -130,6 +131,30 @@ export function tickDay(s: GameState, rng: Rng): void {
     s.inbox.push({ kind: 'result', notice: true, title: 'Frozen account settled', text: `The bank pays out part of your frozen money: ${amt} septims, credited at ${C.locs[f.settleAt].name}.` });
   }
   s.frozen = s.frozen.filter(f => f.settleDay > s.day);
+  // the Scathing Charter: renewal under the new council, missed deadlines, dividends
+  const ch = s.charter;
+  if (ch.tier > 0) {
+    const offices = C.charter.offices.map(o => C.locs[o].name).join(', ');
+    if (s.world.flags.charterRenewal && !ch.renewed && ch.renewDue === null) {
+      ch.renewDue = s.day + C.charter.renewalDays;
+      s.inbox.push({ kind: 'result', title: 'Your charter must be renewed', text: `The new council honours old charters only if they are renewed: pay ${Math.round(ch.paid * C.charter.renewalFee)} septims in ${offices} by ${shortDate(ch.renewDue)}, or lose your highest tier.` });
+    }
+    if (ch.renewDue !== null && s.day > ch.renewDue) {
+      const lost = C.charter.tiers[ch.tier - 1];
+      ch.tier = (ch.tier - 1) as CharterState['tier']; ch.renewDue = null; ch.renewed = true; ch.paid -= lost.price;
+      log(s, `You missed the charter renewal and lost the ${lost.name}.`, 'bad');
+      s.inbox.push({ kind: 'result', title: 'Charter tier lost', text: `The council revokes your ${lost.name}.` });
+    }
+    if (ch.tier === 3 && ch.nextDividend !== null && s.day >= ch.nextDividend) {
+      const amt = ch.renewDue !== null ? 0 : Math.round(C.charter.dividend * (s.world.flags.war ? 0.5 : 1));
+      ch.nextDividend += C.charter.dividendEvery;
+      if (amt > 0) {
+        s.player.cash += amt; ch.dividends += amt;
+        log(s, `Charter dividend: ${amt} septims.`, 'good');
+        s.inbox.push({ kind: 'result', notice: true, title: 'Charter dividend', text: `Your share of the rebuilding: ${amt} septims${s.world.flags.war ? ' (halved while the war lasts)' : ''}.` });
+      }
+    }
+  }
   // contracts
   for (const c of s.contracts.filter(c => c.deadline < s.day)) {
     const t = C.contracts.find(x => x.id === c.templateId)!;
@@ -150,13 +175,14 @@ function tickDays(s: GameState, rng: Rng, n: number) { for (let i = 0; i < n && 
 function makeOffers(s: GameState, rng: Rng, loc: string) {
   s.offers = s.offers.filter(o => o.origin !== loc);
   const cands = C.contracts.filter(t => t.origins.includes(loc) && (t.from === undefined || s.day >= t.from) && (t.to === undefined || s.day < t.to) && (!t.flag || s.world.flags[t.flag]));
-  for (let i = 0; i < 2 && cands.length; i++) {
-    const t = rng.pick(cands);
+  const licensed = s.charter.tier >= 1;
+  for (let i = 0; i < (licensed ? 3 : 2) && cands.length; i++) {
+    const t = licensed ? rng.weighted(cands, x => (x.mercy > 0 ? 3 : 1))! : rng.pick(cands);
     const dests = t.destinations.filter(d => d !== loc && s.world.status[d] !== 'closed');
     if (!dests.length) continue;
     const good = rng.pick(t.goods); const destination = rng.pick(dests);
     const qty = rng.int(t.qty[0], t.qty[1]);
-    const reward = Math.round(qty * fairValue(s, good) * t.payMult);
+    const reward = Math.round(qty * fairValue(s, good) * t.payMult * (licensed && t.mercy > 0 ? C.charter.reliefPayBonus : 1));
     s.offers.push({ id: `${t.id}-${s.day}-${i}-${rng.int(0, 9999)}`, templateId: t.id, good, qty, destination, deadline: s.day + t.deadline * (s.timeScale > 1 ? 4 : 1), reward, origin: loc });
   }
 }
@@ -176,7 +202,7 @@ function arrive(s: GameState, rng: Rng, dest: string) {
   const cv = contrabandValue(s, to);
   if (cv > 0) {
     const bg = C.backgrounds[s.player.backgroundId];
-    const p = Math.min(0.75, C.locs[to].enforcement * 0.07 * bg.customsMod * (s.player.books.includes('moon-sugar-report') ? 0.7 : 1));
+    const p = Math.min(0.9, C.locs[to].enforcement * 0.07 * bg.customsMod * (s.player.books.includes('moon-sugar-report') ? 0.7 : 1) * heatMult(s.player.heat));
     if (rng.chance(p)) {
       const def = C.encounters.find(e => e.kind === 'customs' && (e.regions === 'any' || e.regions.includes(C.locs[to].region))) ?? C.encounters.find(e => e.kind === 'customs')!;
       s.pending = buildPending(s, def, '', to, 0, true);
@@ -218,6 +244,8 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
   switch (a.t) {
     case 'ack': s.inbox.splice(0, Math.max(1, Math.min(20, Math.floor(a.n ?? 1)))); return;
     case 'buy': case 'sell': return trade(s, rng, a.t, a.good, a.qty);
+    case 'charter': case 'renew': return charter(s, a.t);
+    case 'stash': case 'unstash': return warehouse(s, a.t, a.good, a.qty);
     case 'travel': {
       const opt = routeOptions(s).find(o => o.route.id === a.route && o.modeIndex === a.mode);
       if (!opt) return 'That route is not open.';
@@ -394,9 +422,58 @@ function journey(s: GameState, rng: Rng, opt: RouteOption): string | void {
     unlock(s, `encounter:${enc.id}`);
     return;
   }
+  // Wanted smugglers carrying contraband meet Legion patrols on the road.
+  if (s.player.heat >= HEAT.wanted && contrabandValue(s, opt.dest) > 0 && rng.chance(HEAT.patrolChance)) {
+    const at = rng.int(0, opt.days - 1);
+    tickDays(s, rng, at * s.timeScale);
+    if (s.over) { s.player.location = origin; return; }
+    s.pending = buildPending(s, C.encounters.find(e => e.id === 'legion-patrol')!, opt.route.id, opt.dest, opt.days - at, true);
+    s.stats.encounters++;
+    return;
+  }
   tickDays(s, rng, opt.days * s.timeScale);
   if (s.over) { s.player.location = opt.dest; return; }
   arrive(s, rng, opt.dest);
+}
+
+const officeNames = () => C.charter.offices.map(o => C.locs[o].name).join(', ');
+
+function charter(s: GameState, kind: 'charter' | 'renew'): string | void {
+  const ch = s.charter; const loc = s.player.location;
+  if (!C.charter.offices.includes(loc)) return `Charters are handled in ${officeNames()}.`;
+  if (kind === 'renew') {
+    if (ch.renewDue === null) return 'There is nothing to renew.';
+    const fee = Math.round(ch.paid * C.charter.renewalFee);
+    if (s.player.cash < fee) return `The renewal costs ${fee} septims.`;
+    s.player.cash -= fee; ch.renewDue = null; ch.renewed = true;
+    log(s, `You renew your charter with the new council (${fee} septims).`, 'neutral');
+    return;
+  }
+  if (!s.world.flags.relief) return 'No charters are on offer yet.';
+  if (!s.note.cleared) return 'The council will not charter a trader who still owes the Camonna Tong.';
+  if (ch.renewDue !== null) return 'Renew your charter first.';
+  const next = C.charter.tiers[ch.tier];
+  if (!next) return 'You already hold the full charter.';
+  if (s.player.cash < next.price) return `The ${next.name} costs ${next.price} septims.`;
+  s.player.cash -= next.price; ch.paid += next.price; ch.tier = next.tier;
+  if (s.world.flags.charterRenewal) ch.renewed = true; // granted by the new council itself
+  if (next.tier === 3) ch.nextDividend = s.day + C.charter.dividendEvery;
+  unlock(s, 'topic:scathing-charter');
+  log(s, `You buy the ${next.name} for ${next.price} septims.`, 'good');
+  s.inbox.push({ kind: 'result', title: next.name, text: next.text });
+}
+
+function warehouse(s: GameState, kind: 'stash' | 'unstash', good: string, qtyIn: number): string | void {
+  const qty = Math.floor(qtyIn);
+  if (s.player.location !== C.charter.warehouse) return `Your warehouse is in ${C.locs[C.charter.warehouse].name}.`;
+  if (qty <= 0 || !C.goods[good]) return 'Choose what to move.';
+  const [from, to] = kind === 'stash' ? [s.player.cargo, s.warehouse] : [s.warehouse, s.player.cargo];
+  if (kind === 'stash' && s.charter.tier < 2) return 'You need the warehouse tier of the charter.';
+  const lot = from[good]; if (!lot || lot.qty < qty) return 'There is not that much to move.';
+  if (kind === 'unstash' && cargoWeight(s) + qty * C.goods[good].weight > capacity(s)) return 'You cannot carry that much.';
+  const dest = (to[good] ??= { qty: 0, cost: 0 });
+  dest.cost = (dest.cost * dest.qty + lot.cost * qty) / (dest.qty + qty); dest.qty += qty;
+  lot.qty -= qty; if (lot.qty <= 0) delete from[good];
 }
 
 function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn: number): string | void {
@@ -426,13 +503,14 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
     let total = Math.round(q.sell * qty * Math.max(0.5, 1 - qty / (2 * depth)));
     const profit = total - Math.round(lot.cost * qty);
     if (q.legality === 'restricted' && q.sellNote?.startsWith('black')) {
-      if (rng.chance(here(s).enforcement * 0.06 * C.backgrounds[s.player.backgroundId].customsMod)) {
+      if (rng.chance(here(s).enforcement * 0.06 * C.backgrounds[s.player.backgroundId].customsMod * heatMult(s.player.heat))) {
         const fine = Math.round(total * 0.4); total -= fine;
         log(s, `An EEC informer was watching. Fine: ${fine} septims.`, 'bad');
         s.inbox.push({ kind: 'result', title: 'An informer', text: `The East Empire Company does not forgive unlicensed ${g.name}. You are fined ${fine} septims.` });
       }
     }
-    if (q.legality === 'contraband') s.stats.smuggled += qty;
+    if (q.legality === 'contraband') { s.stats.smuggled += qty; addHeat(s, Math.min(15, 2 + total / 250)); }
+    else if (q.legality === 'restricted' && q.sellNote?.startsWith('black')) addHeat(s, Math.min(8, 1 + total / 600));
     if (['food', 'medicine'].includes(g.category) && ['ruined', 'sacked', 'besieged', 'refugee-swollen'].includes(s.world.status[loc]) && profit > 0) s.player.profiteering += profit;
     s.player.cash += total;
     lot.qty -= qty; if (lot.qty <= 0) delete s.player.cargo[good];
