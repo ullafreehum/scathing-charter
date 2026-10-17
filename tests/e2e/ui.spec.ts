@@ -59,6 +59,22 @@ test('market: amount picker, buy and sell, filters, capped amounts, next-step hi
   await expect(row.getByRole('cell').nth(4)).toHaveText('5');
   expect((await load(page))[0]).toBe(10);
   await expect(page.getByText(/Start simple/)).toHaveCount(0);
+  // the total shows next to Buy; Undo takes the trade back; ▸ writes out the row's details
+  await expect(row.getByRole('cell').nth(6)).toContainText('space left');
+  await page.getByRole('button', { name: /Undo last trade/ }).click();
+  expect(await purse(page)).toBe(p0);
+  await row.getByRole('button', { name: /^Buy/ }).click();
+  expect(await purse(page)).toBe(p1);
+  await row.getByRole('button', { name: 'Details' }).click();
+  await expect(page.getByText(/You own 5, bought at/)).toBeVisible();
+  await row.getByRole('button', { name: 'Details' }).click();
+  // the ☰ menu closes on Escape and on a click outside it
+  await page.getByRole('button', { name: '☰' }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Export save file' })).toHaveCount(0);
+  await page.getByRole('button', { name: '☰' }).click();
+  await page.mouse.click(5, 600);
+  await expect(page.getByRole('button', { name: 'Export save file' })).toHaveCount(0);
   // "My cargo" filter shows only what you carry
   await page.getByRole('radio', { name: 'My cargo' }).click();
   await expect(page.getByRole('row')).toHaveCount(2);

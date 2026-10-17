@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { C } from '../data';
-import { DEPTH, bulkBuyTotal, capacity, cargoWeight, fairValue, maxBuyQty, quotes, routeOptions, FREIGHT, holidayAt, marketOpen, satRecoveryDays, type GameState, type Quote } from '../engine';
+import { DEPTH, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight, fairValue, maxBuyQty, quotes, routeOptions, FREIGHT, holidayAt, marketOpen, satRecoveryDays, type GameState, type Quote } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
@@ -18,7 +18,8 @@ type Filter = 'all' | 'cargo' | 'cheap';
 type Sort = 'usual' | 'name' | 'price' | 'gain';
 
 export function Market({ g }: { g: GameState }) {
-  const { act, setTab, tradeQty: amt, setTradeQty: setAmt } = useGame();
+  const { act, setTab, tradeQty: amt, setTradeQty: setAmt, undo, undoTrade } = useGame();
+  const [open, setOpen] = useState<string | null>(null);
   const arriving = useGame(s => s.trip !== null);
   const [glow, setGlow] = useState<{ good: string; n: number } | null>(null);
   const traded = (good: string) => setGlow(x => ({ good, n: (x?.n ?? 0) + 1 }));
@@ -86,6 +87,7 @@ export function Market({ g }: { g: GameState }) {
           <label className="flex items-center gap-1" title="Buying leaves enough cash for the cheapest trip out of here, with the new cargo aboard"><input type="checkbox" checked={keepFare} onChange={e => setKeepFare(e.target.checked)} /><span className="text-ash-400">Keep fare</span></label>
           <button className="btn ml-auto" disabled={!profitable.length} onClick={e => { const el = e.currentTarget; let sum = 0; for (const q of profitable) { const n = g.player.cargo[q.good].qty; if (act({ t: 'sell', good: q.good, qty: n })) sum += n * (q.sell ?? 0); } if (sum) coinBurst(el, 'cash', coinsFor(sum)); }}
             title="Sell every good whose price here is above what you paid">Sell all at a profit{profitable.length ? ` (${profitable.length})` : ''}</button>
+          {undo.length > 0 && <button className="btn btn-ghost" onClick={undoTrade} title="Take back your last buy or sell. Works until you travel, wait or do anything else.">↶ Undo last trade{undo.length > 1 ? ` (${undo.length})` : ''}</button>}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -105,7 +107,22 @@ export function Market({ g }: { g: GameState }) {
                 const sat = g.markets[loc]?.[q.good]?.sat ?? 1;
                 const best = bestSeenSell(g, q.good, loc);
                 const edge = best && q.buy !== null ? best.price - q.buy : null;
-                return (
+                const buyTotal = nBuy > 0 ? bulkBuyTotal(q.buy!, nBuy, DEPTH[G.category]) : 0;
+                const sellTotal = nSell > 0 ? bulkSellTotal(q.sell!, nSell, DEPTH[G.category]) : 0;
+                const isOpen = open === q.good;
+                // Everything the row's hover tips say, written out for touch and keyboard players.
+                const details = [
+                  l.tip,
+                  sat < 0.85 && `So much has been sold here lately that the price is down. Back to normal in about ${satRecoveryDays(sat)} days.`,
+                  sat > 1.2 && `So much has been bought here lately that the price is up. Back to normal in about ${satRecoveryDays(sat)} days.`,
+                  q.buy !== null && `Buy from ${q.buyFrom}${r < 0.8 ? ', well below the usual price' : r > 1.25 ? ', well above the usual price' : ''}. You can afford and carry ${maxBuy}.`,
+                  nBuy > 1 && `Buying ${nBuy} at once costs ${buyTotal.toLocaleString('en-US')} (${Math.round(buyTotal / nBuy)} each instead of ${q.buy}).`,
+                  q.sell !== null && `Sell to ${q.sellTo}${q.sellNote ? ` (${q.sellNote})` : ''}.`,
+                  nSell > 1 && `Selling ${nSell} at once brings ${sellTotal.toLocaleString('en-US')} (${Math.round(sellTotal / nSell)} each instead of ${q.sell}).`,
+                  lot && `You own ${lot.qty}, bought at ${Math.round(lot.cost)} each on average.`,
+                  best && `Best price seen elsewhere: ${best.price} in ${C.locs[best.loc].name}, ${ago(best.age)}. Prices move, so older figures are less reliable.`,
+                ].filter((x): x is string => !!x);
+                return [
                   <motion.tr key={q.good} layout="position" className={`border-t border-ash-700 hover:bg-ash-800 ${lot ? 'bg-ash-800/60' : ''} ${glow?.good === q.good ? (glow.n % 2 ? 'row-glow-a' : 'row-glow-b') : ''}`}
                     initial={arriving ? { opacity: 0, x: -10 } : { opacity: 0 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
                     transition={{ duration: 0.28, delay: arriving ? Math.min(i, 15) * 0.028 : 0, ease: [0.22, 1, 0.36, 1] }}>
@@ -114,6 +131,7 @@ export function Market({ g }: { g: GameState }) {
                       {l.label && <span title={l.tip} className={`ml-1 text-[.7rem] h-display uppercase ${l.cls}`}>{l.label}</span>}
                       {sat < 0.85 && <span className="ml-1 text-[.7rem] h-display uppercase text-danger" title={`So much has been sold here lately that the price is down. Back to normal in about ${satRecoveryDays(sat)} days.`}>Flooded · {satRecoveryDays(sat)}d</span>}
                       {sat > 1.2 && <span className="ml-1 text-[.7rem] h-display uppercase text-gold" title={`So much has been bought here lately that the price is up. Back to normal in about ${satRecoveryDays(sat)} days.`}>Bought out · {satRecoveryDays(sat)}d</span>}
+                      <button className="ml-1 px-1 text-ash-400 hover:text-bone" aria-expanded={isOpen} aria-label="Details" title={`${isOpen ? 'Hide' : 'Show'} details`} onClick={() => setOpen(isOpen ? null : q.good)}>{isOpen ? '▾' : '▸'}</button>
                       <div className="text-xs text-ash-400">{G.short}{tend && <span className="text-gold"> · {(C.locs[loc].tendencies[q.good] ?? 1) < 0.9 ? 'usually cheap here' : (C.locs[loc].tendencies[q.good] ?? 1) > 1.2 ? 'usually expensive here' : 'usual price here'}</span>}</div>
                     </td>
                     <td className="num text-ash-400">{G.weight}</td>
@@ -125,16 +143,18 @@ export function Market({ g }: { g: GameState }) {
                     <td className="whitespace-nowrap pl-3 text-right space-x-1">
                       <button className="btn" disabled={nBuy < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'buy', good: q.good, qty: nBuy })) { coinBurst('cash', el, coinsFor(nBuy * (q.buy ?? 0))); traded(q.good); } }} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} for ${bulkBuyTotal(q.buy!, nBuy, DEPTH[G.category]).toLocaleString('en-US')} septims (the most you can afford and carry: ${maxBuy}). Buying many at once raises the price a little.`}>Buy {nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</button>
                       <button className="btn" disabled={nSell < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'sell', good: q.good, qty: nSell })) { coinBurst(el, 'cash', coinsFor(nSell * (q.sell ?? 0))); traded(q.good); } }} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>Sell {nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</button>
+                      {(nBuy > 0 || nSell > 0) && <div className="text-xs text-ash-400 mt-0.5">{nBuy > 0 && <span title="Total cost, and cargo space left after buying">−<span className="num">{buyTotal.toLocaleString('en-US')}</span> · {free - nBuy * G.weight} space left</span>}{nBuy > 0 && nSell > 0 && ' | '}{nSell > 0 && <span title="What this sale brings in">+<span className="num">{sellTotal.toLocaleString('en-US')}</span></span>}</div>}
                     </td>
-                  </motion.tr>
-                );
+                  </motion.tr>,
+                  isOpen && <tr key={`${q.good}-details`} className="bg-ash-800/40"><td colSpan={7} className="px-6 pb-2 text-xs text-parchment"><ul className="list-disc pl-4 space-y-0.5">{details.map((d, j) => <li key={j}>{d}</li>)}</ul></td></tr>,
+                ];
               })}
               </AnimatePresence>
               {!rows.length && <tr><td colSpan={7} className="py-3 text-ash-400">Nothing matches this filter.</td></tr>}
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-ash-400 mt-2">Buy and Sell use the amount chosen above, capped by your cash, cargo space and what you own. ▼ cheap / ▲ expensive compared with the usual price across Tamriel. * sold with a restriction (hover for details). “Best seen elsewhere” comes from towns you have visited, so it can be out of date. Selling a lot lowers the price; buying a lot raises it.</p>
+        <p className="text-xs text-ash-400 mt-2">Buy and Sell use the amount chosen above, capped by your cash, cargo space and what you own. ▼ cheap / ▲ expensive compared with the usual price across Tamriel. * sold with a restriction. ▸ opens a good's details. “Best seen elsewhere” comes from towns you have visited, so it can be out of date. Selling a lot lowers the price; buying a lot raises it.</p>
       </Section>
       {cargoGoods.length > 0 && (
         <Section title="In your cargo, but nobody here buys it">

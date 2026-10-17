@@ -49,6 +49,15 @@ function SaveSlots({ g }: { g: GameState }) {
 function TopBar({ g }: { g: GameState }) {
   const { openCodex, openSettings, setScreen } = useGame();
   const [menu, setMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  // The ☰ menu closes on Escape, on a click or tap outside it, and when focus leaves it.
+  useEffect(() => {
+    if (!menu) return;
+    const out = (e: Event) => { if (!menuRef.current?.contains(e.target as Node)) setMenu(false); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { setMenu(false); menuRef.current?.querySelector('button')?.focus(); } };
+    document.addEventListener('pointerdown', out); document.addEventListener('focusin', out); document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('pointerdown', out); document.removeEventListener('focusin', out); document.removeEventListener('keydown', key); };
+  }, [menu]);
   const pr = pressure(g);
   return (
     <header className="panel sticky top-0 z-30 flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2">
@@ -64,10 +73,10 @@ function TopBar({ g }: { g: GameState }) {
         <span title="Cash + bank deposits + cargo value − debt">Net worth <RollingMoney v={netWorth(g)} className="text-gold" /></span>
         <button className="btn" onClick={() => openCodex(null)} title="Codex (c)">Codex</button>
         <button className="btn btn-ghost" onClick={openSettings} aria-label="Settings" title="Settings: sound, theme, font, text size"><span aria-hidden="true">⚙</span><span className="hidden xl:inline">Settings</span></button>
-        <div className="relative">
-          <button className="btn btn-ghost" onClick={() => setMenu(m => !m)} aria-expanded={menu}>☰</button>
+        <div className="relative" ref={menuRef}>
+          <button className="btn btn-ghost" onClick={() => setMenu(m => !m)} aria-expanded={menu} aria-haspopup="menu" title="Save, export, quit">☰</button>
           {menu && (
-            <div className="absolute right-0 top-9 panel-solid p-2 flex flex-col gap-1 w-72 z-50" onMouseLeave={() => setMenu(false)}>
+            <div className="absolute right-0 top-9 panel-solid p-2 flex flex-col gap-1 w-72 z-50">
               <SaveSlots g={g} />
               <button className="btn btn-ghost" onClick={() => exportFile(g)}>Export save file</button>
               <button className="btn btn-ghost" onClick={() => setScreen('title')}>Quit to title</button>

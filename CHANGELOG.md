@@ -17,6 +17,9 @@ and the Long Chronicle.
 - After the eruption Vivec City, Ebonheart and Fort Frostmoth become survivors' camps where merchants still trade, with scarcer stock and crisis prices, instead of vanishing from the map.
 - New games use Atkinson Hyperlegible, the most readable font (Classic and the others stay in Settings).
 - Softer sounds: healing plays a gentle bell, and the error and event cues are soft chimes instead of buzzes.
+- The ☰ menu closes on Escape or a click outside it, not only when the mouse leaves it.
+- Market: each row has a ▸ Details toggle that writes out what the hover tips say (who buys and sells, bulk prices, what you paid, best price seen), and the total cost and space left show under Buy, the proceeds under Sell.
+- **Undo last trade** takes back buys and sells until you travel, wait or do anything else.
 
 ## 0.9.4 (beta)
 - Travel tab: the destination list now sits in the left column, so the map lines up with the price list and the tabs stay put.
