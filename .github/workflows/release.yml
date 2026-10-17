@@ -1,0 +1,35 @@
+# Publishes a GitHub release when a version tag (v1.2.3) is pushed:
+# builds the offline edition and attaches it, with checksums and the notes in docs/releases/<tag>.md.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check the tag matches package.json
+        run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
+      - name: Build the offline edition
+        run: npm run package:offline
+      - name: Checksums
+        run: cd release && sha256sum *.zip > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: The Scathing Charter ${{ github.ref_name }} (beta)
+          body_path: docs/releases/${{ github.ref_name }}.md
+          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
+          files: |
+            release/AshGame-offline-*.zip
+            release/SHA256SUMS.txt

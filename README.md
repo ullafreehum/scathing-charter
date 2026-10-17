@@ -9,6 +9,10 @@ and you have three years. Buy low, sell high, and keep ahead of the debt through
 **Red Year**, and the war that follows. Every place, good and event is drawn from Elder Scrolls lore,
 with sources you can click.
 
+> **Just want to play?** Download the offline edition from
+> [Releases](https://github.com/ullafreehum/bandcamp/releases), extract it into `C:\Games` and double-click
+> `Play The Scathing Charter.cmd` (needs Node.js and Google Chrome).
+
 > Unofficial, non-commercial fan game. *The Elder Scrolls* is a trademark of ZeniMax Media / Bethesda
 > Softworks. This project is not affiliated with or endorsed by them.
 
