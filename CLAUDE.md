@@ -3,7 +3,7 @@
 A lore-dense, Dope Wars–style trading game set in the Elder Scrolls universe at the dawn of the
 Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-commercial fan project.
 
-> Version **0.9.3** (beta): the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
+> Version **0.9.4** (beta): the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
 > bump it there and add a `CHANGELOG.md` entry for each release. To publish: write `docs/releases/v<version>.md`,
 > and push it (or push the tag `v<version>`); `.github/workflows/release.yml` builds the offline ZIP, creates the
 > tag and publishes the release (pre-release while the version is 0.x).

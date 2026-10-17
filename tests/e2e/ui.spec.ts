@@ -208,7 +208,7 @@ test('outfitter, codex links, ledger, keyboard, save slot, settings', async ({ p
   // save slot → title lists it; continue works
   await page.getByRole('button', { name: '☰' }).click();
   await page.getByRole('button', { name: 'Save to slot 2' }).click();
-  await page.getByRole('button', { name: '☰' }).click();
+  await expect(page.getByText('✓ Saved in slot 2')).toBeVisible();
   await page.getByRole('button', { name: 'Quit to title' }).click();
   await expect(page.getByRole('button', { name: /Slot 2:/ })).toBeVisible();
   await page.getByRole('button', { name: 'Settings' }).click();

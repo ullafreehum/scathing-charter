@@ -4,6 +4,11 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.9.4 (beta)
+- Travel tab: the destination list now sits in the left column, so the map lines up with the price list and the tabs stay put.
+- Save slots show who, where, the game date and when they were saved; saving shows a check mark, and a slot holding another game asks before it is overwritten.
+- The map is redrawn to follow Tamriel's real shape: Vvardenfell ringed by the Inner Sea with Zafirbel Bay, the mainland from Blacklight to Necrom, Solstheim, Topal Bay, mountains, marshes, Lake Rumare and the Niben.
+
 ## 0.9.3 (beta): fix
 
 - **Buy / Max no longer offers more than you can afford.** The button guessed the maximum with a flat 2% margin,

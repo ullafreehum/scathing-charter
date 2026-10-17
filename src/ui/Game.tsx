@@ -3,9 +3,9 @@ import { nextSteps, type Hint } from './hints';
 import { planRoute } from './route';
 import { AnimatePresence, motion } from 'framer-motion';
 import { C } from '../data';
-import { capacity, cargoWeight, netWorth, depositsTotal, pressure, heatLevel, type GameState } from '../engine';
+import { capacity, cargoWeight, formatDate, netWorth, depositsTotal, pressure, heatLevel, type GameState } from '../engine';
 import { useGame, type Tab } from '../store/game';
-import { exportFile, type Slot } from '../save/storage';
+import { exportFile, savedWhen, slotInfo, type Slot } from '../save/storage';
 import { CodexLink, DateWidget, Delta, Meter, RollingMoney, StatusPill } from './widgets';
 import { TimeRibbon } from './TimeRibbon';
 import { Market } from './Market';
@@ -26,8 +26,28 @@ const TABS: { id: Tab; label: string; key: string }[] = [
   { id: 'tavern', label: 'Tavern', key: 'v' }, { id: 'outfitter', label: 'Shop & Temple', key: 's' }, { id: 'ledger', label: 'Journal', key: 'j' },
 ];
 
+/** The save slots: what each holds and when it was saved; a slot holding another game asks before it is overwritten. */
+function SaveSlots({ g }: { g: GameState }) {
+  const saveTo = useGame(s => s.saveTo);
+  const [saved, setSaved] = useState<Slot | null>(null);
+  const [ask, setAsk] = useState<Slot | null>(null);
+  return <>
+    {(['1', '2', '3'] as Slot[]).map(sl => {
+      const i = slotInfo(sl); const other = !!i && (i.seed !== g.seed || i.name !== g.player.name);
+      const done = saved === sl, asking = ask === sl;
+      return (
+        <button key={sl} className={`btn btn-ghost flex-col items-start gap-0 text-left ${done ? 'border-moss' : asking ? 'border-danger' : ''}`}
+          onClick={() => { if (other && !asking) { setAsk(sl); return; } if (saveTo(sl)) { setSaved(sl); setAsk(null); } }}>
+          <span className={done ? 'text-moss' : asking ? 'text-danger' : ''}>{done ? `✓ Saved in slot ${sl}` : asking ? `Overwrite ${i!.name}'s save? Click again` : `Save to slot ${sl}`}</span>
+          <span className="text-xs text-ash-400 font-body normal-case tracking-normal">{i ? <>{i.name} · {C.locs[i.location]?.name ?? 'on the road'} · {formatDate(i.day, false)}<br />saved {savedWhen(i.savedAt)} · {other ? <span className="text-gold">another game</span> : 'this game'}</> : 'Empty'}</span>
+        </button>
+      );
+    })}
+  </>;
+}
+
 function TopBar({ g }: { g: GameState }) {
-  const { openCodex, openSettings, saveTo, setScreen } = useGame();
+  const { openCodex, openSettings, setScreen } = useGame();
   const [menu, setMenu] = useState(false);
   const pr = pressure(g);
   return (
@@ -47,8 +67,8 @@ function TopBar({ g }: { g: GameState }) {
         <div className="relative">
           <button className="btn btn-ghost" onClick={() => setMenu(m => !m)} aria-expanded={menu}>☰</button>
           {menu && (
-            <div className="absolute right-0 top-9 panel p-2 flex flex-col gap-1 w-48 z-50" onMouseLeave={() => setMenu(false)}>
-              {(['1', '2', '3'] as Slot[]).map(sl => <button key={sl} className="btn btn-ghost" onClick={() => { saveTo(sl); setMenu(false); }}>Save to slot {sl}</button>)}
+            <div className="absolute right-0 top-9 panel-solid p-2 flex flex-col gap-1 w-72 z-50" onMouseLeave={() => setMenu(false)}>
+              <SaveSlots g={g} />
               <button className="btn btn-ghost" onClick={() => exportFile(g)}>Export save file</button>
               <button className="btn btn-ghost" onClick={() => setScreen('title')}>Quit to title</button>
             </div>
@@ -131,13 +151,15 @@ export function GameScreen() {
   const dir = order >= prevOrder.current ? 1 : -1;
   useEffect(() => { prevOrder.current = order; }, [order]);
   const hints = useGame(s => s.meta.settings.hints);
+  // the Travel tab puts its destination list where the town panel sits, so the map lines up with the price list
+  const [side, setSide] = useState<HTMLDivElement | null>(null);
   return (
     <div className="relative z-10 p-2 sm:p-3 flex flex-col gap-3 max-w-[1500px] mx-auto"
       onKeyDown={e => { if ((e.target as HTMLElement).tagName === 'INPUT') return; const t = TABS.find(x => x.key === e.key); if (t) setTab(t.id); if (e.key === 'c') useGame.getState().openCodex(null); }} tabIndex={-1}>
       <TopBar g={g} />
       {hints && <NextSteps g={g} />}
-      <div className={`grid gap-3 items-start ${tab === 'map' ? '' : 'lg:grid-cols-[minmax(300px,380px)_1fr]'}`}>
-        {tab !== 'map' && <LocationPanel g={g} />}
+      <div className="grid gap-3 items-start lg:grid-cols-[minmax(300px,380px)_1fr]">
+        {tab === 'map' && g.player.location !== 'road' ? <div ref={setSide} className="order-2 lg:order-none min-w-0" /> : <LocationPanel g={g} />}
         <main className="flex flex-col gap-3 min-w-0">
           <nav className="panel flex flex-wrap px-2" role="tablist">
             {TABS.map(t => (
@@ -152,7 +174,7 @@ export function GameScreen() {
           ) : <AnimatePresence mode="wait" custom={dir}>
             <motion.div key={tab} custom={dir} variants={SLIDE} initial="enter" animate="center" exit="exit" transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}>
               {tab === 'market' && <Market g={g} />}
-              {tab === 'map' && <MapView g={g} />}
+              {tab === 'map' && <MapView g={g} side={side} />}
               {tab === 'bank' && <Bank g={g} />}
               {tab === 'tavern' && <Tavern g={g} />}
               {tab === 'outfitter' && <Outfitter g={g} />}

@@ -10,7 +10,8 @@ and you have three years. Buy low, sell high, and keep ahead of the debt through
 with sources you can click.
 
 > **Just want to play?** Download the offline edition from
-> [Releases](https://github.com/ullafreehum/scathing-charter/releases), extract it into `C:\Games` and double-click
+> [Releases](https://github.com/ullafreehum/scathing-charter/releases) (or take
+> [`download/AshGame-offline-v0.9.4.zip`](download/AshGame-offline-v0.9.4.zip) from this repository), extract it into `C:\Games` and double-click
 > `Play The Scathing Charter.cmd` (needs Node.js and Google Chrome).
 
 > Unofficial, non-commercial fan game. *The Elder Scrolls* is a trademark of ZeniMax Media / Bethesda
