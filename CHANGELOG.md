@@ -6,7 +6,11 @@ and the Long Chronicle.
 
 ## 0.9.5 (beta)
 - No more weight limits on travel: Guild Guides take any load, so a full pack never strands you.
-- Running out of money no longer ends a run in practice: at any tavern you can hire on for 3 or 7 days of day labour (better pay in towns the Red Year hit), at a small cost in health.
+- Running out of money no longer ends a run: every place has three day-labour jobs at the tavern (1, 3 or 7 days). A day's wage pays for about two trips to the nearest town, more in towns the Red Year hit; heavier jobs cost health.
+- No leg between neighbouring places takes more than 3 days, and the guar cart no longer slows road and caravan legs.
+- The Camonna Tong always lends, at Balmora or its agents, with no cap: each advance raises the rate, and a bigger debt brings harder collectors. You can borrow again after paying off.
+- Bank deposits earn interest (Hlaalu 0.08% a day, East Empire Company 0.04%) and are safe from robbers.
+- After the eruption Vivec City, Ebonheart and Fort Frostmoth become survivors' camps where merchants still trade, with scarcer stock and crisis prices, instead of vanishing from the map.
 
 ## 0.9.4 (beta)
 - Travel tab: the destination list now sits in the left column, so the map lines up with the price list and the tabs stay put.

@@ -138,7 +138,7 @@ in Raven Rock until 4E 16.
 - Interest compounds daily. Pay at the Council Club or to Tong agents in Vivec and Narsis.
 - **After 3 Sun's Dawn 4E 5** Balmora is ash, and the note follows Drelloth to **Narsis**, Hlaalu's capital
   **[invented]**. The debt survives the end of the world.
-- **Extension:** borrow up to 2× the original at +0.2% a day.
+- **Advances:** the Tong always lends (Balmora or its agents), with no cap. Each advance raises the daily rate by 0.15% per original note borrowed (max 2%); a bigger debt raises collector pressure.
 - **Enforcement:** pressure rises with debt ratio (1.5×, 2.5×, 4×) and with days since the last payment
   (> 60). It raises the chance of Tong enforcer encounters, first in Morrowind, then via hired blades in
   Skyrim and Cyrodiil. There are none in Black Marsh, where the Tong has no reach. Outcomes: pay a "visit
@@ -150,8 +150,8 @@ in Raven Rock until 4E 16.
 
 | House | Branches | Interest | Fees | Historical risk |
 |---|---|---|---|---|
-| **Hlaalu Council Counting-House** | Balmora, Vivec City, Narsis, Mournhold | 0.03%/day | 1% withdrawal; writ 3% | Vivec branch **wiped** 3 SD 4E 5; Balmora branch **frozen**, settled at "ten drakes on the hundred" months later; fees spike after Hlaalu loses its seat; Mournhold branch lost when Mournhold is sacked |
-| **East Empire Company strongroom** | Ebonheart, Raven Rock, Solitude, Imperial City | none | 2% withdrawal; writ 4% | Ebonheart **wiped** 3 SD 4E 5 (extrapolation); Raven Rock moves to Solitude in 4E 16 (Long Chronicle) |
+| **Hlaalu Council Counting-House** | Balmora, Vivec City, Narsis, Mournhold | 0.08%/day | 1% withdrawal; writ 3% | Vivec branch **wiped** 3 SD 4E 5; Balmora branch **frozen**, settled at "ten drakes on the hundred" months later; fees spike after Hlaalu loses its seat; Mournhold branch lost when Mournhold is sacked |
+| **East Empire Company strongroom** | Ebonheart, Raven Rock, Solitude, Imperial City | 0.04%/day | 2% withdrawal; writ 4% | Ebonheart **wiped** 3 SD 4E 5 (extrapolation); Raven Rock moves to Solitude in 4E 16 (Long Chronicle) |
 
 The hedge: foreshadowing gives months of warning, and moving deposits by writ to Narsis, Solitude or the
 Imperial City is the lore-literate play.
@@ -514,7 +514,7 @@ Profit is spread across timber, restorative draughts, raw ebony, soul gems and s
 more than about 8% of the economy's margin, and the eruption reshuffles the best routes.
 
 Changes the diagnostics drove:
-- **Work your passage.** A broke player can always travel (no fare, +2 days, −3 health). Before this, about a third
+- **Work your passage.** A broke player can always travel (no fare, +1 day within the 3-day cap, −3 health). Every leg is capped at 3 days; the guar cart no longer slows road legs. Day labour: each place has three jobs (`src/data/jobs.ts`) paying 2× the cheapest fare out of town per day (min 30) × the job's multiplier, +25% in towns hit by the Red Year; some cost health. Vivec, Ebonheart and Fort Frostmoth become survivors' camps (status `camp`) after the eruption instead of closing: scarce stock, crisis prices. Before this, about a third
   of careful runs ended stranded in a far port, unable to afford any fare. That was the main cause of ruin.
 - Starting cash raised (Fair 700, Tong 550) and Blood Terms interest set to 0.6%.
 - Smuggling made riskier: Chameleon beats customs 3 in 4 (was 9 in 10) and costs 150; black-market stings are

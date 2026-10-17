@@ -351,7 +351,7 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
                     <div key={o.route.id + o.modeIndex} className="flex items-center gap-2 py-1.5 border-t border-ash-700">
                       <div className="flex-1 min-w-0"><CodexLink id={`travel:${o.mode}`} className="text-bone">{MODE_LABEL[o.mode]}</CodexLink>
                         <div className="text-xs text-ash-400">{o.days * g.timeScale} day{o.days * g.timeScale > 1 ? 's' : ''} · fare <Money v={o.fare} /> · danger <span aria-label={`${o.risk} of 6`}>{bars(o.risk)}</span></div></div>
-                      <button data-go className={`btn ${g.player.cash < o.fare ? '' : 'btn-ember'}`} onClick={() => travel(o)} title={g.player.cash < o.fare ? 'You can’t pay the fare: work for your passage instead (+2 days, costs a little health)' : ''}>{g.player.cash < o.fare ? 'Work for passage' : 'Go'}</button>
+                      <button data-go className={`btn ${g.player.cash < o.fare ? '' : 'btn-ember'}`} onClick={() => travel(o)} title={g.player.cash < o.fare ? 'You can’t pay the fare: work for your passage instead (+1 day, never over 3, costs a little health)' : ''}>{g.player.cash < o.fare ? 'Work for passage' : 'Go'}</button>
                     </div>
                   ))}
                   <div className="mt-1 space-y-1"><Outlook g={g} dest={S.id} />{travelWarnings(g, S.id, selOpts[0].days).map((w, i) => <div key={i} className="text-xs text-danger">⚠ {w}</div>)}</div>

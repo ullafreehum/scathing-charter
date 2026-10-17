@@ -9,7 +9,7 @@ export type Region = 'vvardenfell' | 'mainland' | 'solstheim' | 'skyrim' | 'cyro
 export type Jurisdiction = 'vvardenfell' | 'morrowind' | 'solstheim' | 'skyrim' | 'cyrodiil' | 'argonia' | 'elsweyr';
 export type Legality = 'legal' | 'restricted' | 'contraband';
 export type GoodCategory = 'food' | 'drink' | 'material' | 'luxury' | 'narcotic' | 'magic' | 'medicine';
-export type LocStatus = 'thriving' | 'uneasy' | 'ruined' | 'rebuilding' | 'besieged' | 'sacked' | 'occupied' | 'refugee-swollen' | 'closed';
+export type LocStatus = 'thriving' | 'uneasy' | 'ruined' | 'rebuilding' | 'besieged' | 'sacked' | 'occupied' | 'refugee-swollen' | 'camp' | 'closed';
 export type TravelMode = 'strider' | 'boat' | 'inner-sea' | 'sea-of-ghosts' | 'coastal' | 'caravan' | 'road' | 'barge' | 'guide';
 export type House = 'hlaalu' | 'eec';
 export type FactionId = 'tong' | 'hlaalu' | 'redoran' | 'telvanni' | 'temple' | 'eec' | 'legion' | 'anxileel' | 'skaal';
@@ -55,6 +55,9 @@ export interface Location extends Sourced {
   refuge: string;
   status: LocStatus;
 }
+
+/** A day-labour job in one place (data/jobs.ts). `mult` scales the local wage; `hurt` is health lost per day. */
+export interface Job extends Sourced { id: string; name: string; text: string; mult: number; hurt: number }
 
 export interface RouteMode { mode: TravelMode; days: number; fare: number; risk: number }
 export interface Route { id: string; a: string; b: string; modes: readonly RouteMode[]; closed?: boolean; note?: string }
@@ -240,7 +243,7 @@ export type Action =
   | { t: 'sell'; good: string; qty: number }
   | { t: 'travel'; route: string; mode: number }
   | { t: 'wait'; days: number }
-  | { t: 'labour'; days: number }
+  | { t: 'labour'; job: string; days: number }
   | { t: 'deposit'; house: House; amount: number }
   | { t: 'withdraw'; house: House; amount: number }
   | { t: 'writ'; house: House; from: string; amount: number }

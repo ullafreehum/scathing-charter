@@ -1,10 +1,10 @@
 // The game reducer: newGame() and step(). Pure: never mutates its input.
 import { C } from '../data';
-import type { Action, CharterState, Contract, GameState, LogEntry, MarketCell, NewGameConfig, ScrollId } from './types';
+import type { Action, CharterState, Contract, GameState, Job, LogEntry, MarketCell, NewGameConfig, ScrollId } from './types';
 import { Rng, hashSeed } from './rng';
 import { D, shortDate } from './calendar';
 import { DEPTH, SAT_RECOVERY, bulkBuyTotal, capacity, cargoWeight, fairValue, holidayAt, marketOpen, quotes } from './market';
-import { routeOptions, type RouteOption } from './travel';
+import { MAX_LEG_DAYS, routeOptions, type RouteOption } from './travel';
 import { applyHistory, branchKey, catchUpHistory, clampRep, houseName } from './history';
 import { HEAT, addHeat, buildPending, contrabandValue, heatMult, rollEncounter, resolve } from './encounters';
 import { checkAchievements, netWorth } from './score';
@@ -22,7 +22,8 @@ export const WAGES = { porter: { hire: 100, day: 4, max: 4 }, sellsword: { hire:
 export const LICENCE_PRICE = 300;
 export const RUMOR_PRICE = 5;
 export const BOARD_PER_DAY = 3;
-export const LABOUR_PER_DAY = { calm: 8, hard: 14 } as const;
+/** Daily interest on deposits: Hlaalu pays more, the Imperial (EEC) house is steadier. */
+export const DEPOSIT_RATE = { hlaalu: 0.0008, eec: 0.0004 } as const;
 
 export interface StepResult { state: GameState; error?: string }
 
@@ -84,12 +85,21 @@ function startChronicle(s: GameState, fresh: boolean) {
   if (fresh) { s.day = D(7, 1, 1); s.player.location = 'narsis'; }
 }
 
+/** One day's wage for a job: twice the cheapest fare out of town (at least 30), times the job's multiplier;
+ *  places the Red Year hit need hands and pay a quarter more. */
+export function jobPay(s: GameState, loc: string, job: Job): number {
+  const fares = C.routeList.filter(r => r.a === loc || r.b === loc).flatMap(r => r.modes.filter(m => m.mode !== 'guide').map(m => m.fare));
+  const base = Math.max(30, 2 * Math.min(...fares, 60));
+  const hard = ['ruined', 'rebuilding', 'sacked', 'refugee-swollen', 'camp'].includes(s.world.status[loc]);
+  return Math.round(base * job.mult * (hard ? 1.25 : 1));
+}
+
 // ---------------------------------------------------------------- daily tick
 export function tickDay(s: GameState, rng: Rng): void {
   s.day++;
   if (s.day % 7 === 0) (s.stats.worth ??= []).push([s.day, netWorth(s)]);
   if (!s.note.cleared) s.note.balance = s.note.balance * (1 + s.note.rate);
-  for (const k of Object.keys(s.deposits)) if (k.startsWith('hlaalu:') && s.world.branches[k] === 'open') s.deposits[k] *= 1.0003;
+  for (const k of Object.keys(s.deposits)) if (s.world.branches[k] === 'open') s.deposits[k] *= 1 + DEPOSIT_RATE[k.startsWith('hlaalu:') ? 'hlaalu' : 'eec'];
   // wages
   const hold = s.player.conveyance === 'chartered-hold' ? 10 : 0;
   const wages = s.player.porters * WAGES.porter.day + s.player.sellswords * WAGES.sellsword.day + hold;
@@ -114,7 +124,9 @@ export function tickDay(s: GameState, rng: Rng): void {
       c.drift = Math.min(2.4, Math.max(0.45, c.drift + 0.07 * (1 - c.drift) + g.volatility * rng.gauss() * c.drift));
       c.shock = 1 + (c.shock - 1) * 0.86;
       c.sat = 1 + (c.sat - 1) * SAT_RECOVERY;
-      c.stock = tend <= 0.9 ? true : rng.chance(tend >= 1.25 ? 0.4 : 0.75);
+      // Survivors' camps on the ruins still trade, but fewer goods are in stock on a given day.
+      const camp = s.world.status[L.id] === 'camp' ? 0.65 : 1;
+      c.stock = tend <= 0.9 ? camp === 1 || rng.chance(camp) : rng.chance((tend >= 1.25 ? 0.4 : 0.75) * camp);
       if (rng.chance(0.011)) {
         const up = rng.chance(0.55);
         c.shock = up ? rng.range(2, 3.4) : rng.range(0.3, 0.5);
@@ -254,10 +266,10 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       s.stats.journeys++;
       unlock(s, `travel:${opt.mode}`);
       if (s.player.cash < opt.fare) {
-        // Never strand the player: the broke work their passage (no fare, two extra days, sore hands).
+        // Never strand the player: the broke work their passage (no fare, an extra day within the cap, sore hands).
         s.player.health = Math.max(1, s.player.health - 3);
         log(s, `Unable to pay the ${opt.fare}-septim fare, you work your passage as a ${opt.mode === 'caravan' || opt.mode === 'road' ? 'caravan hand' : 'deckhand'}.`, 'bad');
-        return journey(s, rng, { ...opt, fare: 0, days: opt.days + 2 });
+        return journey(s, rng, { ...opt, fare: 0, days: Math.min(MAX_LEG_DAYS, opt.days + 1) });
       }
       s.player.cash -= opt.fare;
       return journey(s, rng, opt);
@@ -273,13 +285,14 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       return;
     }
     case 'labour': {
-      // The broke can always hire on: hauling ash and rubble pays better where the Red Year hit hardest.
-      if (![3, 7].includes(a.days)) return 'Work 3 or 7 days.';
-      const hard = ['ruined', 'rebuilding', 'sacked', 'refugee-swollen'].includes(s.world.status[loc]);
-      const pay = (hard ? LABOUR_PER_DAY.hard : LABOUR_PER_DAY.calm) * a.days * s.timeScale;
-      s.player.health = Math.max(1, s.player.health - a.days);
+      // The broke can always hire on. A day's wage covers about two trips to the nearest town.
+      if (![1, 3, 7].includes(a.days)) return 'Work 1, 3 or 7 days.';
+      const job = (C.jobs[loc] ?? []).find(j => j.id === a.job);
+      if (!job) return 'No such work here.';
+      const pay = jobPay(s, loc, job) * a.days * s.timeScale;
+      s.player.health = Math.max(1, s.player.health - job.hurt * a.days);
       s.player.cash += pay;
-      log(s, `You hire on ${hard ? 'clearing ash and rubble' : 'at the docks and stables'} for ${a.days * s.timeScale} days and earn ${pay} septims.`, 'good');
+      log(s, `You work as a ${job.name.toLowerCase()} for ${a.days * s.timeScale} day${a.days * s.timeScale > 1 ? 's' : ''} and earn ${pay} septims.`, 'good');
       tickDays(s, rng, a.days * s.timeScale);
       if (!s.over) makeOffers(s, rng, s.player.location);
       return;
@@ -319,11 +332,12 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       return;
     }
     case 'borrow': {
-      if (loc !== s.note.seat) return 'Only Drelloth himself extends credit.';
-      const max = s.note.original * 2 - s.note.extended; const amt = Math.floor(a.amount);
-      if (amt <= 0 || amt > max) return `He will lend at most ${max} more.`;
+      // The Tong always lends; every advance raises the rate, and a bigger debt brings harder collectors (pressure()).
+      if (loc !== s.note.seat && !s.note.agents.includes(loc)) return 'No Tong agent here.';
+      const amt = Math.floor(a.amount);
+      if (amt <= 0) return 'Enter an amount.';
       if (s.note.cleared) { s.note.cleared = false; s.note.balance = 0; s.note.lastPaymentDay = s.day; }
-      if (s.note.extended === 0) s.note.rate += 0.002 / s.timeScale;
+      s.note.rate = Math.min(0.02 / s.timeScale, s.note.rate + 0.0015 * amt / s.note.original / s.timeScale);
       s.note.extended += amt; s.note.balance += amt; s.player.cash += amt;
       log(s, `You borrow ${amt} more from the Tong.`, 'bad');
       return;

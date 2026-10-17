@@ -15,6 +15,9 @@ export interface RouteOption {
   days: number; fare: number; risk: number;
 }
 
+/** No leg between neighbouring places takes longer than this (before the Long Chronicle's time scale). */
+export const MAX_LEG_DAYS = 3;
+
 export function routeOptions(s: GameState): RouteOption[] { return routeOptionsFrom(s, s.player.location); }
 
 /** Route options leaving any place, priced for the current cargo: used by the route planner. */
@@ -34,9 +37,8 @@ export function routeOptionsFrom(s: GameState, here: string): RouteOption[] {
       let days = m.days + (ov.daysAdd ?? 0);
       let risk = m.risk + (ov.riskAdd ?? 0);
       if (m.mode === 'sea-of-ghosts' && winter) { days += 1; risk += 1; }
-      if (s.player.conveyance === 'guar-cart' && (m.mode === 'caravan' || m.mode === 'road')) days += 1;
       if (s.player.conveyance === 'chartered-hold' && SEA.includes(m.mode)) days -= 1;
-      days = Math.max(1, days);
+      days = Math.min(MAX_LEG_DAYS, Math.max(1, days));
       risk = Math.max(0, Math.min(6, risk));
       const fare = Math.round(m.fare + FREIGHT[m.mode] * w);
       out.push({ route: r, dest, modeIndex: i, mode: m.mode, days, fare, risk });
