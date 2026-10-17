@@ -12,6 +12,7 @@ and the Long Chronicle.
 - Heat is no longer shown: it still decides how often customs search you, and the customs card will show the odds.
 - Books are no longer bought: you find them in towns with bookshops, they go into the Codex, and their perks are always on.
 - A round at the tavern gives a trade tip, any new warning, and one old tale or historians' quarrel, which goes into the Codex (new Tavern tales section).
+- The Red Year shows on the map: an ash haze over Vvardenfell that thickens toward the eruption, a red glow on Red Mountain once the omens start, ash-grey towns with a cracked ring afterwards, closed lines drawn as dotted red crosses, tents at the camps, refugee columns walking to Narsis and Mournhold, war fronts hatched around besieged and occupied towns, and a banner over occupied ones.
 
 ## 0.9.6 (beta): fixes from a playtest
 - Crater salvage in Vivec, ruin clearing in Ebonheart and the rubble crew at Fort Frostmoth only appear after the eruption.

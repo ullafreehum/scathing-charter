@@ -124,3 +124,28 @@ test('smuggling heat stays hidden and the Scathing Charter can be bought', async
   await shot(page, '07-charter');
   expect(errors).toEqual([]);
 });
+
+test('the Red Year shows on the map: haze and omens before the eruption', async ({ page }) => {
+  const errors: string[] = [];
+  let s = base(); s.player.cash = 50000;
+  s = until(s, D(5, 1, 20));
+  await boot(page, s, errors);
+  await page.getByRole('tab', { name: 'Travel' }).click();
+  await expect(page.getByRole('img', { name: 'Map of eastern Tamriel' })).toBeVisible();
+  await shot(page, '10-map-omens');
+  expect(errors).toEqual([]);
+});
+
+test('the Red Year shows on the map: ash, closed lines and refugees after it', async ({ page }) => {
+  const errors: string[] = [];
+  let s = base(); s.player.cash = 50000;
+  s = until(s, D(5, 3, 10));
+  await boot(page, s, errors);
+  for (let i = 0; i < 6 && await contBtn(page).count(); i++) { await cont(page).catch(() => {}); await page.waitForTimeout(150); }
+  await page.getByRole('tab', { name: 'Travel' }).click();
+  await page.getByRole('button', { name: 'Morrowind', exact: true }).click();
+  await expect(page.getByRole('img', { name: 'Map of eastern Tamriel' })).toBeVisible();
+  await page.waitForTimeout(800);
+  await shot(page, '11-map-after-eruption');
+  expect(errors).toEqual([]);
+});
