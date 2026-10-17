@@ -89,6 +89,7 @@ const t = (id: string, category: C['category'], title: string, body: string, can
 
 export const EXTRA_CODEX: C[] = [
   ...DISPUTES,
+  t('topic:scathing-charter', 'invented', 'The Scathing Charter', 'After the Red Year the Grand Council sells rights to supply and rebuild the ruined Vivec region, named for Scathing Bay, the crater where Vivec City stood (invented for this game). Three tiers are sold in Mournhold, Narsis and Balmora to traders who owe the Camonna Tong nothing: a relief supplier licence, a warehouse at Narsis, and the full charter, which pays a share of the rebuilding every 30 days. When House Hlaalu loses its seat, the new council makes holders renew.', 'invented', [U('Scathing_Bay'), U('Red_Year')]),
   t('topic:the-note', 'invented', 'The Note', 'Your debt to Gavas Drelloth, a Camonna Tong usurer at the Council Club in Balmora (invented). It compounds daily. Pay at his seat or to Tong agents. The longer you avoid him, the more his collectors find you on the road.', 'invented', [U('Camonna_Tong')]),
   t('topic:writ-of-coin', 'travel', 'Writs of coin', 'Banks can issue loans or letters of credit in gold, sometimes called a “writ of coin”. In this ledger a writ moves money between branches of the same house, for a fee.', 'canon', [U('Currency')]),
   t('topic:house-hlaalu', 'invented', 'Hlaalu Council Counting-House', 'An invented Hlaalu-chartered bank with branches in Balmora, Vivec City, Narsis and Mournhold. Pays a little interest. Its branches stand where history will strike.', 'invented', [U('House_Hlaalu')]),

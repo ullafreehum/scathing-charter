@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { C } from '../data';
-import { D, dateOf, formatDate, moons, Rng, hashSeed, newGame, step, replay, quotes, routeOptions, netWorth, migrate, serialize, deserialize, SCHEMA_VERSION, RED_YEAR_END, type Action, type GameState, type NewGameConfig } from './index';
+import { DIFFICULTY, D, dateOf, formatDate, moons, Rng, hashSeed, newGame, step, replay, quotes, routeOptions, netWorth, migrate, serialize, deserialize, SCHEMA_VERSION, RED_YEAR_END, type Action, type GameState, type NewGameConfig } from './index';
 
 const CFG: NewGameConfig = { seed: 'test-seed', backgroundId: 'hlaalu-bastard', name: 'Tester', difficulty: 'tong' };
 function act(s: GameState, a: Action): GameState { const r = step(s, a); if (r.error) throw new Error(r.error); return r.state; }
@@ -39,7 +39,7 @@ describe('game', () => {
   it('starts in Balmora with the note', () => {
     const s = newGame(CFG);
     expect(s.player.location).toBe('balmora');
-    expect(s.note.balance).toBe(3000);
+    expect(s.note.balance).toBe(DIFFICULTY.tong.debt);
     expect(quotes(s, 'balmora').length).toBeGreaterThan(8);
   });
   it('buys and sells within cash and capacity, never mutating input', () => {
@@ -59,7 +59,7 @@ describe('game', () => {
   it('accrues compound interest daily', () => {
     let s = drain(newGame(CFG));
     s = act(s, { t: 'wait', days: 7 });
-    expect(s.note.balance).toBeCloseTo(3000 * Math.pow(1.003, 7), 3);
+    expect(s.note.balance).toBeCloseTo(DIFFICULTY.tong.debt * Math.pow(1.003, 7), 3);
   });
   it('replays identically from seed and action log', () => {
     let s = drain(newGame(CFG));
@@ -98,7 +98,7 @@ describe('game', () => {
     expect(s.day).toBeGreaterThanOrEqual(o.days + 2);
     expect(s.log.some(l => l.text.includes('work your passage'))).toBe(true);
   });
-  it('reports net worth including debt', () => { expect(netWorth(newGame(CFG))).toBe(550 - 3000); });
+  it('reports net worth including debt', () => { expect(netWorth(newGame(CFG))).toBe(DIFFICULTY.tong.cash - DIFFICULTY.tong.debt); });
 });
 
 describe('long chronicle', () => {
@@ -129,7 +129,8 @@ describe('saves', () => {
   it('migrates v1 → v2 with an empty price book', () => {
     const old = JSON.parse(serialize(newGame(CFG))); delete old.seen; old.schemaVersion = 1;
     const m = migrate(old);
-    expect(m.schemaVersion).toBe(2); expect(m.seen).toEqual({});
+    expect(m.schemaVersion).toBe(SCHEMA_VERSION); expect(m.seen).toEqual({});
+    expect(m.player.heat).toBe(0); expect(m.charter.tier).toBe(0); expect(m.warehouse).toEqual({});
   });
   it('refuses future saves', () => { expect(() => migrate({ ...newGame(CFG), schemaVersion: 99 })).toThrow(); });
 });
@@ -155,5 +156,71 @@ describe('price book', () => {
   it('acknowledges several inbox items at once', () => {
     const s = newGame(CFG); s.inbox.push({ kind: 'result', title: 'a', text: 'b' });
     expect(act(s, { t: 'ack', n: 2 }).inbox).toHaveLength(0);
+  });
+});
+
+describe('market memory', () => {
+  it('a flooded market stays low for weeks, not days', () => {
+    let s = drain(newGame(CFG)); s.player.cargo.saltrice = { qty: 40, cost: 5 };
+    s = act(s, { t: 'sell', good: 'saltrice', qty: 40 });
+    const after = s.markets.balmora.saltrice.sat;
+    expect(after).toBeLessThan(1);
+    s = drain(act(s, { t: 'wait', days: 7 }));
+    expect(s.markets.balmora.saltrice.sat).toBeLessThan(1 - (1 - after) * 0.75); // still more than 3/4 of the dip after a week
+  });
+});
+
+describe('smuggling heat', () => {
+  it('rises when selling contraband to a fence and falls by one a day', () => {
+    let s = drain(newGame(CFG)); s.player.cargo['moon-sugar'] = { qty: 20, cost: 40 };
+    s = act(s, { t: 'sell', good: 'moon-sugar', qty: 20 });
+    const h = s.player.heat;
+    expect(h).toBeGreaterThan(2);
+    s = drain(act(s, { t: 'wait', days: 3 }));
+    expect(s.player.heat).toBe(Math.max(0, h - 3));
+  });
+});
+
+describe('the Scathing Charter', () => {
+  const ready = () => { const s = drain(newGame(CFG)); s.world.flags.relief = 1; s.note.cleared = true; s.note.balance = 0; s.player.cash = 200000; return s; };
+  it('is not on sale before the relief, or while you owe the Tong', () => {
+    const s = drain(newGame(CFG)); s.player.cash = 200000;
+    expect(step(s, { t: 'charter' }).error).toMatch(/No charters/);
+    const t = ready(); t.note.cleared = false;
+    expect(step(t, { t: 'charter' }).error).toMatch(/Camonna Tong/);
+  });
+  it('sells tiers in order and counts them toward net worth', () => {
+    let s = ready(); const nw0 = netWorth(s);
+    s = drain(act(s, { t: 'charter' }));
+    expect(s.charter.tier).toBe(1); expect(s.player.cash).toBe(200000 - C.charter.tiers[0].price);
+    expect(netWorth(s)).toBe(Math.round(nw0 - C.charter.tiers[0].price * (1 - C.charter.bookValue)));
+  });
+  it('pays dividends at the full tier, halved in war', () => {
+    let s = ready(); s.player.cash = 1e6;
+    for (let i = 0; i < 3; i++) s = drain(act(s, { t: 'charter' }));
+    expect(s.charter.tier).toBe(3);
+    const c0 = s.player.cash; s.world.flags.war = 1;
+    for (let i = 0; i < 5; i++) s = drain(act(s, { t: 'wait', days: 7 }));
+    expect(s.charter.dividends).toBe(C.charter.dividend / 2);
+    expect(s.player.cash).toBeGreaterThan(c0 - 200);
+  });
+  it('must be renewed under the new council, or loses a tier', () => {
+    let s = drain(act(ready(), { t: 'charter' }));
+    s.world.flags.charterRenewal = 1;
+    s = drain(act(s, { t: 'wait', days: 1 }));
+    expect(s.charter.renewDue).not.toBeNull();
+    const renewed = drain(act(s, { t: 'renew' }));
+    expect(renewed.charter.renewDue).toBeNull(); expect(renewed.charter.tier).toBe(1);
+    for (let i = 0; i < 10; i++) s = drain(act(s, { t: 'wait', days: 7 }));
+    expect(s.charter.tier).toBe(0); expect(s.charter.renewDue).toBeNull();
+  });
+  it('stores goods in the Narsis warehouse at tier 2', () => {
+    let s = ready(); s.player.cash = 1e6; s.player.location = 'narsis';
+    s = drain(act(drain(act(s, { t: 'charter' })), { t: 'charter' }));
+    s.player.cargo.timber = { qty: 10, cost: 30 };
+    s = act(s, { t: 'stash', good: 'timber', qty: 10 });
+    expect(s.player.cargo.timber).toBeUndefined(); expect(s.warehouse.timber.qty).toBe(10);
+    s = act(s, { t: 'unstash', good: 'timber', qty: 4 });
+    expect(s.player.cargo.timber.qty).toBe(4); expect(s.warehouse.timber.qty).toBe(6);
   });
 });

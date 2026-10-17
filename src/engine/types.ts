@@ -175,8 +175,18 @@ export interface PlayerState {
   weapon: string; armor: string; scrolls: Record<ScrollId, number>;
   cargo: Record<string, Lot>;
   licence: boolean; mercy: number; profiteering: number;
+  /** 0–100 Legion attention from smuggling (see encounters.ts heatLevel) */
+  heat: number;
   rep: Record<FactionId, number>;
   books: string[];
+}
+
+export interface CharterTier { tier: 1 | 2 | 3; name: string; price: number; text: string }
+export interface CharterState {
+  tier: 0 | 1 | 2 | 3; paid: number;
+  /** day by which the new council's renewal fee must be paid, or null */
+  renewDue: number | null; renewed: boolean;
+  nextDividend: number | null; dividends: number;
 }
 
 export interface NoteState { original: number; balance: number; rate: number; lastPaymentDay: number; seat: string; agents: string[]; extended: number; cleared: boolean }
@@ -210,6 +220,9 @@ export interface GameState {
   offers: Contract[]; contracts: Contract[];
   heard: string[];
   seen: Record<string, SeenPrices>;
+  charter: CharterState;
+  /** cargo stored in the charter warehouse (tier 2) */
+  warehouse: Record<string, Lot>;
   pending: PendingEncounter | null;
   inbox: InboxItem[];
   log: LogEntry[];
@@ -240,6 +253,10 @@ export type Action =
   | { t: 'book'; id: string }
   | { t: 'choose'; choice: string }
   | { t: 'ack'; n?: number }
+  | { t: 'charter' }
+  | { t: 'renew' }
+  | { t: 'stash'; good: string; qty: number }
+  | { t: 'unstash'; good: string; qty: number }
   | { t: 'chronicle' };
 
 export interface NewGameConfig { seed: string; backgroundId: string; name: string; difficulty: Difficulty; mode?: Mode }

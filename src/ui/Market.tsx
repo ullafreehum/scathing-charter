@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { C } from '../data';
-import { capacity, cargoWeight, fairValue, quotes, holidayAt, marketOpen, type GameState, type Quote } from '../engine';
+import { capacity, cargoWeight, fairValue, quotes, holidayAt, marketOpen, satRecoveryDays, type GameState, type Quote } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { ago, bestSeenSell } from './prices';
@@ -84,6 +84,7 @@ export function Market({ g }: { g: GameState }) {
                 const nSell = lot && q.sell !== null ? (amt === 'max' ? lot.qty : Math.min(amt, lot.qty)) : 0;
                 const margin = lot && q.sell !== null ? Math.round(q.sell - lot.cost) : null;
                 const l = LEG[q.legality];
+                const sat = g.markets[loc]?.[q.good]?.sat ?? 1;
                 const best = bestSeenSell(g, q.good, loc);
                 const edge = best && q.buy !== null ? best.price - q.buy : null;
                 return (
@@ -91,6 +92,8 @@ export function Market({ g }: { g: GameState }) {
                     <td className="py-1.5 pr-2">
                       <CodexLink id={`good:${q.good}`} className="text-bone">{G.name}</CodexLink>
                       {l.label && <span title={l.tip} className={`ml-1 text-[.7rem] h-display uppercase ${l.cls}`}>{l.label}</span>}
+                      {sat < 0.85 && <span className="ml-1 text-[.7rem] h-display uppercase text-danger" title={`So much has been sold here lately that the price is down. Back to normal in about ${satRecoveryDays(sat)} days.`}>Flooded · {satRecoveryDays(sat)}d</span>}
+                      {sat > 1.2 && <span className="ml-1 text-[.7rem] h-display uppercase text-gold" title={`So much has been bought here lately that the price is up. Back to normal in about ${satRecoveryDays(sat)} days.`}>Bought out · {satRecoveryDays(sat)}d</span>}
                       <div className="text-xs text-ash-400">{G.short}{tend && <span className="text-gold"> · {(C.locs[loc].tendencies[q.good] ?? 1) < 0.9 ? 'usually cheap here' : (C.locs[loc].tendencies[q.good] ?? 1) > 1.2 ? 'usually expensive here' : 'usual price here'}</span>}</div>
                     </td>
                     <td className="num text-ash-400">{G.weight}</td>

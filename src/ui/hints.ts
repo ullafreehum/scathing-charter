@@ -1,6 +1,6 @@
 // Plain-language guidance derived from the game state: the "next step" strip and travel warnings.
 import { C } from '../data';
-import { holidayAt, holidayOn, legalityAt, marketOpen, pressure, shortDate, type GameState } from '../engine';
+import { HEAT, heatLevel, holidayAt, holidayOn, legalityAt, marketOpen, pressure, shortDate, type GameState } from '../engine';
 import type { Tab } from '../store/game';
 
 export interface Hint { text: string; tab?: Tab; warn?: boolean }
@@ -23,6 +23,9 @@ export function nextSteps(g: GameState): Hint[] {
   const loc = g.player.location;
   if (g.pending || g.over || loc === 'road' || !C.locs[loc]) return out;
   const canPay = !g.note.cleared && (loc === g.note.seat || g.note.agents.includes(loc));
+  const heat = heatLevel(g.player.heat);
+  if (heat === 'wanted') out.push({ warn: true, text: `The Legion wants you (heat ${g.player.heat}). Expect patrols and double fines if you carry contraband. Heat falls by 1 a day; lie low or bribe customs.` });
+  else if (heat === 'watched' && Object.keys(g.player.cargo).some(id => legalityAt(g, loc, id) === 'contraband')) out.push({ warn: true, text: `The Legion is watching you (heat ${g.player.heat}): customs search you more often. Below ${HEAT.watched} they lose interest.` });
   if (g.player.health < 35) out.push({ warn: true, text: `Your health is low (${g.player.health}). Heal at a temple or shrine, or rest.`, tab: 'outfitter' });
   if (!g.note.cleared) {
     const where = canPay ? 'here, in the Bank tab' : `in ${payPlaces(g)}`;
@@ -31,6 +34,16 @@ export function nextSteps(g: GameState): Hint[] {
       const d = daysUntilCollectors(g);
       if (d <= 21) out.push({ warn: d <= 7, text: `In about ${d} day${d > 1 ? 's' : ''} the Tong starts sending collectors. Pay some debt ${where} to reset the clock.`, tab: canPay ? 'bank' : 'map' });
     }
+  }
+  const ch = g.charter; const offices = C.charter.offices.map(o => C.locs[o].name).join(', ');
+  const atOffice = C.charter.offices.includes(loc);
+  if (ch.renewDue !== null) {
+    const left = ch.renewDue - g.day;
+    out.push({ warn: true, text: `Renew your charter by ${shortDate(ch.renewDue)} (${left} day${left === 1 ? '' : 's'} left): ${Math.round(ch.paid * C.charter.renewalFee)} septims in ${offices}, or lose your highest tier.`, tab: atOffice ? 'bank' : 'map' });
+  } else if (g.world.flags.relief && g.note.cleared) {
+    const next = C.charter.tiers[ch.tier];
+    if (next && g.player.cash >= next.price) out.push({ text: `You can afford the ${next.name} (${next.price.toLocaleString('en-US')} septims), sold in ${offices}.`, tab: atOffice ? 'bank' : 'map' });
+    else if (next && ch.tier === 0) out.push({ text: `The Grand Council now sells the Scathing Charter, rights to rebuild the Vivec region. First tier: ${next.price.toLocaleString('en-US')} septims (Bank tab).`, tab: 'bank' });
   }
   for (const c of g.contracts) {
     const name = C.goods[c.good].name;
@@ -51,7 +64,10 @@ export function nextSteps(g: GameState): Hint[] {
 export function travelWarnings(g: GameState, dest: string, days: number): string[] {
   const w: string[] = [];
   const L = C.locs[dest]; const st = g.world.status[dest];
-  if (Object.keys(g.player.cargo).some(id => legalityAt(g, dest, id) === 'contraband')) w.push(`You carry goods that are contraband there; customs may search you (guards ${L.enforcement}/5).`);
+  if (Object.keys(g.player.cargo).some(id => legalityAt(g, dest, id) === 'contraband')) {
+    const heat = heatLevel(g.player.heat);
+    w.push(`You carry goods that are contraband there; customs may search you (guards ${L.enforcement}/5)${heat === 'wanted' ? ', twice as often because you are wanted, and patrols may stop you on the road' : heat === 'watched' ? ', more often because the Legion is watching you' : ''}.`);
+  }
   if (st === 'besieged') w.push('The town is under siege.');
   if (st === 'sacked') w.push('The town was recently sacked.');
   const arrive = g.day + days * g.timeScale;

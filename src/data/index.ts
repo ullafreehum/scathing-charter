@@ -9,6 +9,7 @@ import { RUMORS } from './rumors';
 import { CONTRACTS } from './contracts';
 import { HOLIDAYS } from './holidays';
 import { BOOKS } from './books';
+import { CHARTER } from './charter';
 import { FACTIONS, GEAR, BACKGROUNDS, ACHIEVEMENTS } from './misc';
 import { EXTRA_CODEX } from './codex';
 
@@ -44,6 +45,7 @@ export const C = {
   gear: byId<Gear>(GEAR), gearList: GEAR,
   backgrounds: byId<Background>(BACKGROUNDS), backgroundList: BACKGROUNDS,
   achievements: ACHIEVEMENTS,
+  charter: CHARTER,
   codex: buildCodex(),
   branches: { hlaalu: ['balmora', 'vivec', 'narsis', 'mournhold'], eec: ['ebonheart', 'raven-rock', 'solitude', 'imperial-city'] } as Record<House, string[]>,
 };

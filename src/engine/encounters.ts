@@ -21,6 +21,13 @@ export function pressure(s: GameState): number {
   return Math.min(3, p);
 }
 
+/** Smuggling heat: quiet below 30, watched from 30, wanted from 60. */
+export const HEAT = { watched: 30, wanted: 60, decayPerDay: 1, patrolChance: 0.3 } as const;
+export function heatLevel(heat: number): 'quiet' | 'watched' | 'wanted' { return heat >= HEAT.wanted ? 'wanted' : heat >= HEAT.watched ? 'watched' : 'quiet'; }
+/** Multiplier on customs searches and informers. */
+export function heatMult(heat: number): number { return heat >= HEAT.wanted ? 2 : heat >= HEAT.watched ? 1.5 : 1; }
+export function addHeat(s: GameState, n: number) { s.player.heat = Math.max(0, Math.min(100, Math.round(s.player.heat + n))); }
+
 export function power(s: GameState): number {
   const bg = C.backgrounds[s.player.backgroundId];
   return (C.gear[s.player.weapon]?.power ?? 0) + (C.gear[s.player.armor]?.power ?? 0) + s.player.sellswords * 3 + bg.combat + s.player.health / 25;
@@ -63,7 +70,7 @@ export function buildPending(s: GameState, def: EncounterDef, routeId: string, d
     for (const sc of ['chameleon', 'almsivi', 'divine'] as ScrollId[]) if (s.player.scrolls[sc] > 0) choices.push(sc);
   }
   const bribe = def.kind === 'enforcer' ? Math.max(60, Math.round(s.note.balance * 0.1))
-    : def.kind === 'customs' ? Math.max(40, Math.round(contrabandValue(s, dest) * 0.35))
+    : def.kind === 'customs' ? Math.max(40, Math.round(contrabandValue(s, dest) * 0.35 * heatMult(s.player.heat)))
     : Math.round(def.threat * 14 + cargoValue(s) * 0.03);
   return { defId: def.id, kind: def.kind, title: def.title, text: def.text, threat: def.threat, bribe, choices, routeId, dest, remainingDays, customs };
 }
@@ -148,7 +155,7 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
       return { text: `You are beaten (${d} wounds). They take ${lost} and ${cash} septims.`, good: false };
     }
     case 'flee': {
-      if (rng.chance(fleeChance(s))) return { text: 'You get away clean, heart pounding.', good: true };
+      if (rng.chance(fleeChance(s))) { if (p.customs) addHeat(s, 8); return { text: 'You get away clean, heart pounding.', good: true }; }
       if (p.customs) return confiscate(s, rng, true);
       const d = hurt(s, rng, 4, 12); const lost = loseCargo(s, rng, def.loss * 0.6);
       return { text: `They catch you. ${d} wounds; you lose ${lost}.`, good: false };
@@ -160,6 +167,7 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
         const r = confiscate(s, rng, false); return { text: `The officer takes your ${p.bribe} septims, then books you anyway. ${r.text}`, good: false };
       }
       if (def.kind === 'enforcer') s.note.lastPaymentDay = s.day;
+      if (p.customs) addHeat(s, -10);
       return { text: `${p.bribe} septims change hands. ${def.kind === 'enforcer' ? 'The Tong calls it a "visit fee". It does not touch the note.' : 'You are waved on.'}`, good: true };
     }
     case 'surrender': return { text: `You hand over ${loseCargo(s, rng, Math.min(0.9, def.loss * 1.5))}. They let you live.`, good: false };
@@ -167,7 +175,7 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
     case 'chameleon': {
       s.player.scrolls.chameleon--;
       // Customs officers are trained to look for shimmering air; bandits are not.
-      if (rng.chance(chameleonChance(s))) return { text: 'The scroll crackles; light bends round you. You walk past them.', good: true };
+      if (rng.chance(chameleonChance(s))) { if (p.customs) addHeat(s, 5); return { text: 'The scroll crackles; light bends round you. You walk past them.', good: true }; }
       if (p.customs) { const c = confiscate(s, rng, false); return { text: `The Chameleon spell flickers out at the worst moment. ${c.text}`, good: false }; }
       return { text: `The Chameleon spell flickers out at the worst moment. Spotted! You lose ${loseCargo(s, rng, def.loss * 0.5)}.`, good: false };
     }
@@ -238,8 +246,10 @@ function confiscate(s: GameState, rng: Rng, injured: boolean): { text: string; g
     if (legalityAt(s, p.dest, g) !== 'contraband') continue;
     value += lot.qty * fairValue(s, g); taken.push(`${lot.qty} ${C.goods[g].name}`); delete s.player.cargo[g];
   }
-  const fine = Math.min(s.player.cash, Math.round(value * 0.2));
+  const wanted = heatLevel(s.player.heat) === 'wanted';
+  const fine = Math.min(s.player.cash, Math.round(value * (wanted ? 0.4 : 0.2)));
   s.player.cash -= fine; s.player.rep.legion = clampRep(s.player.rep.legion - 4);
+  addHeat(s, -40);
   const d = injured ? hurt(s, rng, 5, 15) : 0;
-  return { text: `Confiscated: ${taken.join(', ') || 'nothing'}. Fine: ${fine} septims.${d ? ` You took ${d} wounds in the scuffle.` : ''}`, good: false };
+  return { text: `Confiscated: ${taken.join(', ') || 'nothing'}. Fine: ${fine} septims${wanted ? ' (doubled: you were wanted)' : ''}.${d ? ` You took ${d} wounds in the scuffle.` : ''}`, good: false };
 }
