@@ -6,7 +6,7 @@ import { C } from '../data';
 import { capacity, cargoWeight, netWorth, depositsTotal, pressure, heatLevel, type GameState } from '../engine';
 import { useGame, type Tab } from '../store/game';
 import { exportFile, type Slot } from '../save/storage';
-import { CodexLink, DateWidget, Meter, Money, StatusPill } from './widgets';
+import { CodexLink, DateWidget, Delta, Meter, Money, StatusPill } from './widgets';
 import { Market } from './Market';
 import { Bank } from './Bank';
 import { Tavern } from './Tavern';
@@ -28,12 +28,12 @@ function TopBar({ g }: { g: GameState }) {
       <div className="h-display text-ember text-lg mr-2 hidden md:block">THE SCATHING CHARTER</div>
       <DateWidget g={g} />
       <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm ml-auto items-center">
-        <span title="Cash on hand">Cash <Money v={g.player.cash} className="text-bone" /></span>
-        <span title={`Your debt to the Camonna Tong${g.note.cleared ? '' : ` (interest about ${Math.round(g.note.balance * g.note.rate)} a day)`}`}><CodexLink id="topic:the-note">Debt</CodexLink> {g.note.cleared ? <span className="text-moss">cleared</span> : <Money v={g.note.balance} className={pr >= 2 ? 'text-danger' : 'text-ember'} />}{pr > 0 && !g.note.cleared && <span className="text-danger ml-1" title="The Camonna Tong is losing patience">{'⚠'.repeat(pr)}</span>}</span>
+        <span title="Cash on hand">Cash <Money v={g.player.cash} className="text-bone" /><Delta value={g.player.cash} /></span>
+        <span title={`Your debt to the Camonna Tong${g.note.cleared ? '' : ` (interest about ${Math.round(g.note.balance * g.note.rate)} a day)`}`}><CodexLink id="topic:the-note">Debt</CodexLink> {g.note.cleared ? <span className="text-moss">cleared</span> : <><Money v={g.note.balance} className={pr >= 2 ? 'text-danger' : 'text-ember'} /><Delta value={g.note.balance} upIsGood={false} /></>}{pr > 0 && !g.note.cleared && <span className="text-danger ml-1" title="The Camonna Tong is losing patience">{'⚠'.repeat(pr)}</span>}</span>
         <span title="All deposits in banks (frozen ones at their expected payout)">Bank <Money v={depositsTotal(g)} /></span>
         <span title="Cargo weight / capacity">Cargo <span className="num">{cargoWeight(g)}/{capacity(g)}</span></span>
         <span className="flex items-center gap-1" title="Health">♥ <Meter v={g.player.health} color={g.player.health < 35 ? 'var(--c-bad)' : 'var(--c-good)'} /></span>
-        {g.player.heat > 0 && <span title={`Legion attention from smuggling: ${g.player.heat}/100. Watched (30+): searched more often. Wanted (60+): patrols on the roads and double fines. Falls by 1 a day; bribing customs lowers it.`}>Heat <span className={`num ${heatLevel(g.player.heat) === 'wanted' ? 'text-danger' : heatLevel(g.player.heat) === 'watched' ? 'text-gold' : ''}`}>{g.player.heat}</span>{heatLevel(g.player.heat) !== 'quiet' && <span className={heatLevel(g.player.heat) === 'wanted' ? 'text-danger' : 'text-gold'}> ({heatLevel(g.player.heat) === 'wanted' ? 'wanted' : 'watched'})</span>}</span>}
+        {g.player.heat > 0 && <span title={`Legion attention from smuggling: ${g.player.heat}/100. Watched (30+): searched more often. Wanted (60+): patrols on the roads and double fines. Falls by 1 a day; bribing customs lowers it.`}>Heat <span className={`num ${heatLevel(g.player.heat) === 'wanted' ? 'text-danger' : heatLevel(g.player.heat) === 'watched' ? 'text-gold' : ''}`}>{g.player.heat}</span><Delta value={g.player.heat} upIsGood={false} />{heatLevel(g.player.heat) !== 'quiet' && <span className={heatLevel(g.player.heat) === 'wanted' ? 'text-danger' : 'text-gold'}> ({heatLevel(g.player.heat) === 'wanted' ? 'wanted' : 'watched'})</span>}</span>}
         <span title="Cash + bank deposits + cargo value − debt">Net worth <Money v={netWorth(g)} className="text-gold" /></span>
         <button className="btn" onClick={() => openCodex(null)} title="Codex (c)">Codex</button>
         <button className="btn btn-ghost" onClick={openSettings} aria-label="Settings" title="Settings: sound, theme, font, text size"><span aria-hidden="true">⚙</span><span className="hidden xl:inline">Settings</span></button>

@@ -4,6 +4,14 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.10.0 (beta): look and feel
+
+- An icon for each of the 16 goods, in the Market and cargo lists.
+- Floating +/− numbers when cash, debt or heat change.
+- A short "A → B, n days" banner after each journey (off with Animations).
+- "Your fortune": a weekly net-worth chart in the Journal and on the end screen, with big events, paying off the
+  debt and charter purchases marked; hover for the date and value.
+
 ## 0.9.0 (beta): gameplay balance
 
 Driven by the balance bots (`npm run balance -- 24`); before/after numbers are in GAME_DESIGN §14.2.

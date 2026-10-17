@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { C } from '../data';
 import { dateOf, moons, PHASES, holidayAt, type Canon, type GameState, type LocStatus } from '../engine';
 import { useGame } from '../store/game';
@@ -68,6 +69,30 @@ export function DateWidget({ g }: { g: GameState }) {
         </div>
       </div>
     </div>
+  );
+}
+
+let popSeq = 0;
+/** A small number that floats up when a value changes (+340 / −120). */
+export function Delta({ value, upIsGood = true }: { value: number; upIsGood?: boolean }) {
+  const prev = useRef(value);
+  const [pops, setPops] = useState<{ id: number; d: number }[]>([]);
+  useEffect(() => {
+    const d = Math.round(value - prev.current); prev.current = value;
+    if (Math.abs(d) < 1) return;
+    const id = ++popSeq;
+    setPops(p => [...p.slice(-2), { id, d }]);
+    setTimeout(() => setPops(p => p.filter(x => x.id !== id)), 1500);
+  }, [value]);
+  return (
+    <span className="relative inline-block w-0 h-0 align-top" aria-hidden="true">
+      <AnimatePresence>{pops.map(p => (
+        <motion.span key={p.id} className={`absolute left-1 -top-1 text-xs num font-semibold whitespace-nowrap pointer-events-none ${(p.d > 0) === upIsGood ? 'text-moss' : 'text-danger'}`}
+          initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: -14 }} exit={{ opacity: 0 }} transition={{ duration: 0.9 }}>
+          {p.d > 0 ? '+' : '−'}{Math.abs(p.d).toLocaleString('en-US')}
+        </motion.span>
+      ))}</AnimatePresence>
+    </span>
   );
 }
 
