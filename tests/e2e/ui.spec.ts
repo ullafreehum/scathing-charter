@@ -133,14 +133,14 @@ test('strongbox: deposit, withdraw with fee, pay the note', async ({ page }) => 
   await page.getByLabel('Strongbox amount').fill('200');
   await page.getByRole('button', { name: 'Deposit', exact: true }).click();
   await expect.poll(() => purse(page)).toBe(p0 - 200);
-  expect(await vaults(page)).toBe(200);
+  await expect.poll(() => vaults(page)).toBe(200);
   await page.getByRole('button', { name: 'Withdraw', exact: true }).click();
-  expect(await vaults(page)).toBe(0);
+  await expect.poll(() => vaults(page)).toBe(0);
   await expect.poll(() => purse(page)).toBe(p0 - 1); // 1% fee, halved for the Hlaalu by-blow, rounded up
   await page.getByLabel('Payment amount').fill('100');
   const n0 = await note(page);
   await page.getByRole('button', { name: 'Pay', exact: true }).click();
-  expect(await note(page)).toBe(n0 - 100);
+  await expect.poll(() => note(page)).toBe(n0 - 100);
   await expect(page.getByText('(here)')).toBeVisible();
   expect(errors).toEqual([]);
 });
