@@ -357,7 +357,7 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       if (res.teleport) { arrive(s, rng, res.teleport, true); return; }
       tickDays(s, rng, ((res.delay ?? 0) + p.remainingDays) * s.timeScale);
       if (s.over) { s.player.location = p.dest; return; }
-      if (p.customs) return;
+      if (p.customs && s.player.location !== 'road') return; // a search at the gate: already arrived (a road patrol is not)
       arrive(s, rng, p.dest, true);
       return;
     }

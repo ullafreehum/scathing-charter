@@ -28,6 +28,18 @@ describe('crossing cards', () => {
     }
   });
 
+  it('a Legion patrol on the road never leaves you stuck on the road', () => {
+    const def = C.encounters.find(e => e.id === 'legion-patrol')!;
+    const base = start();
+    base.player.cargo = { 'moon-sugar': { qty: 5, cost: 40 } }; base.player.location = 'road';
+    base.pending = buildPending(base, def, 'balmora~ebonheart', 'ebonheart', 1, true);
+    for (const o of cardOptions(base).filter(x => !x.disabled)) {
+      const r = step(base, { t: 'choose', choice: o.id });
+      if (r.error || r.state.over) continue;
+      if (!r.state.pending) expect(C.locs[r.state.player.location], o.id).toBeDefined();
+    }
+  });
+
   it('customs: declaring pays the printed duty and keeps the goods', () => {
     const s = card('legion-customs', sugar);
     const duty = Math.round(contrabandValue(s, 'ebonheart') * CARD.duty);
