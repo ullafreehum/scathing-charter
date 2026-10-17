@@ -116,6 +116,23 @@ describe('game', () => {
     expect(s.note.balance).toBe(debt + s.note.original * 5);
     expect(s.note.rate).toBeGreaterThan(rate);
   });
+  it('offers a crossroads at the end of the calendar, and keep trading plays on', () => {
+    let s = drain(newGame(CFG));
+    s = { ...s, day: s.endDay - 1 };
+    s = drain(act(s, { t: 'wait', days: 1 }));
+    expect(s.over?.reason).toBe('calendar');
+    s = act(s, { t: 'crossroads', choice: 'trade' });
+    expect(s.over).toBeNull();
+    expect(s.ending?.kind).toBe('trade');
+    s = drain(act(s, { t: 'wait', days: 7 }));
+    expect(s.over).toBeNull();
+  });
+  it('turns runaway Tong debt into indenture', () => {
+    let s = drain(newGame(CFG));
+    s = act(s, { t: 'borrow', amount: s.note.original * 6 });
+    s = drain(act(s, { t: 'wait', days: 1 }));
+    expect(s.indentured).toBe(true);
+  });
   it('reports net worth including debt', () => { expect(netWorth(newGame(CFG))).toBe(DIFFICULTY.tong.cash - DIFFICULTY.tong.debt); });
 });
 

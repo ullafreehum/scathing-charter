@@ -56,6 +56,12 @@ export function Market({ g }: { g: GameState }) {
       )}
       {hol && !hol.marketClosed && <div className="panel p-3 text-sm"><span className="text-gold h-display">{hol.name}.</span> {hol.text}</div>}
       {(loc === 'lilmoth' || loc === 'stormhold') && !g.player.licence && <div className="panel p-3 text-sm text-ember">Foreigners need a trade licence here. Buy one at the Lilmoth gate (Shop & Temple tab) or from the Argonian agent in Leyawiin.</div>}
+      {g.appeal?.loc === loc && (
+        <div className="panel p-3 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-gold h-display">Seized goods.</span> <span>Contest the seizure before the magistrate: win the hearing and you get your goods and fine back; lose and the fine doubles.</span>
+          <button className="btn btn-ember ml-auto" onClick={() => act({ t: 'appeal' })}>Contest</button>
+        </div>
+      )}
       {deliverable.map(c => { const t = C.contracts.find(x => x.id === c.templateId)!; return (
         <div key={c.id} className="panel p-3 flex flex-wrap items-center gap-2 text-sm">
           <span className="text-gold h-display">Contract ready.</span> <span>{t.title}: {c.qty} {C.goods[c.good].name}, pays <Money v={c.reward} />.</span>

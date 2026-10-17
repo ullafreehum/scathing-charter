@@ -8,6 +8,7 @@ import { MAX_LEG_DAYS, routeOptions, routeOptionsFrom, type RouteOption } from '
 import { applyHistory, branchKey, catchUpHistory, clampRep, houseName } from './history';
 import { HEAT, addHeat, buildPending, contrabandValue, heatMult, rollEncounter, resolve } from './encounters';
 import { checkAchievements, netWorth } from './score';
+import { duelTurn, newDuel } from './duel';
 import { SCHEMA_VERSION } from './save';
 
 export const RED_YEAR_END = D(6, 12, 31);
@@ -22,6 +23,11 @@ export const WAGES = { porter: { hire: 100, day: 4, max: 4 }, sellsword: { hire:
 export const LICENCE_PRICE = 300;
 export const RUMOR_PRICE = 5;
 export const BOARD_PER_DAY = 3;
+/** Endless play after the crossroads: the calendar runs on for a century. */
+export const ENDLESS_DAYS = 36500;
+/** Debt at this multiple of the original note turns into indenture instead of more killers. */
+export const INDENTURE_RATIO = 6;
+export const TONG_CUT = 0.3;
 /** Daily interest on deposits: Hlaalu pays more, the Imperial (EEC) house is steadier. */
 export const DEPOSIT_RATE = { hlaalu: 0.0008, eec: 0.0004 } as const;
 
@@ -94,11 +100,30 @@ export function jobPay(s: GameState, loc: string, job: Job): number {
   return Math.round(base * job.mult * (hard ? 1.25 : 1));
 }
 
+/** Milestones open early retirement ("retire now or carry on"). */
+function milestones(s: GameState) {
+  const got = (s.milestones ??= []);
+  const add = (id: string, title: string, text: string) => {
+    if (got.includes(id)) return;
+    got.push(id);
+    s.inbox.push({ kind: 'result', title, text: `${text} You can retire now (Bank tab) with your fortune as it stands, or carry on.` });
+  };
+  if (s.note.cleared && !s.indentured) add('debt', 'Free of debt', 'The Tong has no claim on you.');
+  if (s.charter.tier >= 3) add('charter', 'Charter-Holder', 'You hold a share of the Scathing Charter.');
+  if (s.player.mercy >= 60) add('mercy', 'A name for mercy', 'Refugees across Morrowind know your name.');
+}
+
 // ---------------------------------------------------------------- daily tick
 export function tickDay(s: GameState, rng: Rng): void {
   s.day++;
   if (s.day % 7 === 0) (s.stats.worth ??= []).push([s.day, netWorth(s)]);
-  if (!s.note.cleared) s.note.balance = s.note.balance * (1 + s.note.rate);
+  if (!s.note.cleared && !s.indentured) s.note.balance = s.note.balance * (1 + s.note.rate);
+  if (!s.note.cleared && !s.indentured && s.note.balance > s.note.original * INDENTURE_RATIO) {
+    s.indentured = true;
+    s.inbox.push({ kind: 'result', title: 'Indentured to the Tong', text: 'Drelloth’s men find you. You will not be killed: you will work. The interest stops and the collectors stand down, but the Tong takes 30% of every sale until the note is paid.' });
+    log(s, 'You are indentured to the Camonna Tong.', 'bad');
+  }
+  milestones(s);
   for (const k of Object.keys(s.deposits)) if (s.world.branches[k] === 'open') s.deposits[k] *= 1 + DEPOSIT_RATE[k.startsWith('hlaalu:') ? 'hlaalu' : 'eec'];
   // wages
   const hold = s.player.conveyance === 'chartered-hold' ? 10 : 0;
@@ -228,7 +253,8 @@ function arrive(s: GameState, rng: Rng, dest: string) {
 
 // ---------------------------------------------------------------- step
 export function step(state: GameState, action: Action): StepResult {
-  if (state.over && action.t !== 'ack' && action.t !== 'chronicle') return { state, error: 'The game is over.' };
+  if (state.over && action.t !== 'ack' && action.t !== 'chronicle' && action.t !== 'crossroads') return { state, error: 'The game is over.' };
+  if (state.duel && !state.duel.winner && action.t !== 'duel' && action.t !== 'ack') return { state, error: 'Finish the hearing first.' };
   if (state.pending && action.t !== 'choose' && action.t !== 'ack') return { state, error: 'Deal with what is happening on the road first.' };
   const s = structuredClone(state);
   const rng = new Rng(s.rng);
@@ -261,6 +287,7 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
     case 'charter': case 'renew': return charter(s, a.t);
     case 'stash': case 'unstash': return warehouse(s, a.t, a.good, a.qty);
     case 'travel': {
+      s.appeal = null;
       const opt = routeOptions(s).find(o => o.route.id === a.route && o.modeIndex === a.mode);
       if (!opt) return 'That route is not open.';
       s.stats.journeys++;
@@ -427,6 +454,51 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       arrive(s, rng, p.dest);
       return;
     }
+    case 'crossroads': {
+      // The last day: retire for good, or choose a way to play on without an end date (score frozen now).
+      if (s.over?.reason !== 'calendar' || s.ending) return 'Not now.';
+      if (a.choice === 'charter' && s.charter.tier < 2) return 'You need a charter tier of 2 or more.';
+      s.ending = { kind: a.choice, day: s.day, worth: netWorth(s) };
+      if (a.choice === 'retire') { log(s, 'You put away the ledger for good.', 'history'); return; }
+      s.over = null; s.endDay = s.day + ENDLESS_DAYS;
+      if (a.choice === 'tong') {
+        s.note.cleared = true; s.note.balance = 0; s.indentured = false;
+        s.player.rep.tong = clampRep(s.player.rep.tong + 30); addHeat(s, 30);
+        log(s, 'You take the Tong’s mark. Your debt is gone; now you carry what they tell you to.', 'history');
+      } else log(s, a.choice === 'charter' ? 'You take your seat among the Charter-Holders and keep trading.' : 'The ledger stays open. You keep trading.', 'history');
+      return;
+    }
+    case 'retire': {
+      if (!s.milestones?.length) return 'You have nothing to retire on yet.';
+      if (s.indentured) return 'The Tong does not let its runners retire.';
+      s.ending = { kind: 'retire', day: s.day, worth: netWorth(s) };
+      s.over = { reason: 'retired', day: s.day };
+      return;
+    }
+    case 'appeal': {
+      if (!s.appeal || s.appeal.loc !== loc) return 'There is nothing to contest here.';
+      s.duel = newDuel(rng);
+      log(s, 'You contest the seizure. The magistrate’s advocate sets out his case.');
+      return;
+    }
+    case 'duel': {
+      if (!s.duel) return 'No hearing is under way.';
+      if (s.duel.winner) { s.duel = null; return; } // closing the result screen
+      const err = duelTurn(s.duel, rng, Math.floor(a.card), !!a.discard);
+      if (err) return err;
+      if (s.duel.winner && s.appeal) {
+        const ap = s.appeal; s.appeal = null;
+        if (s.duel.winner === 'you') {
+          for (const [good, lot] of Object.entries(ap.goods)) { const mine = (s.player.cargo[good] ??= { qty: 0, cost: lot.cost }); mine.cost = (mine.cost * mine.qty + lot.cost * lot.qty) / (mine.qty + lot.qty); mine.qty += lot.qty; }
+          s.player.cash += ap.fine;
+          s.inbox.push({ kind: 'result', title: 'Case won', text: `The magistrate rules for you: your goods and your ${ap.fine}-septim fine are returned.` });
+        } else {
+          const more = Math.min(s.player.cash, ap.fine); s.player.cash -= more;
+          s.inbox.push({ kind: 'result', title: 'Case lost', text: `The magistrate rules against you and doubles the fine: ${more} septims more.` });
+        }
+      }
+      return;
+    }
     case 'chronicle': {
       if (s.over?.reason !== 'calendar' || s.mode !== 'red-year') return 'The Long Chronicle opens only after the Red Year ends.';
       startChronicle(s, false);
@@ -539,6 +611,11 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
     if (q.legality === 'contraband') { s.stats.smuggled += qty; addHeat(s, Math.min(15, 2 + total / 250)); }
     else if (q.legality === 'restricted' && q.sellNote?.startsWith('black')) addHeat(s, Math.min(8, 1 + total / 600));
     if (['food', 'medicine'].includes(g.category) && ['ruined', 'sacked', 'besieged', 'refugee-swollen'].includes(s.world.status[loc]) && profit > 0) s.player.profiteering += profit;
+    if (s.indentured && !s.note.cleared) {
+      const cut = Math.min(Math.ceil(s.note.balance), Math.round(total * TONG_CUT));
+      total -= cut; s.note.balance -= cut; s.note.lastPaymentDay = s.day;
+      if (s.note.balance < 1) { s.note.balance = 0; s.note.cleared = true; s.indentured = false; s.inbox.push({ kind: 'result', title: 'Free of the Tong', text: 'Your last cut pays off the note. Drelloth lets you go.' }); }
+    }
     s.player.cash += total;
     lot.qty -= qty; if (lot.qty <= 0) delete s.player.cargo[good];
     cell.sat = Math.max(0.45, cell.sat * (1 - qty / depth));

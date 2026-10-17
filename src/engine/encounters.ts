@@ -1,6 +1,6 @@
 // Road encounters: rolling, building the pending card, and resolving choices.
 import { C } from '../data';
-import type { EncounterDef, GameState, PendingEncounter, Region, ScrollId } from './types';
+import type { EncounterDef, GameState, Lot, PendingEncounter, Region, ScrollId } from './types';
 import type { Rng } from './rng';
 import type { RouteOption } from './travel';
 import { distance } from './travel';
@@ -10,7 +10,7 @@ import { clampRep } from './history';
 export const DIFF = { fair: { enc: 0.75 }, tong: { enc: 1 }, blood: { enc: 1.3 } } as const;
 
 export function pressure(s: GameState): number {
-  if (s.note.cleared) return 0;
+  if (s.note.cleared || s.indentured) return 0;
   const ratio = s.note.balance / s.note.original;
   const late = s.day - s.note.lastPaymentDay;
   let p = 0;
@@ -241,15 +241,16 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
 
 function confiscate(s: GameState, rng: Rng, injured: boolean): { text: string; good: boolean } {
   const p = s.pending!;
-  let value = 0; const taken: string[] = [];
+  let value = 0; const taken: string[] = []; const seized: Record<string, Lot> = {};
   for (const [g, lot] of Object.entries(s.player.cargo)) {
     if (legalityAt(s, p.dest, g) !== 'contraband') continue;
-    value += lot.qty * fairValue(s, g); taken.push(`${lot.qty} ${C.goods[g].name}`); delete s.player.cargo[g];
+    value += lot.qty * fairValue(s, g); taken.push(`${lot.qty} ${C.goods[g].name}`); seized[g] = { ...lot }; delete s.player.cargo[g];
   }
   const wanted = heatLevel(s.player.heat) === 'wanted';
   const fine = Math.min(s.player.cash, Math.round(value * (wanted ? 0.4 : 0.2)));
+  if (taken.length) s.appeal = { loc: p.dest, goods: seized, fine };
   s.player.cash -= fine; s.player.rep.legion = clampRep(s.player.rep.legion - 4);
   addHeat(s, -40);
   const d = injured ? hurt(s, rng, 5, 15) : 0;
-  return { text: `Confiscated: ${taken.join(', ') || 'nothing'}. Fine: ${fine} septims${wanted ? ' (doubled: you were wanted)' : ''}.${d ? ` You took ${d} wounds in the scuffle.` : ''}`, good: false };
+  return { text: `Confiscated: ${taken.join(', ') || 'nothing'}. Fine: ${fine} septims${wanted ? ' (doubled: you were wanted)' : ''}.${d ? ` You took ${d} wounds in the scuffle.` : ''}${taken.length ? ' You may contest the seizure before the magistrate while you are in town (Market tab).' : ''}`, good: false };
 }

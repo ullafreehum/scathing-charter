@@ -566,3 +566,8 @@ Still open:
    I can drop it, or drop another location, if you want exactly 18–19.
 3. Black Marsh's only canon trade good is **washtongue powder**, a humble pottery mineral. I kept it as
    a teaching moment rather than inventing a flashier "Hist amber". Tell me if you'd prefer otherwise.
+
+## Endings and the magistrate's duel (0.9.5)
+- **Crossroads** (`crossroads` action) when the calendar ends: `retire` (game over, epilogue verdict), `trade` / `charter` (tier ≥ 2) / `tong` (debt wiped, +30 heat) continue with `endDay = day + ENDLESS_DAYS`; `ending.worth` freezes the score.
+- **Milestones** (`debt`, `charter` tier 3, `mercy` ≥ 60) unlock `retire` early. **Indenture** at debt > `INDENTURE_RATIO` × note: no interest, pressure 0, `TONG_CUT` of each sale goes to the note.
+- **Duel** (`engine/duel.ts`): Ants rules: tower 30 / wall 10 / generators 2 / stocks 5, hand 8, win at tower 100 or toppling the other; 30 cards, 10 per resource. Contest a customs seizure in the same town (`appeal`); win returns goods and fine, loss doubles the fine. Card names, flavour and art come from the "Daedric duel" thread (`/mnt/project-files/daedric-duel/cards.json`).
