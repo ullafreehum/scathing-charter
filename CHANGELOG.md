@@ -4,7 +4,7 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
-## 0.10.0 (beta): look and feel
+## 0.9.1 (beta): look and feel
 
 - An icon for each of the 16 goods, in the Market and cargo lists.
 - Floating +/− numbers when cash, debt or heat change.
