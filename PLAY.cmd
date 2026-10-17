@@ -15,6 +15,14 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
+rem A copy with the bundled offline edition plays from it: no internet, no npm install.
+if not exist node_modules for %%Z in ("download\AshGame-offline-*.zip") do set "OFFZIP=%%~fZ"
+if defined OFFZIP (
+  echo   Unpacking the offline game, no internet needed...
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -Force -LiteralPath $env:OFFZIP -DestinationPath ."
+  call "AshGame\Play The Scathing Charter.cmd"
+  exit /b
+)
 if not exist node_modules (
   echo   First launch: downloading the game's parts. This takes 1-3 minutes.
   echo   Warnings in yellow are normal. Please wait...
