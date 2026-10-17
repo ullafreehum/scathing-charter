@@ -91,6 +91,11 @@ function startChronicle(s: GameState, fresh: boolean) {
   if (fresh) { s.day = D(7, 1, 1); s.player.location = 'narsis'; }
 }
 
+/** The jobs open in a place today (some only exist after the eruption). */
+export function jobsAt(s: GameState, loc: string): readonly Job[] {
+  return (C.jobs[loc] ?? []).filter(j => !j.after || s.world.fired.includes(j.after));
+}
+
 /** One day's wage for a job: twice the cheapest fare out of town (at least 30), times the job's multiplier;
  *  places the Red Year hit need hands and pay a quarter more. */
 export function jobPay(s: GameState, loc: string, job: Job): number {
@@ -314,7 +319,7 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
     case 'labour': {
       // The broke can always hire on. A day's wage covers about two trips to the nearest town.
       if (![1, 3, 7].includes(a.days)) return 'Work 1, 3 or 7 days.';
-      const job = (C.jobs[loc] ?? []).find(j => j.id === a.job);
+      const job = jobsAt(s, loc).find(j => j.id === a.job);
       if (!job) return 'No such work here.';
       const pay = jobPay(s, loc, job) * a.days * s.timeScale;
       s.player.health = Math.max(1, s.player.health - job.hurt * a.days);

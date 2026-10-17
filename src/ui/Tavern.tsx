@@ -1,5 +1,5 @@
 import { C } from '../data';
-import { holidayAt, shortDate, RUMOR_PRICE, WAGES, BOARD_PER_DAY, jobPay, type GameState } from '../engine';
+import { holidayAt, shortDate, RUMOR_PRICE, WAGES, BOARD_PER_DAY, jobPay, jobsAt, type GameState } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 
@@ -23,7 +23,7 @@ export function Tavern({ g }: { g: GameState }) {
       </Section>
       <Section title="Day labour">
         <p className="text-sm text-ash-400 mb-1">Short of coin? Hire on here. A day’s wage pays for about two trips to the nearest town.</p>
-        {(C.jobs[L.id] ?? []).map(j => (
+        {jobsAt(g, L.id).map(j => (
           <div key={j.id} className="border-t border-ash-700/60 py-2 text-sm">
             <div className="flex flex-wrap items-center gap-2"><span className="text-bone">{j.name}</span><span className="text-xs text-ash-400"><Money v={jobPay(g, L.id, j)} />/day{j.hurt ? ` · −${j.hurt} health/day` : ''}</span>
               <span className="ml-auto flex gap-1">{[1, 3, 7].map(d => <button key={d} className="btn" onClick={() => act({ t: 'labour', job: j.id, days: d })}>{d * g.timeScale} day{d * g.timeScale > 1 ? 's' : ''}</button>)}</span></div>

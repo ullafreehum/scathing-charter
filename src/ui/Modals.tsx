@@ -25,10 +25,10 @@ const CHOICE: Record<string, { label: string; hint: (g: GameState) => string }> 
   decline: { label: 'Decline', hint: () => '' },
 };
 
-function Card({ children, wide = false, parchment = false }: { children: React.ReactNode; wide?: boolean; parchment?: boolean }) {
+function Card({ children, wide = false, parchment = false, label }: { children: React.ReactNode; wide?: boolean; parchment?: boolean; label?: string }) {
   return (
     <motion.div className="fixed inset-0 z-40 scrim flex items-center justify-center p-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-      <motion.div role="dialog" aria-modal="true" className={`${parchment ? 'parchment' : 'panel-solid'} ${wide ? 'max-w-3xl' : 'max-w-xl'} w-full p-5 max-h-[90vh] overflow-auto scroll-thin`} initial={{ y: 24, scale: 0.97 }} animate={{ y: 0, scale: 1 }} exit={{ y: 14, opacity: 0 }} transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}>
+      <motion.div role="dialog" aria-modal="true" aria-label={label} className={`${parchment ? 'parchment' : 'panel-solid'} ${wide ? 'max-w-3xl' : 'max-w-xl'} w-full p-5 max-h-[90vh] overflow-auto scroll-thin`} initial={{ y: 24, scale: 0.97 }} animate={{ y: 0, scale: 1 }} exit={{ y: 14, opacity: 0 }} transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}>
         {children}
       </motion.div>
     </motion.div>
@@ -41,11 +41,11 @@ export function Overlays() {
   if (!g) return null;
   const item = g.inbox[0];
   let node: React.ReactNode = null;
-  if (g.duel) node = <Card key="duel" wide><DuelScreen d={g.duel} /></Card>;
+  if (g.duel) node = <Card key="duel" wide label="Magistrate’s hearing"><DuelScreen d={g.duel} /></Card>;
   else if (g.pending) {
     const p = g.pending;
     node = (
-      <Card key="enc">
+      <Card key="enc" label={p.title}>
         <div className="text-xs h-display uppercase text-ember">{p.customs ? 'At the gate' : p.kind === 'mercy' ? 'On the road: a choice' : p.kind === 'hazard' ? 'On the road: the elements' : p.kind === 'opportunity' ? 'On the road: an offer' : 'On the road: trouble'}</div>
         <h2 className="h-display text-2xl text-bone mb-2">{p.title}</h2>
         <p className="fell text-lg text-parchment mb-4">{p.text}</p>

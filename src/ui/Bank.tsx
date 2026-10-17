@@ -72,6 +72,8 @@ function CharterSection({ g }: { g: GameState }) {
 export function Bank({ g }: { g: GameState }) {
   const act = useGame(s => s.act);
   const [pay, setPay] = useState(100);
+  const [loan, setLoan] = useState(500);
+  const borrow = () => { if (loan > 0 && confirm(`Borrow ${loan} septims from the Tong? Every loan raises your interest rate.`)) act({ t: 'borrow', amount: loan }); };
   const [amt, setAmt] = useState<Record<string, number>>({ hlaalu: 100, eec: 100 });
   const loc = g.player.location;
   const n = g.note;
@@ -83,18 +85,21 @@ export function Bank({ g }: { g: GameState }) {
     <div className="grid xl:grid-cols-2 gap-3">
       <Section title="Your debt (Camonna Tong)">
         {n.cleared ? <><p className="text-moss">Paid off. You owe the Camonna Tong nothing.</p>
-          {atTong && <div className="flex flex-wrap gap-2 mt-3 items-center"><input className="input w-28 num" type="number" min={1} value={pay} onChange={e => setPay(toInt(e.target.value))} aria-label="Loan amount" /><button className="btn btn-ghost" onClick={() => act({ t: 'borrow', amount: pay })}>Borrow again</button></div>}</> : (
+          {atTong && <div className="flex flex-wrap gap-2 mt-3 items-center"><input className="input w-28 num" type="number" min={1} value={loan} onChange={e => setLoan(toInt(e.target.value))} aria-label="Loan amount" /><button className="btn btn-ghost" onClick={borrow}>Borrow again</button></div>}</> : (
           <>
             <p className="text-sm text-parchment">You owe <b>Gavas Drelloth</b> <Money v={n.balance} className="text-ember" />. Interest is {(n.rate * 100).toFixed(2)}% a day: about <Money v={n.balance * n.rate} /> a day right now. Last payment: {shortDate(n.lastPaymentDay)}.</p>
             <p className="text-sm mt-1">{pr === 0 ? 'The Tong is patient, for now.' : pr === 1 ? 'Drelloth is getting impatient. Pay something soon.' : pr === 2 ? 'Debt collectors are looking for you on the roads.' : 'The Tong has sent killers after you. Pay now.'}</p>
-            {atTong ? (
+            {atTong ? (<>
               <div className="flex flex-wrap gap-2 mt-3 items-center">
                 <input className="input w-28 num" type="number" min={1} value={pay} onChange={e => setPay(toInt(e.target.value))} aria-label="Payment amount" />
                 <button className="btn btn-ember" onClick={() => { if (act({ t: 'pay', amount: pay })) coinBurst('cash', 'debt', coinsFor(pay)); }}>Pay</button>
                 <button className="btn" disabled={payAll < 1} onClick={() => { if (act({ t: 'pay', amount: payAll })) coinBurst('cash', 'debt', coinsFor(payAll)); }}>Pay all you can (<Money v={payAll} />)</button>
-                <button className="btn btn-ghost" onClick={() => act({ t: 'borrow', amount: pay })} title="Borrow the amount in the box. Every loan raises your interest rate, and a bigger debt sends harder collectors.">Borrow</button>
               </div>
-            ) : <p className="text-sm text-ash-400 mt-2">You can’t pay here. Pay in {places}.</p>}
+              <div className="flex flex-wrap gap-2 mt-2 items-center">
+                <input className="input w-28 num" type="number" min={1} value={loan} onChange={e => setLoan(toInt(e.target.value))} aria-label="Loan amount" />
+                <button className="btn btn-ghost" onClick={borrow} title="Borrow the amount in this box. Every loan raises your interest rate, and a bigger debt sends harder collectors.">Borrow</button>
+              </div>
+            </>) : <p className="text-sm text-ash-400 mt-2">You can’t pay here. Pay in {places}.</p>}
           </>
         )}
         {g.indentured && <p className="text-sm text-danger mt-2">You are indentured: no interest and no collectors, but the Tong takes 30% of every sale until the note is paid.</p>}

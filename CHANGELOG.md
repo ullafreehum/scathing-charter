@@ -4,6 +4,13 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.9.6 (beta): fixes from a playtest
+- Crater salvage in Vivec, ruin clearing in Ebonheart and the rubble crew at Fort Frostmoth only appear after the eruption.
+- Borrowing from the Tong has its own amount box and asks before lending.
+- Selling at a loss asks first.
+- The market shows the cheapest trip now and with a full hold, since fares grow with cargo.
+- Encounter and hearing pop-ups are named for screen readers.
+
 ## 0.9.5 (beta)
 - No more weight limits on travel: Guild Guides take any load, so a full pack never strands you.
 - Running out of money no longer ends a run: every place has three day-labour jobs at the tavern (1, 3 or 7 days). A day's wage pays for about two trips to the nearest town, more in towns the Red Year hit; heavier jobs cost health.

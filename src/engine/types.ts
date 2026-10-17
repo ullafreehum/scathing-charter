@@ -58,7 +58,7 @@ export interface Location extends Sourced {
 }
 
 /** A day-labour job in one place (data/jobs.ts). `mult` scales the local wage; `hurt` is health lost per day. */
-export interface Job extends Sourced { id: string; name: string; text: string; mult: number; hurt: number }
+export interface Job extends Sourced { id: string; name: string; text: string; mult: number; hurt: number; /** only after this history event has happened */ after?: string }
 
 export interface RouteMode { mode: TravelMode; days: number; fare: number; risk: number }
 export interface Route { id: string; a: string; b: string; modes: readonly RouteMode[]; closed?: boolean; note?: string }
