@@ -4,6 +4,12 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.9.3 (beta): fix
+
+- **Buy / Max no longer offers more than you can afford.** The button guessed the maximum with a flat 2% margin,
+  but buying several at once raises the price a little with each unit. The Market now uses the exact rule the game
+  charges by (`bulkBuyTotal` / `maxBuyQty` in market.ts), and the tooltip shows the real total.
+
 ## 0.9.2 (beta): time passing, responsive controls
 
 - **Campaign timeline** under the top bar: fills as days pass, gold diamonds for events lived through, hollow ones
