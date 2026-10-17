@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { C } from '../data';
-import { capacity, cargoWeight, fairValue, quotes, holidayAt, marketOpen, satRecoveryDays, type GameState, type Quote } from '../engine';
+import { DEPTH, bulkBuyTotal, capacity, cargoWeight, fairValue, maxBuyQty, quotes, holidayAt, marketOpen, satRecoveryDays, type GameState, type Quote } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
@@ -86,7 +86,7 @@ export function Market({ g }: { g: GameState }) {
               {rows.map((q, i) => {
                 const G = C.goods[q.good]; const lot = g.player.cargo[q.good];
                 const r = ratio(q);
-                const maxBuy = q.buy ? Math.max(0, Math.min(Math.floor(g.player.cash / (q.buy * 1.02)), Math.floor(free / G.weight))) : 0;
+                const maxBuy = maxBuyQty(q.buy, DEPTH[G.category], g.player.cash, free, G.weight);
                 const nBuy = amt === 'max' ? maxBuy : Math.min(amt, maxBuy);
                 const nSell = lot && q.sell !== null ? (amt === 'max' ? lot.qty : Math.min(amt, lot.qty)) : 0;
                 const margin = lot && q.sell !== null ? Math.round(q.sell - lot.cost) : null;
@@ -112,7 +112,7 @@ export function Market({ g }: { g: GameState }) {
                     <td className="text-right num pl-3">{lot ? <motion.span key={lot.qty} className="inline-block" initial={{ scale: 1.4 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 600, damping: 15 }} title={`You paid ${Math.round(lot.cost)} each on average`}>{lot.qty}</motion.span> : <span className="text-ash-400">0</span>}</td>
                     <td className="text-right pl-3 whitespace-nowrap">{best ? <span title={`Seen in ${C.locs[best.loc].name} ${ago(best.age)}. Prices move, so older figures are less reliable.`}><Money v={best.price} />{edge !== null && edge > 0 && <span className="text-moss text-xs"> (+{Math.round(edge)})</span>}<span className="block text-xs text-ash-400">{C.locs[best.loc].name}, {ago(best.age)}</span></span> : <span className="text-ash-400 text-xs">not seen yet</span>}</td>
                     <td className="whitespace-nowrap pl-3 text-right space-x-1">
-                      <button className="btn" disabled={nBuy < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'buy', good: q.good, qty: nBuy })) { coinBurst('cash', el, coinsFor(nBuy * (q.buy ?? 0))); traded(q.good); } }} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} (max ${maxBuy})`}>Buy {nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</button>
+                      <button className="btn" disabled={nBuy < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'buy', good: q.good, qty: nBuy })) { coinBurst('cash', el, coinsFor(nBuy * (q.buy ?? 0))); traded(q.good); } }} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} for ${bulkBuyTotal(q.buy!, nBuy, DEPTH[G.category]).toLocaleString('en-US')} septims (the most you can afford and carry: ${maxBuy}). Buying many at once raises the price a little.`}>Buy {nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</button>
                       <button className="btn" disabled={nSell < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'sell', good: q.good, qty: nSell })) { coinBurst(el, 'cash', coinsFor(nSell * (q.sell ?? 0))); traded(q.good); } }} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>Sell {nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</button>
                     </td>
                   </motion.tr>

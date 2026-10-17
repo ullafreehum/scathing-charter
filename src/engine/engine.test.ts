@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { C } from '../data';
-import { DIFFICULTY, D, dateOf, formatDate, moons, Rng, hashSeed, newGame, step, replay, quotes, routeOptions, netWorth, migrate, serialize, deserialize, SCHEMA_VERSION, RED_YEAR_END, type Action, type GameState, type NewGameConfig } from './index';
+import { DEPTH, bulkBuyTotal, capacity, cargoWeight, maxBuyQty, DIFFICULTY, D, dateOf, formatDate, moons, Rng, hashSeed, newGame, step, replay, quotes, routeOptions, netWorth, migrate, serialize, deserialize, SCHEMA_VERSION, RED_YEAR_END, type Action, type GameState, type NewGameConfig } from './index';
 
 const CFG: NewGameConfig = { seed: 'test-seed', backgroundId: 'hlaalu-bastard', name: 'Tester', difficulty: 'tong' };
 function act(s: GameState, a: Action): GameState { const r = step(s, a); if (r.error) throw new Error(r.error); return r.state; }
@@ -224,3 +224,19 @@ describe('the Scathing Charter', () => {
     expect(s.player.cargo.timber.qty).toBe(4); expect(s.warehouse.timber.qty).toBe(6);
   });
 });
+
+describe('buying the maximum', () => {
+  it('the maximum is exactly what you can pay for, and one more is refused', () => {
+    const s = drain(newGame(CFG));
+    for (const cash of [320, 777, 2500]) {
+      s.player.cash = cash;
+      for (const q of quotes(s, 'balmora').filter(x => x.buy !== null)) {
+        const G = C.goods[q.good]; const free = capacity(s) - cargoWeight(s);
+        const max = maxBuyQty(q.buy, DEPTH[G.category], cash, free, G.weight);
+        if (max > 0) { expect(step(s, { t: 'buy', good: q.good, qty: max }).error).toBeUndefined(); expect(bulkBuyTotal(q.buy!, max, DEPTH[G.category])).toBeLessThanOrEqual(cash); }
+        if ((max + 1) * G.weight <= free) expect(step(s, { t: 'buy', good: q.good, qty: max + 1 }).error).toMatch(/costs/);
+      }
+    }
+  });
+});
+

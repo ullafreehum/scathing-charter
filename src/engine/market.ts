@@ -16,6 +16,19 @@ const STATUS_MULT: Partial<Record<LocStatus, Partial<Record<GoodCategory, number
   occupied: { food: 1.6, medicine: 1.7, luxury: 0.5 },
 };
 
+/** What buying `qty` at a unit price costs: each extra unit in one purchase pushes the price up a little.
+ *  trade() charges exactly this, so the UI's maximum always matches the bill. */
+export function bulkBuyTotal(price: number, qty: number, depth: number): number {
+  return Math.round(price * qty * (1 + qty / (2 * depth)));
+}
+/** The most you can buy in one go: limited by cash (at the bulk price) and free cargo space. */
+export function maxBuyQty(price: number | null, depth: number, cash: number, freeWeight: number, weight: number): number {
+  if (!price || price <= 0) return 0;
+  let lo = 0, hi = Math.max(0, Math.floor(freeWeight / weight));
+  while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (bulkBuyTotal(price, mid, depth) <= cash) lo = mid; else hi = mid - 1; }
+  return lo;
+}
+
 /** Daily recovery of market saturation toward normal (1 = none). Higher = markets remember your trades longer. */
 export const SAT_RECOVERY = 0.97;
 /** Days until a market you flooded or bought out is back within 5% of its normal price. */

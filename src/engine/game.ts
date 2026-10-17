@@ -3,7 +3,7 @@ import { C } from '../data';
 import type { Action, CharterState, Contract, GameState, LogEntry, MarketCell, NewGameConfig, ScrollId } from './types';
 import { Rng, hashSeed } from './rng';
 import { D, shortDate } from './calendar';
-import { DEPTH, SAT_RECOVERY, capacity, cargoWeight, fairValue, holidayAt, marketOpen, quotes } from './market';
+import { DEPTH, SAT_RECOVERY, bulkBuyTotal, capacity, cargoWeight, fairValue, holidayAt, marketOpen, quotes } from './market';
 import { routeOptions, type RouteOption } from './travel';
 import { applyHistory, branchKey, catchUpHistory, clampRep, houseName } from './history';
 import { HEAT, addHeat, buildPending, contrabandValue, heatMult, rollEncounter, resolve } from './encounters';
@@ -490,7 +490,7 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
   unlock(s, `good:${good}`);
   if (kind === 'buy') {
     if (q.buy === null) return q.stock ? 'No merchant here will sell you that.' : 'Out of stock today.';
-    const total = Math.round(q.buy * qty * (1 + qty / (2 * depth)));
+    const total = bulkBuyTotal(q.buy, qty, depth);
     if (s.player.cash < total) return `That costs ${total} septims.`;
     if (cargoWeight(s) + qty * g.weight > capacity(s)) return 'Your guar cannot carry that much.';
     s.player.cash -= total;
