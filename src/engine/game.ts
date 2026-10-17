@@ -3,7 +3,7 @@ import { C } from '../data';
 import type { Action, CharterState, Contract, GameState, Job, LogEntry, MarketCell, NewGameConfig, ScrollId } from './types';
 import { Rng, hashSeed } from './rng';
 import { D, shortDate } from './calendar';
-import { DEPTH, SAT_RECOVERY, bulkBuyTotal, capacity, cargoWeight, fairValue, holidayAt, legalityAt, marketOpen, midPrice, quotes } from './market';
+import { DEPTH, SAT_RECOVERY, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight, fairValue, holidayAt, legalityAt, marketOpen, midPrice, quotes } from './market';
 import { MAX_LEG_DAYS, routeOptions, routeOptionsFrom, type RouteOption } from './travel';
 import { applyHistory, branchKey, catchUpHistory, clampRep, houseName } from './history';
 import { HEAT, addHeat, buildPending, contrabandValue, heatMult, rollEncounter, resolve } from './encounters';
@@ -599,7 +599,7 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
     if (q.sell === null) return q.legality === 'contraband' ? 'Only a fence would touch that, and there is none here.' : 'Nobody here is buying that.';
     const lot = s.player.cargo[good];
     if (!lot || lot.qty < qty) return 'You do not have that many.';
-    let total = Math.round(q.sell * qty * Math.max(0.5, 1 - qty / (2 * depth)));
+    let total = bulkSellTotal(q.sell, qty, depth);
     const profit = total - Math.round(lot.cost * qty);
     if (q.legality === 'restricted' && q.sellNote?.startsWith('black')) {
       if (rng.chance(here(s).enforcement * 0.06 * C.backgrounds[s.player.backgroundId].customsMod * heatMult(s.player.heat))) {

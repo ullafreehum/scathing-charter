@@ -33,6 +33,8 @@ interface Store {
   setScreen(s: Screen): void; setTab(t: Tab): void;
   start(cfg: NewGameConfig): void; load(g: GameState): void; continueAuto(): boolean;
   act(a: Action): boolean; saveTo(slot: Slot): boolean;
+  /** States before each buy or sell since the last other action, newest last: Undo steps back through them. */
+  undo: GameState[]; undoTrade(): void;
   openCodex(id?: string | null): void; closeCodex(): void;
   setSettings(p: Partial<Settings>): void; resetSettings(): void; openSettings(): void; closeSettings(): void; clearError(): void;
 }
@@ -52,11 +54,11 @@ export const useGame = create<Store>()((set, get) => {
   const meta = loadMeta();
   setSound(meta.settings.sound); setVolume(meta.settings.volume);
   return {
-    screen: 'title', game: null, error: null, errorTick: 0, tab: 'market', codex: undefined, meta, settingsOpen: false, toasts: [], tradeQty: 1, plan: null, trip: null, tick: null,
+    screen: 'title', game: null, error: null, errorTick: 0, tab: 'market', codex: undefined, meta, settingsOpen: false, undo: [], toasts: [], tradeQty: 1, plan: null, trip: null, tick: null,
     setScreen: screen => set({ screen }),
     setTab: tab => { sfx.page(); set({ tab }); },
-    start: cfg => { const g = newGame(cfg); saveGame(g); set({ game: g, screen: 'game', tab: 'market', error: null, toasts: [], plan: null }); },
-    load: g => { const t: Toast[] = []; g = drainNotices(g, t); saveGame(g); set({ game: g, screen: 'game', tab: 'market', error: null, toasts: t, plan: null }); },
+    start: cfg => { const g = newGame(cfg); saveGame(g); set({ game: g, screen: 'game', tab: 'market', error: null, toasts: [], plan: null, undo: [] }); },
+    load: g => { const t: Toast[] = []; g = drainNotices(g, t); saveGame(g); set({ game: g, screen: 'game', tab: 'market', error: null, toasts: t, plan: null, undo: [] }); },
     continueAuto: () => { const g = loadGame('auto'); if (!g) return false; get().load(g); return true; },
     act: a => {
       const g = get().game; if (!g) return false;
@@ -73,8 +75,14 @@ export const useGame = create<Store>()((set, get) => {
       for (const t of fresh) setTimeout(() => get().dismissToast(t.id), t.text.length > 120 ? 11000 : 7000);
       const trip = arrived && C.locs[g.player.location] ? { id: n.actions.length, from: g.player.location === 'road' ? (g.pending?.routeId.split('~').find(x => x !== n.player.location) ?? '') : g.player.location, to: n.player.location, days: n.day - g.day } : null;
       const tick = n.day > g.day ? { id: n.actions.length, days: n.day - g.day } : null;
-      set(s => ({ game: n, error: null, tab: arrived ? 'market' : s.tab, trip: trip ?? s.trip, tick: tick ?? s.tick, plan: s.plan === n.player.location ? null : s.plan, toasts: fresh.length ? [...s.toasts, ...fresh].slice(-3) : s.toasts }));
+      // Trades can be undone until anything else happens (travel, waiting, the bank...).
+      const undo = a.t === 'buy' || a.t === 'sell' ? [...get().undo, g].slice(-20) : [];
+      set(s => ({ game: n, error: null, undo, tab: arrived ? 'market' : s.tab, trip: trip ?? s.trip, tick: tick ?? s.tick, plan: s.plan === n.player.location ? null : s.plan, toasts: fresh.length ? [...s.toasts, ...fresh].slice(-3) : s.toasts }));
       return true;
+    },
+    undoTrade: () => {
+      const u = get().undo; const g = u[u.length - 1]; if (!g) return;
+      sfx.page(); saveGame(g); set({ game: g, undo: u.slice(0, -1), error: null });
     },
     saveTo: slot => { const g = get().game; return !!g && saveGame(g, slot); },
     openCodex: id => { sfx.page(); set({ codex: id ?? null }); },

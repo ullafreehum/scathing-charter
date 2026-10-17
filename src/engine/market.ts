@@ -22,6 +22,10 @@ const STATUS_MULT: Partial<Record<LocStatus, Partial<Record<GoodCategory, number
 export function bulkBuyTotal(price: number, qty: number, depth: number): number {
   return Math.round(price * qty * (1 + qty / (2 * depth)));
 }
+/** What selling `qty` at a unit price brings in (before any fine): each extra unit sold at once lowers the price a little. */
+export function bulkSellTotal(price: number, qty: number, depth: number): number {
+  return Math.round(price * qty * Math.max(0.5, 1 - qty / (2 * depth)));
+}
 /** The most you can buy in one go: limited by cash (at the bulk price) and free cargo space. */
 export function maxBuyQty(price: number | null, depth: number, cash: number, freeWeight: number, weight: number): number {
   if (!price || price <= 0) return 0;
