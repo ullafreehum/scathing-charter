@@ -13,12 +13,18 @@ export function warehouseValue(s: GameState): number {
   let v = 0; for (const [g, lot] of Object.entries(s.warehouse)) v += lot.qty * fairValue(s, g);
   return v;
 }
-/** Council favour from relief given at cost: 5% off each charter tier per point, at most 25%. */
-export const FAVOUR_DISCOUNT = 0.05, FAVOUR_MAX = 5;
+/** Council favour from relief given at cost: 2% off each charter tier per point, at most 10%. */
+export const FAVOUR_DISCOUNT = 0.02, FAVOUR_MAX = 5;
 /** Price of the next charter tier for this player, after favour. */
 export function charterPrice(s: GameState, tier: 1 | 2 | 3): number {
   const base = C.charter.tiers[tier - 1].price;
   return Math.round(base * (1 - FAVOUR_DISCOUNT * Math.min(FAVOUR_MAX, s.charter.favour ?? 0)));
+}
+/** First day the council will sell the next tier: the current tier must be held C.charter.holdDays first. */
+export function charterReadyDay(s: GameState): number {
+  const next = C.charter.tiers[s.charter.tier];
+  if (!next || s.charter.boughtDay === undefined) return 0;
+  return s.charter.boughtDay + C.charter.holdDays[next.tier - 1];
 }
 /** What the charter rights would fetch: a share of the price paid. */
 export function charterValue(s: GameState): number { return s.charter.paid * C.charter.bookValue; }

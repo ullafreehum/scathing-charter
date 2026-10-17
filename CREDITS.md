@@ -34,15 +34,14 @@ All other art (Daedra card art, frame, back, towers, background, patron sigils) 
 
 | Used for | Source | Author | Licence |
 |---|---|---|---|
-| Red Mountain backdrop (`art/background.svg`), recoloured to embers | "Oil painting landscapes" (`coldmountain.png`), OpenGameArt, via the CC0 mirror github.com/Tiddybub/2d-assets; https://opengameart.org/content/oil-painting-landscapes | JAP | CC0 |
-| Spire and Ward stone (`art/spire.svg`, `art/ward.svg`), darkened | "Golgotha Textures: castle_walls_tall.jpg", OpenGameArt, same mirror; https://opengameart.org/content/golgotha-textures-castlewallstalljpg | Crack dot Com (Golgotha), submitted by bart | CC0 |
+| Spire and Ward stone (`art/spire.svg`, `art/ward.svg`), darkened | "Golgotha Textures: castle_walls_tall.jpg", OpenGameArt, via the CC0 mirror github.com/Tiddybub/2d-assets; https://opengameart.org/content/golgotha-textures-castlewallstalljpg | Crack dot Com (Golgotha), submitted by bart | CC0 |
 
 Authors confirmed from the OpenGameArt pages on 2026-10-17.
 
 ## Painted art (GPL v2+)
 
+(The duel backdrop is Sinan's own Red Mountain painting: no credit.)
+
 | Used for | Source | Licence |
 |---|---|---|
-| Lava backdrop (`art/background.svg`), darkened and ember-graded | The Battle for Wesnoth, `data/core/images/story/landscape-lava.webp` (picked by Sinan, 2026-10-17); details in `docs/CREDITS-sourced.md` | GPL v2 or later (fits the game's GPL-3.0) |
-
 | Card paintings (`art/cards-painted/*.jpg`), ember-graded by Sorcerer | The Battle for Wesnoth unit portraits and story art; per-card source and artists in `docs/CREDITS-sourced.md` (card section) | GPL v2 or later |

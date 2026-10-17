@@ -7,7 +7,7 @@ and the Long Chronicle.
 ## 0.10.0 (beta): the focus release
 One goal, one choice per trip, and a Red Year you can see on the map. Now a Windows app.
 
-- One strongbox per bank city instead of two houses: 0.05% a day, 1% to take money out, no transfers between cities. Old saves add up each city's balances.
+- One strongbox per bank city instead of two houses, 1% to take money out, no transfers between cities. Old saves add up each city's balances. Interest is the eruption gamble: 0.12% a day in Vivec, Ebonheart and Balmora, 0.08% in Mournhold, 0.03% in the safe cities.
 - A clear goal: pay off the Tong, then buy the Scathing Charter before the end of 4E 6. Buying it with no debt wins the game at once; only this last tier needs the debt cleared. The Bank tab shows the goal as three steps.
 - If your debt passes six times the note, the Tong puts its mark on you and the game ends (with warnings at four and five times). The Tong lends up to five times the note. Indenture is gone.
 - At the end date you retire automatically, ranked by net worth; the end-of-game crossroads is gone. Winning or retiring at the end still opens the Long Chronicle.
@@ -18,10 +18,20 @@ One goal, one choice per trip, and a Red Year you can see on the map. Now a Wind
 - The game fits any screen from 1024×600 to 4K and ultrawide: the whole interface grows with the window (designed at 1280×720), stays centred on very wide screens, the map fills the free height, and the hearing shows all eight cards in one row. The Text size setting is now "Text and UI size" and scales on top of that.
 - Road events are now crossing cards, at most one per journey: every choice prints its stakes in septims and percentages before you pick. Customs lets you declare and pay 25% duty; a refugee column lets you sell at cost for Mercy and Charter favour (which lowers charter prices); an ash storm lets you wait, hire a guide or push through; Tong collectors can be paid, put off or outrun, and the road stays watched for a month.
 - Tavern contracts work as before; they become road scenes in a later version.
-- The magistrate's hearing is now an animated card duel (Sorcerer's "Oblivion Wager" design): towers rise and crack, Daedra rise from a summoning circle, every change floats up as a label, and cards you can't afford say what you still need. Plain words throughout: Tower, Wall, Stone, Troops, Magic, and "Deal 6 damage". Speed Normal, Fast or Skip (click the board to hurry a turn); with Animations off or reduced motion it plays instantly. Keyboard and screen readers play the same cards through buttons. Painted card art (from The Battle for Wesnoth), new frames, towers and a lava backdrop. If WebGL is missing, the old plain board is used.
+- The magistrate's hearing is now an animated card duel (Sorcerer's "Oblivion Wager" design): towers rise and crack, Daedra rise from a summoning circle, every change floats up as a label, and cards you can't afford say what you still need. Plain words throughout: Tower, Wall, Stone, Troops, Magic, and "Deal 6 damage". Speed Normal, Fast or Skip (click the board to hurry a turn); with Animations off or reduced motion it plays instantly. Keyboard and screen readers play the same cards through buttons. Painted card art (from The Battle for Wesnoth), new frames and towers, and a Red Mountain backdrop. If WebGL is missing, the old plain board is used.
 - All credits are in one Credits section, which now also opens from Settings. Every art file's source and licence is in CREDITS.md.
 - The game is now a Windows app: download `ScathingCharter-Setup-<version>.exe` (or the Portable .exe) from Releases. It is fully self-contained (no Node.js, Chrome or internet), opens full screen (F11 or Alt+Enter to switch, Ctrl+Plus/Minus for size), and remembers its window. It isn't signed, so Windows asks once: More info, then Run anyway. PLAY.cmd and the offline ZIP are gone; browser saves move over with Export and Import.
-- Saves from 0.9.x load and carry on (save format v6).
+- Economy fixes from the economy designer (approved by Sinan, A1–A16; the bigger price-depth change waits for a balance run):
+  - The start pays: Ald'ruhn buys sujamma, Vivec buys kwama eggs and Balmora buys healing draughts at better prices, so the first strider hops between them make money. The Tong note on Tong Terms is 4,000 (was 3,000).
+  - Crossing cards come once per journey and more often on short hops (about 1 in 9 on a 1-day strider trip, was 1 in 50).
+  - Customs: the bribe is 12% of the contraband (was 35%); if it fails they keep it and charge the duty too, instead of seizing everything.
+  - Tong collectors keep 60 of the 300 as a fee; asking for time adds 0.05% a day (0.1% before, and far too much in the Long Chronicle).
+  - Pushing through a storm can also cost a share of your other cargo (35% chance); a guide charges 40 or 6% of the cargo's value.
+  - Charter favour takes 2% off per point (at most 10%). Each charter tier must be held a while before the next: 30 days, then 60.
+  - The Chartered hold costs 8,000 (was 14,000).
+  - Borrowing raises the rate less (0.08% per note borrowed), and the Borrow question says how many days until your debt passes six times the note.
+  - Only a payment of at least 30 days' interest keeps the collectors away.
+- Saves from 0.9.x load and carry on (save format v7).
 
 ## 0.9.6 (beta): fixes from a playtest
 - Crater salvage in Vivec, ruin clearing in Ebonheart and the rubble crew at Fort Frostmoth only appear after the eruption.

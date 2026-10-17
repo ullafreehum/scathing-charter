@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { C } from '../data';
-import { CARD, buildPending, cardOptions, charterPrice, choiceOdds, contrabandValue, fairValue, migrate, newGame, serialize, step, type Action, type GameState, type NewGameConfig } from './index';
+import { CARD, buildPending, cardChance, cardOptions, charterPrice, choiceOdds, contrabandValue, fairValue, migrate, newGame, serialize, step, type Action, type GameState, type NewGameConfig } from './index';
 
 const CFG: NewGameConfig = { seed: 'cards', backgroundId: 'hlaalu-bastard', name: 'Tester', difficulty: 'tong' };
 function act(s: GameState, a: Action): GameState { const r = step(s, a); if (r.error) throw new Error(r.error); return r.state; }
@@ -104,10 +104,56 @@ describe('crossing cards', () => {
   it('Tong collectors: paying counts against the note; asking for time raises the rate', () => {
     const s = card('tong-enforcers', x => { x.player.cash = 1000; });
     const paid = act(s, { t: 'choose', choice: 'pay-note' });
+    const fee = CARD.tongPay * CARD.tongFee;
+    expect(opt(s, 'pay-note').stake).toContain(`${CARD.tongPay - fee} septims off your debt; they keep ${fee}`);
     expect(paid.player.cash).toBe(700);
-    expect(paid.note.balance).toBeCloseTo(s.note.balance - CARD.tongPay, 6);
+    expect(paid.note.balance).toBeCloseTo(s.note.balance - (CARD.tongPay - fee), 6);
+    expect(paid.note.lastPaymentDay).toBe(s.day);
     const time = act(s, { t: 'choose', choice: 'ask-time' });
     expect(time.note.rate).toBeCloseTo(s.note.rate + CARD.tongRate, 9);
+  });
+
+  it('Tong collectors: a small note is cleared exactly; in the Long Chronicle asking for time costs the same per real day', () => {
+    const s = card('tong-enforcers', x => { x.player.cash = 1000; x.note.balance = 100; });
+    const paid = act(s, { t: 'choose', choice: 'pay-note' });
+    expect(paid.note.cleared).toBe(true);
+    expect(paid.player.cash).toBe(1000 - Math.ceil(100 / (1 - CARD.tongFee)));
+    const lc = card('tong-enforcers', x => { x.timeScale = 7; });
+    expect(act(lc, { t: 'choose', choice: 'ask-time' }).note.rate).toBeCloseTo(lc.note.rate + CARD.tongRate / 7, 12);
+  });
+
+  it('customs: the bribe is 12% of the contraband; a failed bribe is kept and the duty charged too', () => {
+    const s = card('legion-customs', x => { x.player.cargo = { 'moon-sugar': { qty: 40, cost: 40 } }; });
+    expect(s.pending!.bribe).toBe(Math.max(40, Math.round(contrabandValue(s, 'ebonheart') * CARD.bribeShare)));
+    const seen = new Set<string>();
+    for (let i = 0; i < 40; i++) {
+      const t = card('legion-customs', x => { x.player.cargo = { 'moon-sugar': { qty: 40, cost: 40 } }; x.player.cash = 5000; }, `bribe-${i}`);
+      const duty = Math.round(contrabandValue(t, 'ebonheart') * CARD.duty);
+      const n = act(t, { t: 'choose', choice: 'bribe' });
+      expect(n.player.cargo['moon-sugar'].qty).toBe(40);
+      expect([5000 - t.pending!.bribe, 5000 - t.pending!.bribe - duty]).toContain(n.player.cash);
+      seen.add(n.player.cash === 5000 - t.pending!.bribe ? 'waved on' : 'duty');
+    }
+    expect([...seen].sort()).toEqual(['duty', 'waved on']);
+  });
+
+  it('ash storm: pushing through risks the printed share of other cargo, at the printed odds; the guide charges 6% of a rich load', () => {
+    const load = (x: GameState) => { x.player.cargo = { timber: { qty: 40, cost: 30 } }; };
+    const s = card('ash-storm', load);
+    expect(opt(s, 'press-on').odds).toBeCloseTo(1 - CARD.stormChance, 9);
+    expect(opt(s, 'guide').stake).toContain(`${Math.max(CARD.guideFee, Math.round(40 * fairValue(s, 'timber') * CARD.guideShare))} septims`);
+    const left = new Set<number>();
+    for (let i = 0; i < 40; i++) left.add(act(card('ash-storm', load, `storm-${i}`), { t: 'choose', choice: 'press-on' }).player.cargo.timber.qty);
+    expect([...left].sort((a, b) => a - b)).toEqual([40 - Math.ceil(40 * 0.15), 40]);
+    expect(choiceOdds(card('ash-storm', x => { x.player.cargo = {}; }), 'press-on')).toBeUndefined();
+  });
+
+  it('cards come once per journey, more often on riskier and longer routes', () => {
+    const s = start();
+    expect(cardChance(s, { risk: 0, days: 3 })).toBe(0);
+    expect(cardChance(s, { risk: 1, days: 1 })).toBeCloseTo(0.11, 9);
+    expect(cardChance(s, { risk: 3, days: 9 })).toBeCloseTo(0.51, 9);
+    expect(cardChance(s, { risk: 6, days: 9 })).toBe(0.6);
   });
 
   it('Tong collectors: running has the printed odds and watches the route for a month', () => {
@@ -126,12 +172,12 @@ describe('crossing cards', () => {
     }
   });
 
-  it('Charter favour takes 5% off each point, at most 25%', () => {
+  it('Charter favour takes 2% off each point, at most 10%', () => {
     const s = start();
     const base = C.charter.tiers[2].price;
     expect(charterPrice(s, 3)).toBe(base);
-    s.charter.favour = 2; expect(charterPrice(s, 3)).toBe(Math.round(base * 0.9));
-    s.charter.favour = 9; expect(charterPrice(s, 3)).toBe(Math.round(base * 0.75));
+    s.charter.favour = 2; expect(charterPrice(s, 3)).toBe(Math.round(base * 0.96));
+    s.charter.favour = 9; expect(charterPrice(s, 3)).toBe(Math.round(base * 0.9));
   });
 
   it('migrates a v5 save with an open card to the new choices', () => {

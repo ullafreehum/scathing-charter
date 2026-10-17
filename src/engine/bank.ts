@@ -5,9 +5,16 @@ import type { Action, GameState } from './types';
 import { vaultHouse } from './history';
 import { log, unlock } from './util';
 
-/** Daily interest on every strongbox, and the fee for taking money out. */
-export const DEPOSIT_RATE = 0.0005;
+/** Daily interest on each city's strongbox: highest in the cities the Red Year threatens, so keeping money there is
+ *  the eruption gamble. And the fee for taking money out. */
+export const DEPOSIT_RATES: Readonly<Record<string, number>> = {
+  vivec: 0.0012, ebonheart: 0.0012, balmora: 0.0012, mournhold: 0.0008,
+  narsis: 0.0003, 'raven-rock': 0.0003, solitude: 0.0003, 'imperial-city': 0.0003,
+};
+export const depositRate = (loc: string): number => DEPOSIT_RATES[loc] ?? 0.0003;
 export const WITHDRAW_FEE = 0.01;
+/** How much each borrowed note's worth raises the daily rate. */
+export const BORROW_RATE_RISE = 0.0008;
 
 export function bankAction(s: GameState, a: Action, loc: string): string | void {
   switch (a.t) {
@@ -41,7 +48,7 @@ export function bankAction(s: GameState, a: Action, loc: string): string | void 
       const room = Math.floor(s.note.original * LEND_RATIO - (s.note.cleared ? 0 : s.note.balance));
       if (amt > room) return room > 0 ? `Drelloth will lend you at most ${room} more.` : 'Drelloth will not lend you more. Pay something first.';
       if (s.note.cleared) { s.note.cleared = false; s.note.balance = 0; s.note.lastPaymentDay = s.day; }
-      s.note.rate = Math.min(0.02 / s.timeScale, s.note.rate + 0.0015 * amt / s.note.original / s.timeScale);
+      s.note.rate = borrowRate(s, amt);
       s.note.extended += amt; s.note.balance += amt; s.player.cash += amt;
       log(s, `You borrow ${amt} more from the Tong.`, 'bad');
       return;
@@ -49,8 +56,22 @@ export function bankAction(s: GameState, a: Action, loc: string): string | void 
   }
 }
 
-/** Pays `amt` off the Tong note (at a counter or to collectors on the road) and clears it when nothing is left. */
+/** The daily rate after borrowing `amt` more. */
+export function borrowRate(s: GameState, amt: number): number {
+  return Math.min(0.02 / s.timeScale, s.note.rate + BORROW_RATE_RISE * amt / s.note.original / s.timeScale);
+}
+
+/** Days until a debt of `balance` at `rate` a day (of game time) passes `limit`, if nothing is paid; null beyond ten years. */
+export function daysUntil(balance: number, rate: number, limit: number, timeScale = 1): number | null {
+  let b = balance;
+  for (let d = 0; d <= 3650; d++) { if (b > limit) return d; for (let i = 0; i < timeScale; i++) b *= 1 + rate; }
+  return null;
+}
+
+/** Pays `amt` off the Tong note (at a counter or to collectors on the road) and clears it when nothing is left.
+ *  Only a payment worth at least 30 days of interest resets the "late" clock that sends collectors. */
 export function payNote(s: GameState, amt: number): void {
-  s.player.cash -= amt; s.note.balance -= amt; s.note.lastPaymentDay = s.day;
+  if (amt >= s.note.balance * s.note.rate * 30 * s.timeScale) s.note.lastPaymentDay = s.day;
+  s.player.cash -= amt; s.note.balance -= amt;
   if (s.note.balance < 1) { s.note.balance = 0; s.note.cleared = true; log(s, 'You paid off the Camonna Tong. You owe no one.', 'good'); s.inbox.push({ kind: 'result', title: 'Debt paid off', text: 'Gavas Drelloth counts the coin twice, then tears up your note. "Pleasure, outlander." You are free of the Tong.' }); }
 }

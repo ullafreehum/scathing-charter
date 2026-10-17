@@ -120,7 +120,9 @@ test('smuggling heat stays hidden and the Scathing Charter can be bought', async
   await page.getByRole('button', { name: /^Buy Relief supplier licence/ }).click();
   for (let i = 0; i < 4 && await contBtn(page).count(); i++) { await cont(page).catch(() => {}); await page.waitForTimeout(200); }
   await expect(page.getByText(/yours/).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Buy Warehouse at Narsis/ })).toBeEnabled();
+  // the next tier waits until the first has been held 30 days
+  await expect(page.getByRole('button', { name: /^Buy Warehouse at Narsis/ })).toBeDisabled();
+  await expect(page.getByText(/sells the next tier from/)).toBeVisible();
   await shot(page, '07-charter');
   expect(errors).toEqual([]);
 });

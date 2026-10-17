@@ -7,11 +7,11 @@ import { DEPTH, SAT_RECOVERY, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight
 import { MAX_LEG_DAYS, routeOptions, routeOptionsFrom, type RouteOption } from './travel';
 import { applyHistory, branchKey, catchUpHistory, clampRep, houseName } from './history';
 import { HEAT, addHeat, buildPending, cardOptions, contrabandValue, heatMult, rollEncounter, resolve } from './encounters';
-import { charterPrice, checkAchievements, netWorth } from './score';
+import { charterPrice, charterReadyDay, checkAchievements, netWorth } from './score';
 import { duelTurn, newDuel } from './duel';
 import { SCHEMA_VERSION } from './save';
 import { here, log, unlock } from './util';
-import { DEPOSIT_RATE, bankAction } from './bank';
+import { bankAction, depositRate } from './bank';
 import { contractAction, makeOffers } from './contracts';
 import { findBooks } from './books';
 import { checkMark, endingAction, milestones, timeUp, win } from './endings';
@@ -21,7 +21,7 @@ export const RED_YEAR_END = D(6, 12, 31);
 export const CORONATION_DAY = D(22, 10, 30);
 export const DIFFICULTY = {
   fair: { cash: 700, debt: 2000, rate: 0.002 },
-  tong: { cash: 550, debt: 3000, rate: 0.003 },
+  tong: { cash: 550, debt: 4000, rate: 0.003 },
   blood: { cash: 250, debt: 4500, rate: 0.006 },
 } as const;
 export const WAGES = { porter: { hire: 100, day: 4, max: 4 }, sellsword: { hire: 150, day: 10, max: 3 } } as const;
@@ -111,7 +111,7 @@ export function tickDay(s: GameState, rng: Rng): void {
   checkMark(s);
   if (s.over) return;
   milestones(s);
-  for (const k of Object.keys(s.deposits)) if (s.world.branches[k] === 'open') s.deposits[k] *= 1 + DEPOSIT_RATE;
+  for (const k of Object.keys(s.deposits)) if (s.world.branches[k] === 'open') s.deposits[k] *= 1 + depositRate(k);
   // wages
   const hold = s.player.conveyance === 'chartered-hold' ? 10 : 0;
   const wages = s.player.porters * WAGES.porter.day + s.player.sellswords * WAGES.sellsword.day + hold;
@@ -438,9 +438,10 @@ function charter(s: GameState, kind: 'charter' | 'renew'): string | void {
   const next = C.charter.tiers[ch.tier];
   if (!next) return 'You already hold the full charter.';
   if (next.tier === 3 && !s.note.cleared) return 'The council will not sell the Scathing Charter to a trader who still owes the Camonna Tong.';
+  if (s.day < charterReadyDay(s)) return `The council wants you to hold your ${C.charter.tiers[ch.tier - 1].name} until ${shortDate(charterReadyDay(s))} first.`;
   const price = charterPrice(s, next.tier);
   if (s.player.cash < price) return `The ${next.name} costs ${price} septims.`;
-  s.player.cash -= price; ch.paid += price; ch.tier = next.tier;
+  s.player.cash -= price; ch.paid += price; ch.tier = next.tier; ch.boughtDay = s.day;
   if (s.world.flags.charterRenewal) ch.renewed = true; // granted by the new council itself
   if (next.tier === 3) ch.nextDividend = s.day + C.charter.dividendEvery;
   unlock(s, 'topic:scathing-charter');

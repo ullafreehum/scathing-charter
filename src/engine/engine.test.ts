@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { C } from '../data';
-import { DEPTH, bulkBuyTotal, capacity, cargoWeight, maxBuyQty, DIFFICULTY, D, dateOf, formatDate, moons, Rng, hashSeed, newGame, step, replay, quotes, routeOptions, routeOptionsFrom, netWorth, migrate, serialize, deserialize, SCHEMA_VERSION, RED_YEAR_END, type Action, type GameState, type NewGameConfig } from './index';
+import { BORROW_RATE_RISE, borrowRate, daysUntil, depositRate, DEPTH, bulkBuyTotal, capacity, cargoWeight, maxBuyQty, DIFFICULTY, D, dateOf, formatDate, moons, Rng, hashSeed, newGame, step, replay, quotes, routeOptions, routeOptionsFrom, netWorth, migrate, serialize, deserialize, SCHEMA_VERSION, RED_YEAR_END, type Action, type GameState, type NewGameConfig } from './index';
 
 const CFG: NewGameConfig = { seed: 'test-seed', backgroundId: 'hlaalu-bastard', name: 'Tester', difficulty: 'tong' };
 function act(s: GameState, a: Action): GameState { const r = step(s, a); if (r.error) throw new Error(r.error); return r.state; }
@@ -260,6 +260,19 @@ describe('smuggling heat', () => {
 
 describe('the Scathing Charter', () => {
   const ready = () => { const s = drain(newGame(CFG)); s.world.flags.relief = 1; s.note.cleared = true; s.note.balance = 0; s.player.cash = 200000; return s; };
+  /** Buys the next tier as if the current one had been held long enough. */
+  const buy = (s: GameState) => { const x = structuredClone(s); if (x.charter.boughtDay !== undefined) x.charter.boughtDay -= 1000; return drain(act(x, { t: 'charter' })); };
+  it('sells the next tier only after the current one is held 30, then 60 days', () => {
+    let s = buy(ready());
+    expect(s.charter.boughtDay).toBe(s.day);
+    expect(step(s, { t: 'charter' }).error).toMatch(/hold your Relief supplier licence until/);
+    for (let i = 0; i < 4; i++) s = drain(act(s, { t: 'wait', days: 7 }));
+    expect(step(s, { t: 'charter' }).error).toBeTruthy(); // 28 days
+    s = drain(act(drain(act(s, { t: 'wait', days: 1 })), { t: 'wait', days: 1 }));
+    s = drain(act(s, { t: 'charter' }));
+    expect(s.charter.tier).toBe(2);
+    expect(step(s, { t: 'charter' }).error).toMatch(/until/);
+  });
   it('is not on sale before the relief, or while you owe the Tong', () => {
     const s = drain(newGame(CFG)); s.player.cash = 200000;
     expect(step(s, { t: 'charter' }).error).toMatch(/No charters/);
@@ -276,7 +289,7 @@ describe('the Scathing Charter', () => {
   });
   it('pays dividends at the full tier, halved in war', () => {
     let s = ready(); s.player.cash = 1e6; s.mode = 'long-chronicle'; // in the Red Year the third tier wins the game
-    for (let i = 0; i < 3; i++) s = drain(act(s, { t: 'charter' }));
+    for (let i = 0; i < 3; i++) s = buy(s);
     expect(s.charter.tier).toBe(3);
     const c0 = s.player.cash; s.world.flags.war = 1;
     for (let i = 0; i < 5; i++) s = drain(act(s, { t: 'wait', days: 7 }));
@@ -295,7 +308,7 @@ describe('the Scathing Charter', () => {
   });
   it('stores goods in the Narsis warehouse at tier 2', () => {
     let s = ready(); s.player.cash = 1e6; s.player.location = 'narsis';
-    s = drain(act(drain(act(s, { t: 'charter' })), { t: 'charter' }));
+    s = buy(buy(s));
     s.player.cargo.timber = { qty: 10, cost: 30 };
     s = act(s, { t: 'stash', good: 'timber', qty: 10 });
     expect(s.player.cargo.timber).toBeUndefined(); expect(s.warehouse.timber.qty).toBe(10);
@@ -319,3 +332,33 @@ describe('buying the maximum', () => {
   });
 });
 
+
+describe('economy fixes (0.10)', () => {
+  it('strongboxes pay by city: most in the cities the Red Year threatens', () => {
+    expect(depositRate('vivec')).toBe(0.0012); expect(depositRate('mournhold')).toBe(0.0008); expect(depositRate('narsis')).toBe(0.0003);
+    let s = drain(newGame(CFG)); s.deposits = { balmora: 10000, narsis: 10000 };
+    s = drain(act(s, { t: 'wait', days: 1 }));
+    expect(s.deposits.balmora).toBeCloseTo(10012, 6); expect(s.deposits.narsis).toBeCloseTo(10003, 6);
+  });
+  it('only a payment of 30 days of interest resets the collectors’ clock', () => {
+    const s = drain(newGame(CFG)); s.note.lastPaymentDay = -50;
+    const month = s.note.balance * s.note.rate * 30;
+    expect(act(s, { t: 'pay', amount: 1 }).note.lastPaymentDay).toBe(-50);
+    expect(act(s, { t: 'pay', amount: Math.ceil(month) }).note.lastPaymentDay).toBe(s.day);
+  });
+  it('borrowing raises the rate by 0.08% per note borrowed, and the clock to the mark is printed from it', () => {
+    const s = drain(newGame(CFG));
+    expect(borrowRate(s, s.note.original)).toBeCloseTo(s.note.rate + BORROW_RATE_RISE, 12);
+    expect(daysUntil(100, 0.01, 99)).toBe(0); expect(daysUntil(100, 0.01, 100)).toBe(1);
+    expect(daysUntil(100, 0.01, 110)).toBe(10); // 1.01^10 = 1.1046
+    expect(daysUntil(100, 0, 110)).toBeNull();
+  });
+  it('the Tong note is 4,000 on Tong Terms', () => { expect(DIFFICULTY.tong.debt).toBe(4000); });
+  it('a v6 save loads as v7 and its charter tier counts as held long enough', () => {
+    const s = drain(newGame(CFG)); s.charter.tier = 1; s.world.flags.relief = 1; s.note.cleared = true; s.note.balance = 0; s.player.cash = 1e6;
+    const raw = JSON.parse(serialize(s)); raw.schemaVersion = 6; delete raw.charter.boughtDay;
+    const m = migrate(raw);
+    expect(m.schemaVersion).toBe(SCHEMA_VERSION); expect(SCHEMA_VERSION).toBe(7);
+    expect(drain(act(m, { t: 'charter' })).charter.tier).toBe(2);
+  });
+});

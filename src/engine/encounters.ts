@@ -10,12 +10,14 @@ import { payNote } from './bank';
 
 /** Crossing-card knobs: every card prints its stakes from these before the player chooses. */
 export const CARD = {
-  /** customs: duty on declared contraband; Chameleon odds at a gate */
-  duty: 0.25, chameleonAtGate: 0.55,
-  /** hazards: guide fee, and the share of each perishable lot that spoils when you push through */
-  guideFee: 40, spoil: 0.3,
-  /** Tong collectors: payment asked, rate rise for more time, chance they catch a runner, days the route stays watched */
-  tongPay: 300, tongRate: 0.001, tongCatch: 0.4, watchDays: 30,
+  /** customs: duty on declared contraband; the bribe as a share of the contraband (at least 40); Chameleon odds at a gate */
+  duty: 0.25, bribeShare: 0.12, chameleonAtGate: 0.55,
+  /** hazards: the guide's fee (guideFee, or guideShare of your cargo's value if more); the share of each perishable lot that
+   *  spoils when you push through; and the chance pushing through also costs the card's loss share of everything else */
+  guideFee: 40, guideShare: 0.06, spoil: 0.3, stormChance: 0.35,
+  /** Tong collectors: payment asked, the share of it they keep as a fee, rate rise for more time (per day of game time),
+   *  chance they catch a runner, days the route stays watched */
+  tongPay: 300, tongFee: 0.2, tongRate: 0.0005, tongCatch: 0.4, watchDays: 30,
   /** relief: units per good handed over (sold dear or at cost) */
   reliefUnits: 10,
 } as const;
@@ -51,16 +53,19 @@ function regionsOf(opt: RouteOption): Region[] {
   return [C.locs[opt.route.a].region, C.locs[opt.route.b].region];
 }
 
+/** Chance of a crossing card on a journey (at most one per journey): it grows with the route's risk and the root of its days. */
+export function cardChance(s: GameState, opt: Pick<RouteOption, 'risk' | 'days'>): number {
+  if (opt.risk <= 0) return 0;
+  return Math.min(0.6, 0.06 + 0.05 * opt.risk * Math.sqrt(opt.days)) * DIFF[s.difficulty].enc * Math.max(0.4, 1 - 0.12 * s.player.sellswords);
+}
+
 export function rollEncounter(s: GameState, rng: Rng, opt: RouteOption): EncounterDef | null {
-  const pDay = Math.min(0.2, opt.risk * 0.022) * DIFF[s.difficulty].enc * Math.max(0.4, 1 - 0.12 * s.player.sellswords);
-  let pNone = 1;
-  for (let i = 0; i < opt.days; i++) pNone *= 1 - pDay;
   const pr = pressure(s);
   const regs = regionsOf(opt);
   const morrowind = regs.some(r => r === 'vvardenfell' || r === 'mainland');
   const tongReach = regs.some(r => r === 'blackmarsh' || r === 'elsweyr') ? 0 : morrowind ? 1 : 0.4;
   const pEnf = pr * 0.06 * tongReach;
-  if (!rng.chance(1 - pNone + pEnf)) return null;
+  if (!rng.chance(cardChance(s, opt) + pEnf)) return null;
   const cands = C.encounters.filter(e =>
     (e.regions === 'any' || e.regions.some(r => regs.includes(r))) &&
     (!e.modes || e.modes.includes(opt.mode)) &&
@@ -92,7 +97,7 @@ export function choicesFor(kind: EncounterKind, scrolls: Partial<Record<ScrollId
 export function buildPending(s: GameState, def: EncounterDef, routeId: string, dest: string, remainingDays: number, customs = false): PendingEncounter {
   const choices = choicesFor(def.kind, s.player.scrolls);
   const bribe = def.kind === 'enforcer' ? Math.max(60, Math.round(s.note.balance * 0.1))
-    : def.kind === 'customs' ? Math.max(40, Math.round(contrabandValue(s, dest) * 0.35 * heatMult(s.player.heat)))
+    : def.kind === 'customs' ? Math.max(40, Math.round(contrabandValue(s, dest) * CARD.bribeShare * heatMult(s.player.heat)))
     : Math.round(def.threat * 14 + cargoValue(s) * 0.03);
   return { defId: def.id, kind: def.kind, title: def.title, text: def.text, threat: def.threat, bribe, choices, routeId, dest, remainingDays, customs };
 }
@@ -151,6 +156,7 @@ export function choiceOdds(s: GameState, choice: string): number | undefined {
     case 'fight': return fightChance(s);
     case 'flee': return s.pending.kind === 'enforcer' ? 1 - CARD.tongCatch : fleeChance(s);
     case 'bribe': return s.pending.customs ? customsBribeChance(s) : 1;
+    case 'press-on': return storm(s, false).value > 0 ? 1 - CARD.stormChance : undefined;
     case 'chameleon': return chameleonChance(s);
     case 'almsivi': case 'divine': return interventionChance(s, choice);
     default: return undefined;
@@ -191,7 +197,11 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
       if (s.player.cash < p.bribe) return { text: '', good: false, fail: 'You cannot afford the bribe.' };
       s.player.cash -= p.bribe;
       if (p.customs && !rng.chance(customsBribeChance(s))) {
-        const r = confiscate(s, rng, false); return { text: `The officer takes your ${p.bribe} septims, then books you anyway. ${r.text}`, good: false };
+        // The officer keeps the bribe and charges the duty anyway; only if you can't pay is the contraband seized.
+        const duty = dutyOf(s);
+        if (s.player.cash >= duty) { s.player.cash -= duty; addHeat(s, -10); return { text: `The officer pockets your ${p.bribe} septims, then books you anyway: you pay the ${duty} septims duty as well.`, good: false }; }
+        const { taken } = seizeContraband(s);
+        return { text: `The officer pockets your ${p.bribe} septims, then books you anyway. You cannot pay the ${duty} duty, so they seize ${taken}.`, good: false };
       }
       if (def.kind === 'enforcer') s.note.lastPaymentDay = s.day;
       if (p.customs) addHeat(s, -10);
@@ -208,19 +218,20 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
       return { text: `You declare it, but cannot pay the duty. They seize ${taken} and let you go without a fine.`, good: false };
     }
     case 'pay-note': {
-      const amt = tongAsk(s);
-      if (s.player.cash < amt) return { text: '', good: false, fail: `You do not have ${amt} septims.` };
-      payNote(s, amt);
-      return { text: `You count out ${amt} septims. They mark it against your note and leave you be.`, good: true };
+      const { ask, fee, off } = tongPayment(s);
+      if (s.player.cash < ask) return { text: '', good: false, fail: `You do not have ${ask} septims.` };
+      s.player.cash -= fee; payNote(s, off); s.note.lastPaymentDay = s.day;
+      return { text: `You count out ${fee + off} septims. They mark ${off} against your note, keep ${fee} "for the walk", and leave you be.`, good: true };
     }
     case 'ask-time': {
-      const from = s.note.rate; s.note.rate += CARD.tongRate; s.note.lastPaymentDay = s.day;
+      const from = s.note.rate; s.note.rate += CARD.tongRate / s.timeScale; s.note.lastPaymentDay = s.day;
       return { text: `"Drelloth is a patient man. Patience costs." Your rate rises from ${pct(from)} to ${pct(s.note.rate)} a day.`, good: false };
     }
     case 'guide': {
-      if (s.player.cash < CARD.guideFee) return { text: '', good: false, fail: `A guide costs ${CARD.guideFee} septims.` };
-      s.player.cash -= CARD.guideFee;
-      return { text: `For ${CARD.guideFee} septims a local guide leads you through by ways only locals know.`, good: true };
+      const fee = guideFee(s);
+      if (s.player.cash < fee) return { text: '', good: false, fail: `A guide costs ${fee} septims.` };
+      s.player.cash -= fee;
+      return { text: `For ${fee} septims a local guide leads you through by ways only locals know.`, good: true };
     }
     case 'chameleon': {
       s.player.scrolls.chameleon--;
@@ -257,7 +268,10 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
     case 'pass': return { text: 'You keep your eyes on the road.', good: true };
     case 'press-on': {
       const r = spoil(s, true);
-      return r.value ? { text: `You push through. The ash gets into everything: ${r.list} ruined.`, good: false } : { text: 'You push through. Nothing you carry can spoil.', good: true };
+      const hit = storm(s, false).value > 0 && rng.chance(CARD.stormChance);
+      const lost = hit ? storm(s, true).list : '';
+      const parts = [r.value ? `${r.list} spoiled` : '', lost ? `${lost} lost on the way` : ''].filter(Boolean);
+      return parts.length ? { text: `You push through. ${parts.join('; ')}.`, good: false } : { text: 'You push through and lose nothing.', good: true };
     }
     case 'wait-out': return { text: `You make camp and wait it out (${def.delay ?? 2} days).`, good: true, delay: def.delay ?? 2 };
     case 'deal': {
@@ -279,9 +293,15 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
   return { text: '', good: false, fail: 'Unknown choice.' };
 }
 
-const pct = (r: number) => `${(r * 100).toFixed(1)}%`;
+const pct = (r: number) => `${(r * 100).toFixed(2)}%`;
 function dutyOf(s: GameState): number { return Math.round(contrabandValue(s, s.pending!.dest) * CARD.duty); }
-function tongAsk(s: GameState): number { return Math.max(1, Math.min(CARD.tongPay, Math.ceil(s.note.balance))); }
+/** What the collectors ask (CARD.tongPay, or just enough to clear the note), the fee they keep, and what comes off the note. */
+function tongPayment(s: GameState): { ask: number; fee: number; off: number } {
+  const ask = Math.max(1, Math.min(CARD.tongPay, Math.ceil(s.note.balance / (1 - CARD.tongFee))));
+  const fee = Math.floor(ask * CARD.tongFee);
+  return { ask, fee, off: Math.min(ask - fee, Math.ceil(s.note.balance)) };
+}
+function guideFee(s: GameState): number { return Math.max(CARD.guideFee, Math.round(cargoValue(s) * CARD.guideShare)); }
 
 /** Takes every contraband lot, no fine and no appeal. */
 function seizeContraband(s: GameState): { taken: string; value: number } {
@@ -317,6 +337,20 @@ function spoil(s: GameState, apply: boolean): { value: number; list: string } {
   return { value: Math.round(value), list: list.join(', ') };
 }
 
+/** Pushing through a hazard, if the dice go against you: the card's loss share of every lot that cannot spoil. */
+function storm(s: GameState, apply: boolean): { value: number; list: string } {
+  const loss = C.encounters.find(e => e.id === s.pending!.defId)?.loss ?? 0;
+  let value = 0; const list: string[] = [];
+  if (s.pending!.kind !== 'hazard') return { value, list: '' };
+  for (const [g, lot] of Object.entries(s.player.cargo)) {
+    if (C.goods[g].perishable) continue;
+    const n = Math.ceil(lot.qty * loss); if (n <= 0) continue;
+    value += n * fairValue(s, g); list.push(`${n} ${C.goods[g].name}`);
+    if (apply) { lot.qty -= n; if (lot.qty <= 0) delete s.player.cargo[g]; }
+  }
+  return { value: Math.round(value), list: list.join(', ') };
+}
+
 /** Debt interest that accrues over `days` of game time. */
 function interestOver(s: GameState, days: number): number {
   if (s.note.cleared) return 0;
@@ -341,7 +375,7 @@ export function cardOptions(s: GameState): CardOption[] {
         if (p.kind === 'enforcer') return { id, label: 'Run', odds: odds(id), stake: `${Math.round(CARD.tongCatch * 100)}% they catch you: wounds and a quarter of your cargo. This road is watched for ${CARD.watchDays} days either way.` };
         return { id, label: p.customs ? 'Run for it' : 'Flee', odds: odds(id), stake: p.customs ? 'Caught: everything banned is seized and fined, and you are hurt.' : `Caught: wounds and ${cargoAt(s, loss * 0.6)}. Easier with a light load.` };
       case 'bribe': return p.customs
-        ? { id, label: 'Bribe the officer', odds: odds(id), stake: `${p.bribe} septims. If it fails they keep it and seize the contraband.`, disabled: s.player.cash < p.bribe ? `You need ${p.bribe} septims.` : undefined }
+        ? { id, label: 'Bribe the officer', odds: odds(id), stake: `${p.bribe} septims. If it fails they keep it and you pay the ${dutyOf(s)} duty as well.`, disabled: s.player.cash < p.bribe ? `You need ${p.bribe} septims.` : undefined }
         : { id, label: 'Pay them off', stake: `${p.bribe} septims, and you go on unharmed.`, disabled: s.player.cash < p.bribe ? `You need ${p.bribe} septims.` : undefined };
       case 'surrender': return { id, label: 'Hand over cargo', stake: `Lose ${cargoAt(s, Math.min(0.9, loss * 1.5))}. Keep your skin.` };
       case 'declare': {
@@ -360,10 +394,14 @@ export function cardOptions(s: GameState): CardOption[] {
       }
       case 'pass': return { id, label: 'Pass by', stake: 'Nothing changes.' };
       case 'wait-out': { const d = def?.delay ?? 2; return { id, label: `Wait ${d} day${d === 1 ? '' : 's'}`, stake: s.note.cleared ? `+${d} days on the road. Cargo safe.` : `+${d} days on the road; your debt grows by ${interestOver(s, d)}. Cargo safe.` }; }
-      case 'guide': return { id, label: 'Hire a guide', stake: `${CARD.guideFee} septims. Through safely, no delay.`, disabled: s.player.cash < CARD.guideFee ? `You need ${CARD.guideFee} septims.` : undefined };
-      case 'press-on': { const r = spoil(s, false); return { id, label: 'Push through', stake: r.value ? `${Math.round(CARD.spoil * 100)}% of your perishables spoil: about ${r.value} septims.` : 'Nothing you carry can spoil. No delay.' }; }
-      case 'pay-note': { const a = tongAsk(s); return { id, label: `Pay ${a}`, stake: `${a} septims off your debt. They leave satisfied.`, disabled: s.player.cash < a ? `You need ${a} septims.` : undefined }; }
-      case 'ask-time': return { id, label: 'Ask for time', stake: `Your rate rises from ${pct(s.note.rate)} to ${pct(s.note.rate + CARD.tongRate)} a day.` };
+      case 'guide': { const fee = guideFee(s); return { id, label: 'Hire a guide', stake: `${fee} septims. Through safely, no delay.`, disabled: s.player.cash < fee ? `You need ${fee} septims.` : undefined }; }
+      case 'press-on': {
+        const r = spoil(s, false), st = storm(s, false);
+        const parts = [r.value ? `${Math.round(CARD.spoil * 100)}% of your perishables spoil: about ${r.value} septims.` : '', st.value ? `${Math.round(CARD.stormChance * 100)}% chance you also lose ${Math.round(loss * 100)}% of everything else: about ${st.value} septims.` : ''].filter(Boolean);
+        return { id, label: 'Push through', odds: odds(id), stake: parts.length ? `${parts.join(' ')} No delay.` : 'Nothing you carry is at risk. No delay.' };
+      }
+      case 'pay-note': { const t = tongPayment(s); return { id, label: `Pay ${t.ask}`, stake: `${t.off} septims off your debt; they keep ${t.fee} as a fee. They leave satisfied.`, disabled: s.player.cash < t.ask ? `You need ${t.ask} septims.` : undefined }; }
+      case 'ask-time': return { id, label: 'Ask for time', stake: `Your rate rises from ${pct(s.note.rate)} to ${pct(s.note.rate + CARD.tongRate / s.timeScale)} a day.` };
       case 'deal': return { id, label: 'Deal', stake: 'Take what is offered, at a cove price.' };
       case 'decline': return { id, label: 'Decline', stake: 'Nothing changes.' };
     }

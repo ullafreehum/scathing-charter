@@ -52,7 +52,7 @@ disputed.
 ### Difficulty: "Terms of the Note"
 | | Fair Terms | **Tong Terms** (default) | Blood Terms |
 |---|---|---|---|
-| Starting cash / debt | 700 / 2,000 | 550 / 3,000 | 250 / 4,500 |
+| Starting cash / debt | 700 / 2,000 | 550 / 4,000 | 250 / 4,500 |
 | Daily interest | 0.2% | 0.3% | 0.6% |
 | Encounter rate | ×0.75 | ×1 | ×1.3 |
 
@@ -126,7 +126,7 @@ in Raven Rock until 4E 16.
 |---|---|---|---|
 | Pack guar | 60 | start | — |
 | Guar cart | 140 | 2,400 | Road legs +1 day; strider/ship freight charged per stone |
-| Chartered hold | 320 | 14,000 + 10/day | Sea legs −1 day; carts and guar travel as freight |
+| Chartered hold | 320 | 8,000 + 10/day | Sea legs −1 day; carts and guar travel as freight |
 | Porters (0–4) | +12 each | 100 hire + 4/day | Desert if unpaid for 3 days |
 
 **Fares** = base fare + freight × cargo weight per mode, so heavy cargo is expensive to move by strider.
@@ -146,8 +146,9 @@ in Raven Rock until 4E 16.
 
 ### 4.5 Strongboxes (bank) — invented institutions on a canon idea
 Since 0.10 each city with a Hlaalu or East Empire Company vault (Balmora, Vivec City, Narsis, Mournhold,
-Ebonheart, Raven Rock, Solitude, Imperial City) has **one strongbox**: one balance per city, 0.05%/day
-interest, a 1% withdrawal fee, safe from robbers. There are no writs: money stays where you left it.
+Ebonheart, Raven Rock, Solitude, Imperial City) has **one strongbox**: one balance per city. Daily interest
+is the eruption gamble (`DEPOSIT_RATES` in bank.ts): 0.12% in Vivec, Ebonheart and Balmora, 0.08% in Mournhold,
+0.03% in Narsis, Raven Rock, Solitude and the Imperial City. A 1% withdrawal fee; safe from robbers. There are no writs: money stays where you left it.
 History still strikes the vaults: Vivec and Ebonheart are **wiped** on 3 SD 4E 5; Balmora's is **frozen**
 and settled at "ten drakes on the hundred" months later; Mournhold's is lost when Mournhold is sacked.
 The hedge is to carry your savings to Narsis, Solitude or the Imperial City before the warnings come true.
@@ -300,15 +301,21 @@ follows ("This ledger follows UESP's c. 4E 22; the Imperial Library timeline say
 ## 7. Events, encounters, rumours, contracts
 
 ### 7.1 Road encounters
-**Crossing cards (0.10).** A journey shows at most one card (a road card also replaces the customs search on
+**Crossing cards (0.10).** A journey shows at most one card, with a chance of
+`min(0.6, 0.06 + 0.05 × risk × √days)` (× difficulty, × the sellsword factor; `cardChance()`): 11% on a 1-day
+risk-1 hop, 51% on a 9-day risk-3 trek. Enforcers add their pressure odds on top. It (a road card also replaces the customs search on
 arrival). `cardOptions()` in encounters.ts gives every option a label, a stake line in septims and
 percentages and the rolled odds from `choiceOdds()`; a disabled option says why and `step` refuses it.
-Four scenes set the shape: **customs** (declare and pay 25% duty, bribe, or Chameleon, which loses the whole
-lot if it fails); **mercy** (sell at cost for Mercy +2 and Charter favour +1, or at the crisis price);
-**hazards** (wait a day, hire a guide for 40, or push through and lose 30% of perishables); **Tong collectors**
-(pay 300, ask for time at +0.1% a day, or run with a 40% chance of being caught; the route is *watched*,
-doubling enforcer odds, for 30 days). Charter favour takes 5% per point off charter tiers (max 25%).
-Schema v6 gives an open card in an old save the new choice set.
+Four scenes set the shape: **customs** (declare and pay 25% duty; bribe for 12% of the contraband, and if it
+fails they keep it and charge the duty too; or Chameleon, which loses the whole lot if it fails); **mercy**
+(sell at cost for Mercy +2 and Charter favour +1, or at the crisis price); **hazards** (wait, hire a guide for
+40 or 6% of the cargo's value, or push through: 30% of perishables spoil and there is a 35% chance of losing the
+card's loss share of everything else); **Tong collectors** (pay 300, of which 240 comes off the note; ask for
+time at +0.05% a day; or run with a 40% chance of being caught; the route is *watched*, doubling enforcer odds,
+for 30 days). Charter favour takes 2% per point off charter tiers (max 10%). Each charter tier must be held
+30 (tier 1) or 60 (tier 2) days before the next is sold, so the earliest win is day 517. Only a payment of at
+least 30 days' interest resets the collectors' clock; borrowing raises the rate by 0.08% per note borrowed.
+Schema v6 gives an open card in an old save the new choice set; v7 adds `charter.boughtDay`.
 
 Chance per travel day = `routeRisk × modeFactor × eraFactor × difficulty − protection`. Weighted tables
 depend on region and era:

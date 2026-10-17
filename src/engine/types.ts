@@ -202,7 +202,9 @@ export interface CharterState {
   /** day by which the new council's renewal fee must be paid, or null */
   renewDue: number | null; renewed: boolean;
   nextDividend: number | null; dividends: number;
-  /** goodwill with the council from relief given at cost on the road; each point takes 5% off the next tier (max 25%) */
+  /** day the highest tier was bought; the next tier needs it held C.charter.holdDays (absent in older saves: held long enough) */
+  boughtDay?: number;
+  /** goodwill with the council from relief given at cost on the road; each point takes 2% off the next tier (max 10%) */
   favour?: number;
 }
 

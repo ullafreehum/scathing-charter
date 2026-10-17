@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { C } from '../data';
-import { DEPOSIT_RATE, MARK_RATIO, charterPrice, WITHDRAW_FEE, houseName, pressure, shortDate, strongboxCities, type GameState } from '../engine';
+import { MARK_RATIO, borrowRate, charterPrice, charterReadyDay, daysUntil, depositRate, WITHDRAW_FEE, houseName, pressure, shortDate, strongboxCities, type GameState } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
@@ -20,7 +20,8 @@ function CharterSection({ g }: { g: GameState }) {
   const carried = Object.entries(g.player.cargo);
   if (!g.world.flags.relief && ch.tier === 0) return null;
   const fee = Math.round(ch.paid * C.charter.renewalFee);
-  const why = next?.tier === 3 && !g.note.cleared ? 'Pay off the Camonna Tong first.' : !atOffice ? `Sold in ${offices}.` : next && g.player.cash < charterPrice(g, next.tier) ? `You need ${Math.ceil(charterPrice(g, next.tier) - g.player.cash).toLocaleString('en-US')} more.` : '';
+  const ready = charterReadyDay(g);
+  const why = next?.tier === 3 && !g.note.cleared ? 'Pay off the Camonna Tong first.' : g.day < ready ? `The council sells the next tier from ${shortDate(ready)}, once you have held this one a while.` : !atOffice ? `Sold in ${offices}.` : next && g.player.cash < charterPrice(g, next.tier) ? `You need ${Math.ceil(charterPrice(g, next.tier) - g.player.cash).toLocaleString('en-US')} more.` : '';
   return (
     <Section title="The Scathing Charter" className="xl:col-span-2">
       <p className="text-sm text-parchment">Rights to supply and rebuild the ruined Vivec region, sold by the Grand Council in {offices}. <CodexLink id="topic:scathing-charter">More</CodexLink></p>
@@ -91,7 +92,14 @@ export function Bank({ g }: { g: GameState }) {
   const act = useGame(s => s.act);
   const [pay, setPay] = useState(100);
   const [loan, setLoan] = useState(500);
-  const borrow = () => { if (loan > 0 && confirm(`Borrow ${loan} septims from the Tong? Every loan raises your interest rate.`)) act({ t: 'borrow', amount: loan }); };
+  const borrow = () => {
+    if (loan <= 0) return;
+    // What the loan does to the clock: days until the debt passes the Tong's mark if nothing is paid.
+    const n = g.note, rate = borrowRate(g, loan), bal = (n.cleared ? 0 : n.balance) + loan;
+    const days = daysUntil(bal, rate, n.original * MARK_RATIO, g.timeScale);
+    const clock = days === null ? '' : ` At ${(rate * 100).toFixed(2)}% a day, your debt passes ${MARK_RATIO} times the note in ${days} days if you pay nothing.`;
+    if (confirm(`Borrow ${loan} septims from the Tong?${clock}`)) act({ t: 'borrow', amount: loan });
+  };
   const [box, setBox] = useState(100);
   const loc = g.player.location;
   const boxHere = g.world.branches[loc] === 'open';
@@ -108,7 +116,8 @@ export function Bank({ g }: { g: GameState }) {
         {n.cleared ? <><p className="text-moss">Paid off. You owe the Camonna Tong nothing.</p>
           {atTong && <div className="flex flex-wrap gap-2 mt-3 items-center"><input className="input w-28 num" type="number" min={1} value={loan} onChange={e => setLoan(toInt(e.target.value))} aria-label="Loan amount" /><button className="btn btn-ghost" onClick={borrow}>Borrow again</button></div>}</> : (
           <>
-            <p className="text-sm text-parchment">You owe <b>Gavas Drelloth</b> <Money v={n.balance} className="text-ember" />. Interest is {(n.rate * 100).toFixed(2)}% a day: about <Money v={n.balance * n.rate} /> a day right now. Last payment: {shortDate(n.lastPaymentDay)}.</p>
+            <p className="text-sm text-parchment">You owe <b>Gavas Drelloth</b> <Money v={n.balance} className="text-ember" />. Interest is {(n.rate * 100).toFixed(2)}% a day: about <Money v={n.balance * n.rate} /> a day right now.</p>
+            <p className="text-sm mt-1">Only a payment of at least 30 days’ interest (<Money v={Math.ceil(n.balance * n.rate * 30 * g.timeScale)} />) keeps the collectors away. Last one: {shortDate(n.lastPaymentDay)}.</p>
             <p className="text-sm mt-1">{pr === 0 ? 'The Tong is patient, for now.' : pr === 1 ? 'Drelloth is getting impatient. Pay something soon.' : pr === 2 ? 'Debt collectors are looking for you on the roads.' : 'The Tong has sent killers after you. Pay now.'}</p>
             {atTong ? (<>
               <div className="flex flex-wrap gap-2 mt-3 items-center">
@@ -130,7 +139,7 @@ export function Bank({ g }: { g: GameState }) {
       <Section title="Strongboxes">
         <ul className="text-sm space-y-1">{strongboxCities(C.branches).map(b => {
           const open = g.world.branches[b] === 'open'; const amtB = Math.floor(g.deposits[b] ?? 0);
-          return <li key={b} className="flex items-center gap-2"><span className={open ? 'text-bone' : 'text-ash-400 line-through'}>{C.locs[b].name}</span>{b === loc && <span className="text-xs text-gold">(here)</span>}<span className="ml-auto"><Money v={amtB} /></span></li>;
+          return <li key={b} className="flex items-center gap-2"><span className={open ? 'text-bone' : 'text-ash-400 line-through'}>{C.locs[b].name}</span>{b === loc && <span className="text-xs text-gold">(here)</span>}<span className="text-xs text-ash-400 num">{(depositRate(b) * 100).toFixed(2)}% a day</span><span className="ml-auto"><Money v={amtB} /></span></li>;
         })}</ul>
         {boxHere ? (
           <div className="mt-3">
@@ -145,7 +154,7 @@ export function Bank({ g }: { g: GameState }) {
             </div>
           </div>
         ) : <p className="text-xs text-ash-400 mt-2">No strongbox here. Money stays in the city where you left it.</p>}
-        <p className="text-xs text-ash-400 mt-2">Strongboxes pay {(DEPOSIT_RATE * 100).toFixed(2)}% a day, keep your money safe from robbers, and charge {Math.round(WITHDRAW_FEE * 100)}% to take it out. A vault can be lost if its city falls.</p>
+        <p className="text-xs text-ash-400 mt-2">Strongboxes pay the daily rate shown, keep your money safe from robbers, and charge {Math.round(WITHDRAW_FEE * 100)}% to take it out. The cities in the Red Year’s path pay most, but a vault can be lost if its city falls.</p>
       </Section>
       <CharterSection g={g} />
       {g.frozen.length > 0 && (

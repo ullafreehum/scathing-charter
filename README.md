@@ -4,7 +4,7 @@
 
 *A trading game set in the world of The Elder Scrolls, at the dawn of the Fourth Era.*
 
-It is **1 Morning Star 4E 4** in Balmora. You owe the Camonna Tong 3,000 septims, you own one pack guar,
+It is **1 Morning Star 4E 4** in Balmora. You owe the Camonna Tong 4,000 septims, you own one pack guar,
 and you have three years. Buy low, sell high, and keep ahead of the debt through the last calm year, the
 **Red Year**, and the war that follows. Every place, good and event is drawn from Elder Scrolls lore,
 with sources you can click.

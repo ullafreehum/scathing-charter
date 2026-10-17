@@ -94,3 +94,5 @@ Artist credits follow Wesnoth's own practice: per art set, from each campaign's 
 - **Secrets of the Ancients** (ardonna): its `_main.cfg` names no artwork section; credit "Secrets of the Ancients campaign contributors, The Battle for Wesnoth".
 
 Suggested one-line in-game credit: *Painted art from The Battle for Wesnoth (wesnoth.org) by Kathrin Polikeit (Kitty), Emilien Rotival (LordBob), Blarumyrran, J.W. Bjerk and the Wesnoth art team, GPL v2+. Stone textures from Golgotha (Crack dot Com, CC0). Mountain painting by JAP (CC0).*
+
+> 2026-10-17 (Sorcerer): `mountain-lava-field` is **no longer used**. Sinan's own painting replaced it as the duel backdrop, so drop its in-game credit.
