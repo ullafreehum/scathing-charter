@@ -185,6 +185,8 @@ what's wrong.
   broke, you can **work your passage** instead: free, but slower.
 - **Bank:** money is deposited in a *particular town's branch* and can only be used there. A
   *transfer* (writ of coin) moves it between branches of the same bank. Branches can be destroyed by history.
+- **Timeline:** the thin bar under the top bar is the whole campaign: how far you are, what has happened (gold),
+  and what the rumours say is coming (hollow). Hover it for details.
 - **Markets remember you:** selling a lot of one good floods that town's market for a few weeks
   (the Market shows *Flooded · 12d*). Spread your trade around.
 - **Heat:** smuggling draws the Legion's attention (shown in the top bar). *Watched* (30+) means more

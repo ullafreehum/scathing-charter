@@ -4,6 +4,7 @@ import { branchKey, houseName, pressure, shortDate, type GameState, type House }
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
+import { coinBurst, coinsFor } from './fx';
 
 const toInt = (v: string) => Math.max(1, Math.floor(Number(v) || 1));
 
@@ -88,8 +89,8 @@ export function Bank({ g }: { g: GameState }) {
             {atTong ? (
               <div className="flex flex-wrap gap-2 mt-3 items-center">
                 <input className="input w-28 num" type="number" min={1} value={pay} onChange={e => setPay(toInt(e.target.value))} aria-label="Payment amount" />
-                <button className="btn btn-ember" onClick={() => act({ t: 'pay', amount: pay })}>Pay</button>
-                <button className="btn" disabled={payAll < 1} onClick={() => act({ t: 'pay', amount: payAll })}>Pay all you can (<Money v={payAll} />)</button>
+                <button className="btn btn-ember" onClick={() => { if (act({ t: 'pay', amount: pay })) coinBurst('cash', 'debt', coinsFor(pay)); }}>Pay</button>
+                <button className="btn" disabled={payAll < 1} onClick={() => { if (act({ t: 'pay', amount: payAll })) coinBurst('cash', 'debt', coinsFor(payAll)); }}>Pay all you can (<Money v={payAll} />)</button>
                 {loc === n.seat && <button className="btn btn-ghost" onClick={() => act({ t: 'borrow', amount: pay })} title="Borrow the amount in the box. This raises your interest rate.">Borrow</button>}
               </div>
             ) : <p className="text-sm text-ash-400 mt-2">You can’t pay here. Pay in {places}.</p>}
@@ -115,12 +116,12 @@ export function Bank({ g }: { g: GameState }) {
               <div className="mt-3">
                 <div className="flex flex-wrap gap-2 items-center">
                   <input className="input w-28 num" type="number" min={1} value={a} onChange={e => setAmt({ ...amt, [h]: toInt(e.target.value) })} aria-label={`${name} amount`} />
-                  <button className="btn" onClick={() => act({ t: 'deposit', house: h, amount: a })}>Deposit</button>
-                  <button className="btn btn-ghost" disabled={held < 1} onClick={() => act({ t: 'withdraw', house: h, amount: Math.min(a, held) })}>Withdraw</button>
+                  <button className="btn" onClick={e => { const el = e.currentTarget; if (act({ t: 'deposit', house: h, amount: a })) coinBurst('cash', el, coinsFor(a)); }}>Deposit</button>
+                  <button className="btn btn-ghost" disabled={held < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'withdraw', house: h, amount: Math.min(a, held) })) coinBurst(el, 'cash', coinsFor(Math.min(a, held))); }}>Withdraw</button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <button className="btn" disabled={g.player.cash < 1} onClick={() => act({ t: 'deposit', house: h, amount: g.player.cash })}>Deposit all cash</button>
-                  <button className="btn btn-ghost" disabled={held < 1} onClick={() => act({ t: 'withdraw', house: h, amount: held })}>Withdraw all (<Money v={held} />)</button>
+                  <button className="btn" disabled={g.player.cash < 1} onClick={e => { const el = e.currentTarget; const v = g.player.cash; if (act({ t: 'deposit', house: h, amount: v })) coinBurst('cash', el, coinsFor(v)); }}>Deposit all cash</button>
+                  <button className="btn btn-ghost" disabled={held < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'withdraw', house: h, amount: held })) coinBurst(el, 'cash', coinsFor(held)); }}>Withdraw all (<Money v={held} />)</button>
                 </div>
               </div>
             ) : <p className="text-xs text-ash-400 mt-2">No branch of this bank here. You can only use money at the branch where you deposited it.</p>}

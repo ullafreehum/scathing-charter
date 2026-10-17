@@ -4,6 +4,8 @@ import { capacity, cargoWeight, fairValue, quotes, holidayAt, marketOpen, satRec
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
+import { coinBurst, coinsFor } from './fx';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ago, bestSeenSell } from './prices';
 
 const LEG: Record<string, { label: string; cls: string; tip: string }> = {
@@ -17,6 +19,9 @@ type Sort = 'usual' | 'name' | 'price' | 'gain';
 
 export function Market({ g }: { g: GameState }) {
   const { act, setTab, tradeQty: amt, setTradeQty: setAmt } = useGame();
+  const arriving = useGame(s => s.trip !== null);
+  const [glow, setGlow] = useState<{ good: string; n: number } | null>(null);
+  const traded = (good: string) => setGlow(x => ({ good, n: (x?.n ?? 0) + 1 }));
   const [filter, setFilter] = useState<Filter>('all');
   const [sort, setSort] = useState<Sort>('usual');
   const loc = g.player.location;
@@ -68,7 +73,7 @@ export function Market({ g }: { g: GameState }) {
           </div>
           <label className="flex items-center gap-1"><span className="text-ash-400">Sort</span>
             <select className="input w-auto py-0.5" value={sort} onChange={e => setSort(e.target.value as Sort)}><option value="usual">Usual</option><option value="name">Name</option><option value="price">Cheapest first</option><option value="gain">Best profit elsewhere</option></select></label>
-          <button className="btn ml-auto" disabled={!profitable.length} onClick={() => { for (const q of profitable) act({ t: 'sell', good: q.good, qty: g.player.cargo[q.good].qty }); }}
+          <button className="btn ml-auto" disabled={!profitable.length} onClick={e => { const el = e.currentTarget; let sum = 0; for (const q of profitable) { const n = g.player.cargo[q.good].qty; if (act({ t: 'sell', good: q.good, qty: n })) sum += n * (q.sell ?? 0); } if (sum) coinBurst(el, 'cash', coinsFor(sum)); }}
             title="Sell every good whose price here is above what you paid">Sell all at a profit{profitable.length ? ` (${profitable.length})` : ''}</button>
         </div>
         <div className="overflow-x-auto">
@@ -77,7 +82,8 @@ export function Market({ g }: { g: GameState }) {
               <th className="py-1">Good</th><th>Weight</th><th className="text-right pl-2">You buy</th><th className="text-right pl-3">You sell</th><th className="text-right pl-3">Owned</th><th className="text-right pl-3" title="The highest price you have seen for it in another town">Best seen elsewhere</th><th></th>
             </tr></thead>
             <tbody>
-              {rows.map(q => {
+              <AnimatePresence initial={false}>
+              {rows.map((q, i) => {
                 const G = C.goods[q.good]; const lot = g.player.cargo[q.good];
                 const r = ratio(q);
                 const maxBuy = q.buy ? Math.max(0, Math.min(Math.floor(g.player.cash / (q.buy * 1.02)), Math.floor(free / G.weight))) : 0;
@@ -89,7 +95,9 @@ export function Market({ g }: { g: GameState }) {
                 const best = bestSeenSell(g, q.good, loc);
                 const edge = best && q.buy !== null ? best.price - q.buy : null;
                 return (
-                  <tr key={q.good} className={`border-t border-ash-700 hover:bg-ash-800 ${lot ? 'bg-ash-800/60' : ''}`}>
+                  <motion.tr key={q.good} layout="position" className={`border-t border-ash-700 hover:bg-ash-800 ${lot ? 'bg-ash-800/60' : ''} ${glow?.good === q.good ? (glow.n % 2 ? 'row-glow-a' : 'row-glow-b') : ''}`}
+                    initial={arriving ? { opacity: 0, x: -10 } : { opacity: 0 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                    transition={{ duration: 0.28, delay: arriving ? Math.min(i, 15) * 0.028 : 0, ease: [0.22, 1, 0.36, 1] }}>
                     <td className="py-1.5 pr-2">
                       <GoodIcon id={q.good} category={G.category} /> <CodexLink id={`good:${q.good}`} className="text-bone">{G.name}</CodexLink>
                       {l.label && <span title={l.tip} className={`ml-1 text-[.7rem] h-display uppercase ${l.cls}`}>{l.label}</span>}
@@ -101,15 +109,16 @@ export function Market({ g }: { g: GameState }) {
                     <td className="text-right whitespace-nowrap">{q.buy !== null ? <span title={`from ${q.buyFrom}`}><Money v={q.buy} /> {r < 0.8 ? <span className="text-moss" title="Cheap: well below the usual price">▼</span> : r > 1.25 ? <span className="text-danger" title="Expensive: well above the usual price">▲</span> : null}</span> : <span className="text-ash-400 text-xs">{q.stock ? '—' : 'out of stock'}</span>}</td>
                     <td className="text-right whitespace-nowrap">{q.sell !== null ? <span title={`to ${q.sellTo}${q.sellNote ? ` (${q.sellNote})` : ''}`}><Money v={q.sell} />{q.sellNote && <span className="text-ice text-xs">*</span>}</span> : <span className="text-ash-400 text-xs">no buyer</span>}
                       {margin !== null && <div className={`text-xs ${margin >= 0 ? 'text-moss' : 'text-danger'}`} title={`You paid ${Math.round(lot!.cost)} each`}>{margin >= 0 ? '+' : ''}{margin} each</div>}</td>
-                    <td className="text-right num pl-3">{lot ? <span title={`You paid ${Math.round(lot.cost)} each on average`}>{lot.qty}</span> : <span className="text-ash-400">0</span>}</td>
+                    <td className="text-right num pl-3">{lot ? <motion.span key={lot.qty} className="inline-block" initial={{ scale: 1.4 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 600, damping: 15 }} title={`You paid ${Math.round(lot.cost)} each on average`}>{lot.qty}</motion.span> : <span className="text-ash-400">0</span>}</td>
                     <td className="text-right pl-3 whitespace-nowrap">{best ? <span title={`Seen in ${C.locs[best.loc].name} ${ago(best.age)}. Prices move, so older figures are less reliable.`}><Money v={best.price} />{edge !== null && edge > 0 && <span className="text-moss text-xs"> (+{Math.round(edge)})</span>}<span className="block text-xs text-ash-400">{C.locs[best.loc].name}, {ago(best.age)}</span></span> : <span className="text-ash-400 text-xs">not seen yet</span>}</td>
                     <td className="whitespace-nowrap pl-3 text-right space-x-1">
-                      <button className="btn" disabled={nBuy < 1} onClick={() => act({ t: 'buy', good: q.good, qty: nBuy })} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} (max ${maxBuy})`}>Buy {nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</button>
-                      <button className="btn" disabled={nSell < 1} onClick={() => act({ t: 'sell', good: q.good, qty: nSell })} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>Sell {nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</button>
+                      <button className="btn" disabled={nBuy < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'buy', good: q.good, qty: nBuy })) { coinBurst('cash', el, coinsFor(nBuy * (q.buy ?? 0))); traded(q.good); } }} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} (max ${maxBuy})`}>Buy {nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</button>
+                      <button className="btn" disabled={nSell < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'sell', good: q.good, qty: nSell })) { coinBurst(el, 'cash', coinsFor(nSell * (q.sell ?? 0))); traded(q.good); } }} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>Sell {nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</button>
                     </td>
-                  </tr>
+                  </motion.tr>
                 );
               })}
+              </AnimatePresence>
               {!rows.length && <tr><td colSpan={7} className="py-3 text-ash-400">Nothing matches this filter.</td></tr>}
             </tbody>
           </table>

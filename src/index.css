@@ -72,10 +72,17 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
     padding: .38rem .85rem; border-radius: 6px; border: 1px solid var(--c-btn-border);
     background: linear-gradient(180deg, var(--c-btn-top), var(--c-btn-bottom)); color: var(--c-btn-text);
     font-family: var(--f-display); font-size: .8rem; letter-spacing: .06em; text-transform: uppercase;
-    transition: transform .08s, border-color .15s, background .15s; cursor: pointer; user-select: none;
+    cursor: pointer; user-select: none; position: relative; overflow: hidden; isolation: isolate;
+    /* release springs back slightly past rest (anticipation / follow-through) */
+    transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s, background .15s, box-shadow .2s;
   }
-  .btn:hover:not(:disabled) { border-color: var(--c-accent); background: linear-gradient(180deg, color-mix(in oklab, var(--c-btn-top) 86%, var(--c-accent)), var(--c-btn-bottom)); }
-  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:hover:not(:disabled) { border-color: var(--c-accent); background: linear-gradient(180deg, color-mix(in oklab, var(--c-btn-top) 86%, var(--c-accent)), var(--c-btn-bottom));
+    transform: translateY(-1px); box-shadow: 0 6px 14px -8px var(--shadow-strong); }
+  .btn:active:not(:disabled) { transform: translateY(1px) scale(.97); transition-duration: .05s; box-shadow: inset 0 2px 5px rgba(0,0,0,.28); }
+  /* primary buttons: a soft light sweeps across on hover */
+  .btn-ember::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.2) 50%, transparent 65%); transform: translateX(-130%); transition: transform .7s ease; }
+  .btn-ember:hover:not(:disabled)::after { transform: translateX(130%); }
   .btn:disabled { opacity: .45; cursor: not-allowed; }
   .btn-ember { background: var(--c-accent-strong); border-color: var(--c-accent); color: var(--c-on-accent); }
   .btn-ember:hover:not(:disabled) { background: color-mix(in oklab, var(--c-accent-strong) 85%, black); }
@@ -85,7 +92,8 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
   .h-display { font-family: var(--f-display); letter-spacing: .08em; }
   .fell { font-family: var(--f-flavor); }
   .tab { padding: .5rem .9rem; font-family: var(--f-display); font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--c-muted); border-bottom: 2px solid transparent; cursor: pointer; }
-  .tab[aria-selected="true"] { color: var(--c-text); border-color: var(--c-accent); }
+  .tab[aria-selected="true"] { color: var(--c-text); }
+  .tab { transition: color .2s; }
   .tab:hover { color: var(--c-text2); }
   .input { background: var(--c-input); border: 1px solid var(--c-line); border-radius: 6px; padding: .3rem .5rem; color: var(--c-text); width: 100%; }
   .num { font-variant-numeric: tabular-nums; }
@@ -112,6 +120,20 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
   -webkit-mask-image: var(--fade-x), var(--fade-y); -webkit-mask-composite: source-in;
   mask-image: var(--fade-x), var(--fade-y); mask-composite: intersect;
   filter: drop-shadow(0 12px 28px var(--shadow-strong));
+}
+/* a traded market row glows briefly (two names so the animation restarts on every trade) */
+@keyframes row-glow-a { from { background: color-mix(in oklab, var(--c-accent) 24%, transparent); } }
+@keyframes row-glow-b { from { background: color-mix(in oklab, var(--c-accent) 24%, transparent); } }
+.row-glow-a { animation: row-glow-a .9s ease-out; }
+.row-glow-b { animation: row-glow-b .9s ease-out; }
+/* Animations off (setting) or reduced motion (system): no decorative motion */
+:root[data-anim="off"] .btn, :root[data-anim="off"] .btn::after { transition: none; }
+:root[data-anim="off"] .btn:hover:not(:disabled), :root[data-anim="off"] .btn:active:not(:disabled) { transform: none; }
+:root[data-anim="off"] .row-glow-a, :root[data-anim="off"] .row-glow-b { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .btn, .btn::after { transition: none; }
+  .btn:hover:not(:disabled), .btn:active:not(:disabled) { transform: none; }
+  .row-glow-a, .row-glow-b { animation: none; }
 }
 @keyframes flash-up { from { color: var(--c-good); } to { color: inherit; } }
 @keyframes flash-down { from { color: var(--c-bad); } to { color: inherit; } }

@@ -2,13 +2,12 @@ import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { C } from '../data';
 import { useGame } from '../store/game';
-
-const reduced = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+import { useAnimationsOn } from './motion';
 
 /** A short, non-blocking "A → B, n days" banner after each journey. Off with the Animations setting. */
 export function TravelBanner() {
   const trip = useGame(s => s.trip); const clearTrip = useGame(s => s.clearTrip);
-  const on = useGame(s => s.meta.settings.animations) && !reduced();
+  const on = useAnimationsOn();
   useEffect(() => { if (!trip) return; const t = setTimeout(clearTrip, 1700); return () => clearTimeout(t); }, [trip, clearTrip]);
   const from = trip ? C.locs[trip.from]?.name : undefined, to = trip ? C.locs[trip.to]?.name : undefined;
   return (
