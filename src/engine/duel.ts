@@ -6,7 +6,7 @@ export type Res = 'stone' | 'steel' | 'magicka';
 export interface DuelSide { tower: number; wall: number; masons: number; soldiers: number; mages: number; stone: number; steel: number; magicka: number; hand: string[] }
 export interface DuelState { you: DuelSide; foe: DuelSide; turn: number; last: string[]; winner: null | 'you' | 'foe' }
 
-export interface DuelCard { id: string; name: string; res: Res; cost: number; text: string; play: (me: DuelSide, foe: DuelSide) => void }
+export interface DuelCard { id: string; name: string; res: Res; cost: number; text: string; flavour: string; art: string; play: (me: DuelSide, foe: DuelSide) => void }
 
 export const DUEL = { win: 100, tower: 30, wall: 10, gen: 2, stock: 5, hand: 8, maxTurns: 200 } as const;
 
@@ -15,42 +15,43 @@ const RES: readonly Res[] = ['stone', 'steel', 'magicka'];
 
 /** Damage hits the wall first, then the tower. */
 function attack(foe: DuelSide, n: number) { const w = Math.min(foe.wall, n); foe.wall -= w; foe.tower = Math.max(0, foe.tower - (n - w)); }
-const c = (id: string, name: string, res: Res, cost: number, text: string, play: DuelCard['play']): DuelCard => ({ id, name, res, cost, text, play });
+// Names, flavour and art: the "Daedric duel" art thread (cards.json); ids, costs and effects follow Ants.
+const c = (id: string, name: string, res: Res, cost: number, text: string, flavour: string, art: string, play: DuelCard['play']): DuelCard => ({ id, name, res, cost, text, flavour, art, play });
 
 export const DUEL_CARDS: readonly DuelCard[] = [
   // Stone (masons)
-  c('ash-wall', 'Ash Wall', 'stone', 1, 'Wall +3', m => { m.wall += 3; }),
-  c('foundation', 'Foundation Stone', 'stone', 1, 'Tower +2', m => { m.tower += 2; }),
-  c('stockade', 'Stockade', 'stone', 3, 'Wall +6', m => { m.wall += 6; }),
-  c('redoran-keep', 'Redoran Keep', 'stone', 3, 'Tower +8, your wall −4', m => { m.tower += 8; m.wall = Math.max(0, m.wall - 4); }),
-  c('watchtower', 'Watchtower', 'stone', 5, 'Tower +5', m => { m.tower += 5; }),
-  c('masons-guild', 'Masons’ Lodge', 'stone', 8, 'Masons +1', m => { m.masons += 1; }),
-  c('dwemer-crane', 'Dwemer Crane', 'stone', 10, 'Tower +8, enemy tower −4', (m, f) => { m.tower += 8; f.tower = Math.max(0, f.tower - 4); }),
-  c('ghostfence', 'Ghostfence', 'stone', 12, 'Wall +22', m => { m.wall += 22; }),
-  c('imperial-fort', 'Imperial Fort', 'stone', 18, 'Tower +20', m => { m.tower += 20; }),
-  c('ministry-of-truth', 'Ministry of Truth', 'stone', 39, 'Tower +32', m => { m.tower += 32; }),
+  c('ash-wall', 'Ash Mortar', 'stone', 1, 'Ward +3', 'Red Mountain gives freely now. Too freely.', 'ward', m => { m.wall += 3; }),
+  c('foundation', 'Shrine Stone', 'stone', 1, 'Spire +2', 'Cut from a ruin older than the Temple.', 'spire', m => { m.tower += 2; }),
+  c('stockade', 'Daedric Brick', 'stone', 3, 'Ward +6', 'Black stone, warm to the touch.', 'ward', m => { m.wall += 6; }),
+  c('redoran-keep', 'Mazken Masons', 'stone', 3, 'Spire +8, your ward −4', 'They build beautifully, mostly from your wall.', 'spire', m => { m.tower += 8; m.wall = Math.max(0, m.wall - 4); }),
+  c('watchtower', 'Dusk Spire', 'stone', 5, 'Spire +5', 'Built to catch Azura’s first light.', 'spire', m => { m.tower += 5; }),
+  c('masons-guild', 'Ebony Vein', 'stone', 8, 'Mines +1', 'The Red Year cracked the earth open.', 'ward', m => { m.masons += 1; }),
+  c('dwemer-crane', 'Dagon’s Gate', 'stone', 10, 'Spire +8, enemy spire −4', 'A gate opened for you is a gate opened.', 'spire', (m, f) => { m.tower += 8; f.tower = Math.max(0, f.tower - 4); }),
+  c('ghostfence', 'Ghostfence Stones', 'stone', 12, 'Ward +22', 'The dead stood guard once. Some still do.', 'ward', m => { m.wall += 22; }),
+  c('imperial-fort', 'Spire of Ebonheart', 'stone', 18, 'Spire +20', 'Built to outlast a god.', 'spire', m => { m.tower += 20; }),
+  c('ministry-of-truth', 'Baar Dau', 'stone', 39, 'Spire +32', 'The rock that hangs over Vivec, if you can lift it.', 'spire', m => { m.tower += 32; }),
   // Steel (soldiers)
-  c('archer', 'Archer', 'steel', 1, 'Attack 2', (_, f) => attack(f, 2)),
-  c('ordinator', 'Ordinator', 'steel', 2, 'Attack 3', (_, f) => attack(f, 3)),
-  c('guar-rider', 'Guar Rider', 'steel', 2, 'Attack 4', (_, f) => attack(f, 4)),
-  c('legion-cohort', 'Legion Cohort', 'steel', 4, 'Attack 6', (_, f) => attack(f, 6)),
-  c('fighters-guild', 'Fighters Guild', 'steel', 8, 'Soldiers +1', m => { m.soldiers += 1; }),
-  c('redoran-charge', 'Redoran Charge', 'steel', 10, 'Attack 12', (_, f) => attack(f, 12)),
-  c('morag-tong', 'Morag Tong Writ', 'steel', 12, 'Enemy stone, steel and magicka −4', (_, f) => { for (const r of RES) f[r] = Math.max(0, f[r] - 4); }),
-  c('thieves-guild', 'Thieves Guild', 'steel', 15, 'Steal 5 of each resource', (m, f) => { for (const r of RES) { const n = Math.min(5, f[r]); f[r] -= n; m[r] += n; } }),
-  c('dark-brotherhood', 'Dark Brotherhood', 'steel', 18, 'Enemy tower −10, past the wall', (_, f) => { f.tower = Math.max(0, f.tower - 10); }),
-  c('dwemer-centurion', 'Dwemer Centurion', 'steel', 28, 'Attack 32', (_, f) => attack(f, 32)),
+  c('archer', 'Scamp', 'steel', 1, 'Attack 2', 'Will work for coin. Will also steal it.', 'scamp', (_, f) => attack(f, 2)),
+  c('ordinator', 'Clannfear', 'steel', 2, 'Attack 3', 'All teeth, no patience.', 'clannfear', (_, f) => attack(f, 3)),
+  c('guar-rider', 'Spider Daedra', 'steel', 2, 'Attack 4', 'Mephala’s children bite and whisper.', 'spider-daedra', (_, f) => attack(f, 4)),
+  c('legion-cohort', 'Daedroth', 'steel', 4, 'Attack 6', 'Crocodile, philosopher, cook. Mostly crocodile.', 'daedroth', (_, f) => attack(f, 6)),
+  c('fighters-guild', 'Lesser Summoning', 'steel', 8, 'Circles +1', 'Chalk, blood, a name.', 'circle', m => { m.soldiers += 1; }),
+  c('redoran-charge', 'Ogrim', 'steel', 10, 'Attack 12', 'Malacath’s own: strong, slow, unloved.', 'ogrim', (_, f) => attack(f, 12)),
+  c('morag-tong', 'Hunger', 'steel', 12, 'Enemy ebony, bindings and magicka −4', 'It eats what it touches.', 'hunger', (_, f) => { for (const r of RES) f[r] = Math.max(0, f[r] - 4); }),
+  c('thieves-guild', 'Mephala’s Web', 'steel', 15, 'Steal 5 of each resource', 'Every thread leads to her.', 'spider-daedra', (m, f) => { for (const r of RES) { const n = Math.min(5, f[r]); f[r] -= n; m[r] += n; } }),
+  c('dark-brotherhood', 'Winged Twilight', 'steel', 18, 'Enemy spire −10, past the ward', 'Azura’s messengers fly over walls.', 'winged-twilight', (_, f) => { f.tower = Math.max(0, f.tower - 10); }),
+  c('dwemer-centurion', 'Golden Saint', 'steel', 28, 'Attack 32', 'The Aureal keep their word, and yours.', 'golden-saint', (_, f) => attack(f, 32)),
   // Magicka (mages)
-  c('conjure-stone', 'Transmute Stone', 'magicka', 4, 'Stone +8', m => { m.stone += 8; }),
-  c('conjure-steel', 'Bound Arms', 'magicka', 4, 'Steel +8', m => { m.steel += 8; }),
-  c('conjure-magicka', 'Restore Magicka', 'magicka', 4, 'Magicka +8', m => { m.magicka += 8; }),
-  c('crush-stone', 'Earthquake', 'magicka', 4, 'Enemy stone −8', (_, f) => { f.stone = Math.max(0, f.stone - 8); }),
-  c('crush-steel', 'Rust Curse', 'magicka', 4, 'Enemy steel −8', (_, f) => { f.steel = Math.max(0, f.steel - 8); }),
-  c('crush-magicka', 'Drain Magicka', 'magicka', 4, 'Enemy magicka −8', (_, f) => { f.magicka = Math.max(0, f.magicka - 8); }),
-  c('mages-guild', 'Mages Guild', 'magicka', 8, 'Mages +1', m => { m.mages += 1; }),
-  c('dremora-lord', 'Summon Dremora Lord', 'magicka', 21, 'Attack 25', (_, f) => attack(f, 25)),
-  c('almsivi-grace', 'Grace of Almsivi', 'magicka', 22, 'Tower +22', m => { m.tower += 22; }),
-  c('daedric-curse', 'Sheogorath’s Whim', 'magicka', 25, 'Your masons, soldiers, mages +1; the enemy’s −1', (m, f) => { m.masons++; m.soldiers++; m.mages++; f.masons = Math.max(1, f.masons - 1); f.soldiers = Math.max(1, f.soldiers - 1); f.mages = Math.max(1, f.mages - 1); }),
+  c('conjure-stone', 'Frost Atronach', 'magicka', 4, 'Ebony +8', 'Slow, cold, and it carries anything.', 'frost-atronach', m => { m.stone += 8; }),
+  c('conjure-steel', 'Flame Atronach', 'magicka', 4, 'Bindings +8', 'Laughs as it burns, works as it laughs.', 'flame-atronach', m => { m.steel += 8; }),
+  c('conjure-magicka', 'Azura’s Star', 'magicka', 4, 'Magicka +8', 'Every soul has a price.', 'shrine', m => { m.magicka += 8; }),
+  c('crush-stone', 'Storm Atronach', 'magicka', 4, 'Enemy ebony −8', 'Stone is only something to throw.', 'storm-atronach', (_, f) => { f.stone = Math.max(0, f.stone - 8); }),
+  c('crush-steel', 'Banishing', 'magicka', 4, 'Enemy bindings −8', 'Back to Oblivion, and stay there.', 'circle', (_, f) => { f.steel = Math.max(0, f.steel - 8); }),
+  c('crush-magicka', 'Vaermina’s Nightmare', 'magicka', 4, 'Enemy magicka −8', 'Your mages dream of the Ghostfence failing.', 'shrine', (_, f) => { f.magicka = Math.max(0, f.magicka - 8); }),
+  c('mages-guild', 'Mora’s Codex', 'magicka', 8, 'Shrines +1', 'Knowledge is a debt that compounds.', 'shrine', m => { m.mages += 1; }),
+  c('dremora-lord', 'Dremora Valkynaz', 'magicka', 21, 'Attack 25', 'A lord of the Kyn. Bargain carefully.', 'dremora', (_, f) => attack(f, 25)),
+  c('almsivi-grace', 'Azura’s Dawn', 'magicka', 22, 'Spire +22', 'The Tribunal is gone. She was here first.', 'shrine', m => { m.tower += 22; }),
+  c('daedric-curse', 'Molag Bal’s Bargain', 'magicka', 25, 'Your mines, circles, shrines +1; the enemy’s −1', 'You gain. They lose. He keeps the rest.', 'circle', (m, f) => { m.masons++; m.soldiers++; m.mages++; f.masons = Math.max(1, f.masons - 1); f.soldiers = Math.max(1, f.soldiers - 1); f.mages = Math.max(1, f.mages - 1); }),
 ];
 export const DUEL_CARD: Record<string, DuelCard> = Object.fromEntries(DUEL_CARDS.map(x => [x.id, x]));
 
