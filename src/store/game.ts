@@ -66,7 +66,7 @@ export const useGame = create<Store>()((set, get) => {
       if (r.error) { sfx.bad(); set(s => ({ error: r.error!, errorTick: s.errorTick + 1 })); return false; }
       const fresh: Toast[] = [];
       const n = drainNotices(r.state, fresh);
-      if (a.t === 'buy') sfx.coin(); else if (a.t === 'sell') sfx.sell(); else if (a.t === 'travel') sfx.step();
+      if (a.t === 'buy') sfx.coin(); else if (a.t === 'sell') sfx.sell(); else if (a.t === 'travel') sfx.step(); else if (a.t === 'heal') sfx.heal();
       if (n.pending && !g.pending) sfx.sting();
       if (n.inbox.some(i => i.kind === 'chronicle') && !g.inbox.some(i => i.kind === 'chronicle')) sfx.boom();
       saveGame(n); recordMeta(get, set, n);
