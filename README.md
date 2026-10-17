@@ -216,22 +216,6 @@ what's wrong.
   this game* tell you how sure the lore is. **Codex → Historians disagree** has the arguments, with
   sources.
 
-## 🌐 Sharing the game (itch.io or any website)
-
-```powershell
-npm run build
-```
-This creates a **`dist`** folder: the complete game as plain web files, with no internet needed.
-
-To publish on **itch.io**:
-1. Zip the *contents* of `dist` (select everything inside it → right-click → *Send to → Compressed folder*).
-2. Upload the ZIP as an **HTML** project and tick *"This file will be played in the browser"*.
-
-To try the built version locally, run `npm run preview` and open http://localhost:4173. Browsers refuse
-to run it by double-clicking `index.html`.
-
----
-
 ## 🧑‍💻 For developers
 
 | Command | What it does |
