@@ -4,19 +4,23 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
-## 0.10.0 (beta): the focus release (in progress)
+## 0.10.0 (beta): the focus release
+One goal, one choice per trip, and a Red Year you can see on the map. Now a Windows app.
+
 - One strongbox per bank city instead of two houses: 0.05% a day, 1% to take money out, no transfers between cities. Old saves add up each city's balances.
 - A clear goal: pay off the Tong, then buy the Scathing Charter before the end of 4E 6. Buying it with no debt wins the game at once; only this last tier needs the debt cleared. The Bank tab shows the goal as three steps.
 - If your debt passes six times the note, the Tong puts its mark on you and the game ends (with warnings at four and five times). The Tong lends up to five times the note. Indenture is gone.
 - At the end date you retire automatically, ranked by net worth; the end-of-game crossroads is gone. Winning or retiring at the end still opens the Long Chronicle.
-- Heat is no longer shown: it still decides how often customs search you, and the customs card will show the odds.
+- Heat is no longer shown: it still decides how often customs search you, and the customs card shows the odds.
 - Books are no longer bought: you find them in towns with bookshops, they go into the Codex, and their perks are always on.
 - A round at the tavern gives a trade tip, any new warning, and one old tale or historians' quarrel, which goes into the Codex (new Tavern tales section).
-- The Red Year shows on the map: an ash haze over Vvardenfell that thickens toward the eruption, a red glow on Red Mountain once the omens start, ash-grey towns with a cracked ring afterwards, closed lines drawn as dotted red crosses, tents at the camps, refugee columns walking to Narsis and Mournhold, war fronts hatched around besieged and occupied towns, and a banner over occupied ones.
+- The Red Year shows on the map: an ash haze over Vvardenfell that thickens toward the eruption, a red glow on Red Mountain once the omens start, ash-grey towns with a cracked ring afterwards, closed lines drawn as dotted red crosses, tents at the camps, refugee columns on the roads to Narsis and Mournhold, war fronts hatched around besieged and occupied towns, and a banner over occupied ones.
 - The game fits any screen from 1024×600 to 4K and ultrawide: the whole interface grows with the window (designed at 1280×720), stays centred on very wide screens, the map fills the free height, and the hearing shows all eight cards in one row. The Text size setting is now "Text and UI size" and scales on top of that.
 - Road events are now crossing cards, at most one per journey: every choice prints its stakes in septims and percentages before you pick. Customs lets you declare and pay 25% duty; a refugee column lets you sell at cost for Mercy and Charter favour (which lowers charter prices); an ash storm lets you wait, hire a guide or push through; Tong collectors can be paid, put off or outrun, and the road stays watched for a month.
+- Tavern contracts work as before; they become road scenes in a later version.
 - Duel cards print their rules in dark ink so they can be read on the parchment.
 - The game is now a Windows app: download `ScathingCharter-Setup-<version>.exe` (or the Portable .exe) from Releases. It is fully self-contained (no Node.js, Chrome or internet), opens full screen (F11 or Alt+Enter to switch, Ctrl+Plus/Minus for size), and remembers its window. It isn't signed, so Windows asks once: More info, then Run anyway. PLAY.cmd and the offline ZIP are gone; browser saves move over with Export and Import.
+- Saves from 0.9.x load and carry on (save format v6).
 
 ## 0.9.6 (beta): fixes from a playtest
 - Crater salvage in Vivec, ruin clearing in Ebonheart and the rubble crew at Fort Frostmoth only appear after the eruption.
