@@ -5,6 +5,7 @@ import { importFile, slotInfo, loadGame, savedWhen, type Slot } from '../save/st
 import { formatDate } from '../engine';
 import { C } from '../data';
 import logo from '../assets/scathing-charter-logo.jpg';
+import { Credits } from './Credits';
 
 export function Title() {
   const { setScreen, continueAuto, load, meta, openSettings } = useGame();
@@ -35,19 +36,7 @@ export function Title() {
       </motion.div>
       <p className="text-xs text-ash-400 mt-8 num">Version {__APP_VERSION__} (beta)</p>
       <p className="text-[.7rem] text-ash-400 mt-2 max-w-lg">An unofficial, non-commercial fan game. The Elder Scrolls and all related names are trademarks of ZeniMax Media / Bethesda Softworks; this project is not affiliated with or endorsed by them.</p>
-      {credits && (
-        <div className="fixed inset-0 z-50 scrim flex items-center justify-center p-4" onClick={() => setCredits(false)}>
-          <div className="parchment max-w-2xl p-6 text-left max-h-[85dvh] overflow-auto" onClick={e => e.stopPropagation()}>
-            <h2 className="h-display text-2xl mb-2">Credits &amp; Sources</h2>
-            <p className="mb-2 text-sm">The Scathing Charter, version {__APP_VERSION__} (beta).</p>
-            <p className="mb-2">Design, code and writing for this fan game. Lore was researched from <a className="underline" href="https://en.uesp.net/wiki/Lore:Main_Page" target="_blank" rel="noreferrer">UESP’s Lore namespace</a> and <a className="underline" href="https://www.imperial-library.info/" target="_blank" rel="noreferrer">The Imperial Library</a>. Every codex entry links its sources and, in the codex, marks what is <b>unverified</b>, <b>disputed</b>, <b>extrapolated</b> or <b>invented</b>.</p>
-            <p className="mb-2">Fan projects (Tamriel Rebuilt, Beyond Skyrim, Project Tamriel) are not canon and are not used. In-game books appear only as summaries with short quotes.</p>
-            <p className="mb-2">Invented for play: the lender Gavas Drelloth, both counting-houses, every merchant, all prices, tariffs and route times, the day-of-month of year-only events, and Almsivi Intervention’s failing reliability.</p>
-            <p>Fonts: Cinzel, EB Garamond, IM Fell English, Atkinson Hyperlegible (SIL OFL). Sound is synthesised in your browser.</p>
-            <button className="btn mt-4" onClick={() => setCredits(false)}>Close</button>
-          </div>
-        </div>
-      )}
+      {credits && <Credits onClose={() => setCredits(false)} />}
     </div>
   );
 }

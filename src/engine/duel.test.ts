@@ -19,4 +19,19 @@ describe('tower duel', () => {
       expect(d.winner).not.toBeNull();
     }
   });
+  it('records each turn as events the board can play back', () => {
+    const rng = new Rng(hashSeed('duel-events'));
+    const d = newDuel(rng);
+    for (let t = 0; t < 30 && !d.winner; t++) {
+      const i = d.you.hand.findIndex(id => canPlay(d.you, id));
+      duelTurn(d, rng, i < 0 ? 0 : i, i < 0);
+      const ev = d.events!;
+      expect(ev[0]).toMatchObject({ type: 'move', who: 'you' });
+      const last = ev[ev.length - 1];
+      // Replaying the recorded changes ends exactly where the engine did.
+      expect({ ...last.after.you, hand: d.you.hand }).toEqual(d.you);
+      expect({ ...last.after.foe, hand: d.foe.hand }).toEqual(d.foe);
+      if (!d.winner) expect(ev.map(e => `${e.type}:${e.who}`)).toEqual(['move:you', 'income:foe', 'move:foe', 'income:you']);
+    }
+  });
 });

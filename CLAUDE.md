@@ -48,6 +48,7 @@ src/
             hints.ts (next-step strip, travel warnings), prices.ts (reads the price book) and route.ts
             (route planner) are pure helpers over GameState. Decorative motion goes through motion.ts
             (Animations setting + reduced motion); fx.tsx holds coin flights and the night dip.
+            duelBoard.ts = the hearing's Pixi.js board (lazy chunk), playing back DuelState.events from the engine.
   audio/    Procedural Web Audio (no audio files needed).
 tests/e2e/  Playwright specs; screenshots go to tests/e2e/__screenshots__/.
 docs/       GAME_DESIGN.md, LORE_BIBLE.md, research/ (raw researcher notes).

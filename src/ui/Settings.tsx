@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useGame } from '../store/game';
 import { FONTS, TEXT_SCALES, THEMES } from './themes';
 import { desktop } from './desktop';
+import { Credits } from './Credits';
 
 function Group({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
   return (
@@ -18,6 +19,7 @@ export function Settings() {
   const { meta, setSettings, resetSettings, closeSettings } = useGame();
   // Desktop app only: the full-screen switch follows F11, Alt+Enter and Esc too.
   const [full, setFull] = useState(false);
+  const [credits, setCredits] = useState(false);
   useEffect(() => { const d = desktop(); if (!d) return; d.isFullScreen().then(setFull); return d.onFullScreenChange(setFull); }, []);
   const s = meta.settings;
   const pick = (on: boolean) => `rounded-lg border-2 text-left transition-colors ${on ? 'border-ember' : 'border-ash-600 hover:border-ash-400'}`;
@@ -94,8 +96,12 @@ export function Settings() {
 
         <div className="flex items-center justify-between mt-5 pt-3 border-t border-ash-600">
           <span className="text-xs text-ash-400">Settings are saved on this computer and apply to every game. · The Scathing Charter v{__APP_VERSION__}</span>
-          <button className="btn btn-ghost" onClick={resetSettings}>Reset to defaults</button>
+          <span className="flex gap-2">
+            <button className="btn btn-ghost" onClick={() => setCredits(true)}>Credits &amp; sources</button>
+            <button className="btn btn-ghost" onClick={resetSettings}>Reset to defaults</button>
+          </span>
         </div>
+        {credits && <Credits onClose={() => setCredits(false)} />}
       </motion.div>
     </motion.div>
   );
