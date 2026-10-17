@@ -28,6 +28,7 @@ export const MIGRATIONS: Record<number, Migration> = {
     const kind = { charter: 'win', tong: 'mark', trade: 'retire', retire: 'retire' } as Record<string, string>;
     const ending = raw.ending as { kind: string } | undefined;
     const rest = { ...raw }; delete rest.indentured;
+    rest.achievements = ((raw.achievements as string[]) ?? []).filter(a => a !== 'bookworm'); // books are found, not bought
     return { ...rest, ...(ending ? { ending: { ...ending, kind: kind[ending.kind] ?? 'retire' } } : {}), deposits: byCity(raw.deposits as Record<string, number>, (a, b) => a + b), world: { ...world, branches }, schemaVersion: 5 };
   },
   3: raw => ({ ...raw, charter: raw.charter ?? { tier: 0, paid: 0, renewDue: null, renewed: false, nextDividend: null, dividends: 0 }, warehouse: raw.warehouse ?? {}, schemaVersion: 4 }),

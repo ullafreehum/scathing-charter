@@ -1,6 +1,6 @@
 // Plain-language guidance derived from the game state: the "next step" strip and travel warnings.
 import { C } from '../data';
-import { HEAT, heatLevel, holidayAt, holidayOn, legalityAt, marketOpen, pressure, shortDate, type GameState } from '../engine';
+import { holidayAt, holidayOn, legalityAt, marketOpen, pressure, shortDate, type GameState } from '../engine';
 import type { Tab } from '../store/game';
 
 export interface Hint { text: string; tab?: Tab; warn?: boolean }
@@ -23,9 +23,6 @@ export function nextSteps(g: GameState): Hint[] {
   const loc = g.player.location;
   if (g.pending || g.over || loc === 'road' || !C.locs[loc]) return out;
   const canPay = !g.note.cleared && (loc === g.note.seat || g.note.agents.includes(loc));
-  const heat = heatLevel(g.player.heat);
-  if (heat === 'wanted') out.push({ warn: true, text: `The Legion wants you (heat ${g.player.heat}). Expect patrols and double fines if you carry contraband. Heat falls by 1 a day; lie low or bribe customs.` });
-  else if (heat === 'watched' && Object.keys(g.player.cargo).some(id => legalityAt(g, loc, id) === 'contraband')) out.push({ warn: true, text: `The Legion is watching you (heat ${g.player.heat}): customs search you more often. Below ${HEAT.watched} they lose interest.` });
   if (g.player.health < 35) out.push({ warn: true, text: `Your health is low (${g.player.health}). Heal at a temple or shrine, or rest.`, tab: 'outfitter' });
   if (!g.note.cleared) {
     const where = canPay ? 'here, in the Bank tab' : `in ${payPlaces(g)}`;
@@ -65,8 +62,7 @@ export function travelWarnings(g: GameState, dest: string, days: number): string
   const w: string[] = [];
   const L = C.locs[dest]; const st = g.world.status[dest];
   if (Object.keys(g.player.cargo).some(id => legalityAt(g, dest, id) === 'contraband')) {
-    const heat = heatLevel(g.player.heat);
-    w.push(`You carry goods that are contraband there; customs may search you (guards ${L.enforcement}/5)${heat === 'wanted' ? ', twice as often because you are wanted, and patrols may stop you on the road' : heat === 'watched' ? ', more often because the Legion is watching you' : ''}.`);
+    w.push(`You carry goods that are contraband there; customs may search you (guards ${L.enforcement}/5).`);
   }
   if (st === 'besieged') w.push('The town is under siege.');
   if (st === 'sacked') w.push('The town was recently sacked.');

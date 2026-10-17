@@ -9,6 +9,9 @@ and the Long Chronicle.
 - A clear goal: pay off the Tong, then buy the Scathing Charter before the end of 4E 6. Buying it with no debt wins the game at once; only this last tier needs the debt cleared. The Bank tab shows the goal as three steps.
 - If your debt passes six times the note, the Tong puts its mark on you and the game ends (with warnings at four and five times). The Tong lends up to five times the note. Indenture is gone.
 - At the end date you retire automatically, ranked by net worth; the end-of-game crossroads is gone. Winning or retiring at the end still opens the Long Chronicle.
+- Heat is no longer shown: it still decides how often customs search you, and the customs card will show the odds.
+- Books are no longer bought: you find them in towns with bookshops, they go into the Codex, and their perks are always on.
+- A round at the tavern gives a trade tip, any new warning, and one old tale or historians' quarrel, which goes into the Codex (new Tavern tales section).
 
 ## 0.9.6 (beta): fixes from a playtest
 - Crater salvage in Vivec, ruin clearing in Ebonheart and the rubble crew at Fort Frostmoth only appear after the eruption.

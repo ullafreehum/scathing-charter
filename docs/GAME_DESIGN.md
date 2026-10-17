@@ -66,7 +66,7 @@ At 0.3% a day the note roughly triples in a year and grows ~27× over the campai
 At each location the player may, in any order:
 1. **Market**: buy and sell with 2–3 merchants, each with their own leanings, refusals and patter.
 2. **Counting-house / Lender**: deposit to or withdraw from the city strongbox, pay or extend the note.
-3. **Tavern**: buy a drink to hear rumours, take contracts, hire porters and sellswords.
+3. **Tavern**: buy a round for a trade tip, any warning not yet heard, and one lore tale or historians' quarrel that goes quietly into the Codex (Tavern tales / Historians disagree); day labour; hire porters and sellswords.
 4. **Outfitter / Temple**: conveyance upgrades, arms and armour, scrolls, healing.
 5. **Travel**: pick a route and mode on the map. Days pass and encounters may fire on the road.
 
@@ -157,7 +157,7 @@ Saves from 0.9.x sum each city's house balances into its strongbox (schema v5).
 - **Market memory.** Your trades push a market's price (saturation) and it recovers by 3% of the gap a day
   (`SAT_RECOVERY` in market.ts; half-life about 23 days, was 8). Repeating one run wears it out. The Market tags
   flooded and bought-out goods with the days until they recover.
-- **Heat** (0–100, `HEAT` in encounters.ts). Selling contraband adds 2 + value/250 (max 15 a sale); fencing
+- **Heat** (0–100, `HEAT` in encounters.ts; hidden since 0.10: no meter or hints, it only sets the customs and patrol odds). Selling contraband adds 2 + value/250 (max 15 a sale); fencing
   Company goods adds a little; slipping past customs by Chameleon (+5) or flight (+8) adds more. It falls by 1 a day,
   bribing customs takes 10 off, and being caught takes 40 off. *Watched* (30+): customs searches and informers ×1.5.
   *Wanted* (60+): ×2, confiscation fines double to 40%, and a carrier of contraband meets a Legion patrol on 30% of
@@ -395,7 +395,7 @@ armour, scrolls, reputations, Mercy, Lilmoth licence, codex unlocks, achievement
   Historians Disagree · Books · Invented for this game.
 - **Entries**: unlock on contact; a locked entry shows a teaser. Every entry has a body, a status badge,
   clickable sources and related links.
-- **Books**: three, bought from booksellers, each with a perk: *Pocket Guide to the Empire* (shows where
+- **Books**: three, found (not bought) when you visit a town with a bookshop and added to the Codex; since 0.10 their perks are always on: *Pocket Guide to the Empire* (shows where
   goods are usually cheap or expensive), *Moon-Sugar: A Report* (customs searches ×0.7) and *Progress of
   Truth* (more warning rumours). Lore-only books were removed; the codex pages they used to unlock now
   unlock on arriving somewhere fitting (`Location.codex`) or when a history event happens

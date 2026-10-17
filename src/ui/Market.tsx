@@ -33,7 +33,7 @@ export function Market({ g }: { g: GameState }) {
   const legs = routeOptions(g);
   const fareWith = (extra: number) => legs.length ? Math.min(...legs.map(o => o.fare + Math.ceil(FREIGHT[o.mode] * extra))) : 0;
   const [keepFare, setKeepFare] = useState(true);
-  const tend = g.player.books.includes('pocket-guide');
+  const tend = true; // the Pocket Guide's perk, always on since 0.10
   const cargoGoods = Object.keys(g.player.cargo).filter(id => !qs.find(q => q.good === id));
   const ratio = (q: Quote) => q.mid / fairValue(g, q.good);
   const deliverable = g.contracts.filter(c => c.destination === loc && (g.player.cargo[c.good]?.qty ?? 0) >= c.qty);

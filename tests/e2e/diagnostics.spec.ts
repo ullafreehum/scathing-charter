@@ -110,11 +110,11 @@ test('codex disputes, save export/import, and phone layout', async ({ page, brow
   expect(errors).toEqual([]);
 });
 
-test('smuggling heat shows in the top bar and the Scathing Charter can be bought', async ({ page }) => {
+test('smuggling heat stays hidden and the Scathing Charter can be bought', async ({ page }) => {
   const errors: string[] = [];
   const s = base(); s.world.flags.relief = 1; s.note.cleared = true; s.note.balance = 0; s.player.cash = 120000; s.player.heat = 65;
   await boot(page, s, errors);
-  await expect(page.getByTitle(/Legion attention/)).toContainText('wanted');
+  await expect(page.getByTitle(/Legion attention/)).toHaveCount(0);
   await page.getByRole('tab', { name: 'Bank' }).click();
   await expect(page.getByRole('heading', { name: 'The Scathing Charter' })).toBeVisible();
   await page.getByRole('button', { name: /^Buy Relief supplier licence/ }).click();

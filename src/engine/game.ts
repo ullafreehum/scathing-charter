@@ -13,7 +13,7 @@ import { SCHEMA_VERSION } from './save';
 import { here, log, unlock } from './util';
 import { DEPOSIT_RATE, bankAction } from './bank';
 import { contractAction, makeOffers } from './contracts';
-import { bookAction } from './books';
+import { findBooks } from './books';
 import { checkMark, endingAction, milestones, timeUp, win } from './endings';
 
 export const RED_YEAR_END = D(6, 12, 31);
@@ -77,6 +77,7 @@ export function newGame(cfg: NewGameConfig): GameState {
   s.log.push({ day: 0, text: `${shortDate(0)}. New Life Festival in Balmora. You owe Gavas Drelloth ${diff.debt} septims.`, tone: 'neutral' });
   s.inbox.push({ kind: 'result', title: 'Your debt', text: `It is the New Life Festival, 4E 4, in Balmora. You owe Gavas Drelloth of the Camonna Tong ${diff.debt} septims, at ${(diff.rate * 100).toFixed(1)}% interest a day. You have ${diff.cash} septims and a pack guar. Pay him back at the Bank tab in Balmora. The Tong will wait about two months before sending collectors.` });
   s.rng = rng.state();
+  findBooks(s);
   return s;
 }
 
@@ -206,6 +207,7 @@ function arrive(s: GameState, rng: Rng, dest: string) {
   s.player.location = to;
   if (!s.stats.visited.includes(to)) s.stats.visited.push(to);
   unlock(s, `loc:${to}`);
+  findBooks(s);
   for (const u of C.locs[to].codex ?? []) unlock(s, u);
   unlock(s, `faction:${C.locs[to].faction.toLowerCase().includes('hlaalu') ? 'hlaalu' : 'none'}`);
   makeOffers(s, rng, to);
@@ -213,7 +215,7 @@ function arrive(s: GameState, rng: Rng, dest: string) {
   const cv = contrabandValue(s, to);
   if (cv > 0) {
     const bg = C.backgrounds[s.player.backgroundId];
-    const p = Math.min(0.9, C.locs[to].enforcement * 0.07 * bg.customsMod * (s.player.books.includes('moon-sugar-report') ? 0.7 : 1) * heatMult(s.player.heat));
+    const p = Math.min(0.9, C.locs[to].enforcement * 0.07 * bg.customsMod * 0.7 /* Moon-Sugar: A Report, always on since 0.10 */ * heatMult(s.player.heat));
     if (rng.chance(p)) {
       const def = C.encounters.find(e => e.kind === 'customs' && (e.regions === 'any' || e.regions.includes(C.locs[to].region))) ?? C.encounters.find(e => e.kind === 'customs')!;
       s.pending = buildPending(s, def, '', to, 0, true);
@@ -297,7 +299,6 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
     }
     case 'deposit': case 'withdraw': case 'pay': case 'borrow': return bankAction(s, a, loc);
     case 'accept': case 'deliver': return contractAction(s, a, loc);
-    case 'book': return bookAction(s, a);
     case 'retire': return endingAction(s, a);
     case 'rumor': return rumor(s, rng);
     case 'gear': {
@@ -542,14 +543,21 @@ function rumor(s: GameState, rng: Rng): string | void {
   // Every round buys one true, useful tip with real numbers, then the talk of the tavern.
   const tip = tradeTip(s);
   if (tip) { s.inbox.push({ kind: 'result', notice: true, title: 'Rumour (trade tip)', text: tip }); log(s, `Trade tip: ${tip}`); }
+  // A warning about what is coming, if there is one not yet heard.
   const unheard = pool.filter(r => !s.heard.includes(r.id));
-  const fresh = unheard.filter(r => r.kind === 'foreshadow');
-  const r = (fresh.length && rng.chance(s.player.books.includes('progress-of-truth') ? 0.9 : 0.7) ? rng.pick(fresh) : unheard.length ? rng.pick(unheard) : pool.length ? rng.pick(pool) : undefined);
-  if (!r) { s.inbox.push({ kind: 'result', notice: true, title: 'Rumour', text: 'Nobody has anything new tonight.' }); return; }
-  if (!s.heard.includes(r.id)) s.heard.push(r.id);
-  if (r.dispute) unlock(s, `dispute:${r.dispute}`);
-  unlock(s, `rumor:${r.id}`);
-  s.inbox.push({ kind: 'result', notice: true, title: r.kind === 'dispute' ? 'Rumour (historians disagree)' : r.kind === 'foreshadow' ? 'Rumour (a warning)' : 'Rumour', text: `${r.voice ? r.voice + ': ' : ''}“${r.text}”` });
+  const warn = unheard.filter(r => r.kind === 'foreshadow');
+  if (warn.length) {
+    const w = rng.pick(warn); s.heard.push(w.id);
+    s.inbox.push({ kind: 'result', notice: true, title: 'Rumour (a warning)', text: `${w.voice ? w.voice + ': ' : ''}“${w.text}”` });
+  }
+  // And one tale or historians' quarrel, which goes quietly into the Codex.
+  const tales = unheard.filter(r => r.kind === 'lore' || r.kind === 'dispute');
+  if (tales.length) {
+    const t = rng.pick(tales); s.heard.push(t.id);
+    unlock(s, t.dispute ? `dispute:${t.dispute}` : `rumor:${t.id}`);
+    log(s, t.dispute ? 'You hear historians’ quarrels over your drink. They are in your Codex.' : 'You hear an old tale over your drink. It is in your Codex.');
+  }
+  if (!tip && !warn.length && !tales.length) s.inbox.push({ kind: 'result', notice: true, title: 'Rumour', text: 'Nobody has anything new tonight.' });
 }
 
 /** Rebuild a game from its seed, config and action log; must equal the live state. */

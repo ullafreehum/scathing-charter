@@ -60,7 +60,6 @@ export const ACHIEVEMENTS: { id: string; name: string; text: string }[] = [
   { id: 'hedged', name: 'The Prudent Ledger', text: 'Hold 1,000+ in deposits on 3 Sun’s Dawn 4E 5 and lose none of it.' },
   { id: 'five-provinces', name: 'Five Provinces', text: 'Trade in Morrowind, Skyrim, Cyrodiil, Black Marsh and Elsweyr.' },
   { id: 'licensed', name: 'Ojel with Papers', text: 'Buy an An-Xileel trade licence.' },
-  { id: 'bookworm', name: 'Bookworm', text: 'Own all three books.' },
   { id: 'lorekeeper', name: 'Lorekeeper', text: 'Unlock 60 codex entries.' },
   { id: 'loremaster', name: 'Loremaster', text: 'Unlock 140 codex entries.' },
   { id: 'frostmoth', name: 'Last Mess at Frostmoth', text: 'Visit Fort Frostmoth before it falls.' },

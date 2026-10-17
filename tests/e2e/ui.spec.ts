@@ -198,7 +198,7 @@ test('outfitter, codex links, ledger, keyboard, save slot, settings', async ({ p
   await page.getByRole('tab', { name: 'Shop & Temple' }).click();
   const p0 = await purse(page);
   await page.getByRole('button', { name: /^Buy Scroll of Chameleon/ }).click();
-  expect(await purse(page)).toBe(p0 - 150);
+  await expect.poll(() => purse(page)).toBe(p0 - 150);
   await expect(page.getByText(/Scrolls: Chameleon 1/)).toBeVisible();
   await expect(page.getByRole('button', { name: /^Heal/ })).toBeDisabled();
   await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-outfitter.png' });
@@ -215,7 +215,7 @@ test('outfitter, codex links, ledger, keyboard, save slot, settings', async ({ p
   // ledger
   await page.getByRole('tab', { name: 'Journal' }).click();
   await expect(page.getByText(/You owe Gavas Drelloth/)).toBeVisible();
-  await expect(page.getByText(/Achievements \d+\/21/)).toBeVisible();
+  await expect(page.getByText(/Achievements \d+\/20/)).toBeVisible();
   // keyboard: c opens codex
   await page.getByRole('tab', { name: 'Journal' }).focus();
   await page.keyboard.press('c');

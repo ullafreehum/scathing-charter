@@ -150,6 +150,18 @@ describe('game', () => {
     expect(s.over?.reason).toBe('marked');
     expect(s.ending?.kind).toBe('mark');
   });
+  it('finds books in bookshop towns and puts them in the Codex', () => {
+    const s = newGame(CFG);
+    expect(C.locs[s.player.location].books).toBe(true);
+    for (const b of C.books.filter(b => b.from === undefined)) { expect(s.player.books).toContain(b.id); expect(s.codex).toContain(`book:${b.id}`); }
+  });
+  it('a tavern round quietly adds a tale or a quarrel to the Codex', () => {
+    let s = drain(newGame(CFG)); s.player.cash = 1000;
+    const before = s.codex.length;
+    for (let i = 0; i < 5; i++) s = drain(act(s, { t: 'rumor' }));
+    expect(s.codex.filter(id => id.startsWith('rumor:') || id.startsWith('dispute:')).length).toBeGreaterThan(0);
+    expect(s.codex.length).toBeGreaterThan(before);
+  });
   it('wins the moment the Scathing Charter is bought with the debt cleared', () => {
     let s = drain(newGame(CFG));
     s.player.location = C.charter.offices[0]; s.world.flags.relief = 1;

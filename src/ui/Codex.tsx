@@ -8,7 +8,7 @@ import { Badge, Sources } from './widgets';
 const CATS: { id: CodexEntry['category']; label: string }[] = [
   { id: 'place', label: 'Places' }, { id: 'good', label: 'Goods' }, { id: 'faction', label: 'Factions' }, { id: 'person', label: 'People' },
   { id: 'event', label: 'Events' }, { id: 'calendar', label: 'Calendar & holidays' }, { id: 'travel', label: 'Travel, magic & perils' },
-  { id: 'dispute', label: 'Historians disagree' }, { id: 'book', label: 'Books' }, { id: 'invented', label: 'Invented for this game' },
+  { id: 'dispute', label: 'Historians disagree' }, { id: 'book', label: 'Books' }, { id: 'lore', label: 'Tavern tales' }, { id: 'invented', label: 'Invented for this game' },
 ];
 const EASE = [0.22, 1, 0.36, 1] as const;
 

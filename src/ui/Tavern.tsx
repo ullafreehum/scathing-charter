@@ -19,7 +19,7 @@ export function Tavern({ g }: { g: GameState }) {
         <div className="mt-3 space-y-2">{heard.map(r => (
           <div key={r.id} className="text-sm border-l-2 border-ash-600 pl-2"><span className="fell italic text-parchment">{r.voice ? `${r.voice}: ` : ''}“{r.text}”</span>
             {r.dispute && <> <CodexLink id={`dispute:${r.dispute}`} className="text-lilac text-xs">({r.dispute}: historians disagree)</CodexLink></>}</div>
-        ))}{!heard.length && <p className="text-sm text-ash-400">Buy a round and listen. Rumours give price tips, warnings about what is coming, and arguments about what really happened.</p>}</div>
+        ))}{!heard.length && <p className="text-sm text-ash-400">Buy a round and listen. Each round buys a price tip, any warning about what is coming, and an old tale or historians’ quarrel for your Codex.</p>}</div>
       </Section>
       <Section title="Day labour">
         <p className="text-sm text-ash-400 mb-1">Short of coin? Hire on here. A day’s wage pays for about two trips to the nearest town.</p>
@@ -56,17 +56,6 @@ export function Tavern({ g }: { g: GameState }) {
         </div>
         <p className="text-xs text-ash-400 mt-2">If you can’t pay wages for three days, they quit.</p>
       </Section>
-      {L.books && (
-        <Section title="Bookseller">
-          {C.books.filter(b => b.from === undefined || g.day >= b.from).map(b => (
-            <div key={b.id} className="border-t border-ash-700/60 py-2 text-sm">
-              <div className="flex items-center gap-2"><CodexLink id={`book:${b.id}`} className="text-bone">{b.title}</CodexLink>
-                <button className="btn ml-auto" aria-label={g.player.books.includes(b.id) ? `${b.title}: owned` : `Buy ${b.title} for ${b.price} septims`} disabled={g.player.books.includes(b.id)} onClick={() => act({ t: 'book', id: b.id })}>{g.player.books.includes(b.id) ? 'Owned' : <>Buy <Money v={b.price} /></>}</button></div>
-              <div className="text-xs text-ash-400">{b.author}{b.perk && b.perk !== 'none' ? ` · reading helps: ${b.perk === 'tendencies' ? 'shows where goods are cheap or dear' : b.perk === 'customs' ? 'fewer customs searches' : 'more omens in rumours'}` : ''}</div>
-            </div>
-          ))}
-        </Section>
-      )}
     </div>
   );
 }

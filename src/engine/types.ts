@@ -118,7 +118,7 @@ export interface Contract {
 }
 
 export interface CodexEntry extends Sourced {
-  id: string; category: 'place' | 'good' | 'faction' | 'person' | 'event' | 'calendar' | 'travel' | 'dispute' | 'book' | 'invented';
+  id: string; category: 'place' | 'good' | 'faction' | 'person' | 'event' | 'calendar' | 'travel' | 'dispute' | 'book' | 'lore' | 'invented';
   title: string; body: string; related?: readonly string[];
   claims?: readonly { voice: string; text: string; source: string }[];
   defaultReading?: string;
@@ -270,7 +270,6 @@ export type Action =
   | { t: 'hire'; who: 'porter' | 'sellsword'; delta: 1 | -1 }
   | { t: 'licence' }
   | { t: 'heal' }
-  | { t: 'book'; id: string }
   | { t: 'choose'; choice: string }
   | { t: 'ack'; n?: number }
   | { t: 'charter' }
