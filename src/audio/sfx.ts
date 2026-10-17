@@ -24,6 +24,16 @@ function tone(freq: number, dur: number, type: OscillatorType, vol: number, dela
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
 }
+/** A soft bell: gentle attack, long fade, no harsh edge. */
+function bell(freq: number, dur: number, vol: number, delay = 0) {
+  const a = ac(); if (!a) return;
+  const t = a.currentTime + delay;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * volume, t + 0.03);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+}
 function noise(dur: number, vol: number, freq: number) {
   const a = ac(); if (!a) return;
   const buf = a.createBuffer(1, Math.floor(a.sampleRate * dur), a.sampleRate);
@@ -37,10 +47,11 @@ export const sfx = {
   coin() { tone(1800, 0.12, 'triangle', 0.08); tone(2600, 0.1, 'triangle', 0.05, 0.05); },
   sell() { tone(1400, 0.1, 'triangle', 0.07); tone(2100, 0.14, 'triangle', 0.06, 0.06); tone(2900, 0.12, 'sine', 0.04, 0.12); },
   step() { noise(0.25, 0.12, 700); },
-  sting() { tone(220, 0.5, 'sawtooth', 0.05, 0, 110); tone(330, 0.5, 'square', 0.025, 0.05, 160); },
-  boom() { noise(1.6, 0.5, 180); tone(55, 1.4, 'sine', 0.25, 0, 30); },
+  sting() { bell(392, 0.7, 0.05); bell(311, 0.9, 0.04, 0.12); },
+  boom() { noise(1.6, 0.3, 180); tone(55, 1.4, 'sine', 0.18, 0, 30); },
   page() { noise(0.12, 0.06, 2400); },
-  bad() { tone(160, 0.35, 'sawtooth', 0.05, 0, 90); },
+  bad() { bell(196, 0.4, 0.06); },
+  heal() { bell(523, 1.2, 0.05); bell(659, 1.2, 0.045, 0.12); bell(784, 1.6, 0.04, 0.24); bell(1568, 1.4, 0.012, 0.3); },
 };
 export function startWind(intensity: number) {
   const a = ac(); if (!a) return;

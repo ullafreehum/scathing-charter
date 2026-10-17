@@ -67,7 +67,7 @@ export interface FontOption { id: FontId; name: string; note: string; display: s
 export const FONTS: FontOption[] = [
   { id: 'classic', name: 'Classic', note: 'Engraved capitals and a book serif (the original look).', display: '"Cinzel", Georgia, serif', body: '"EB Garamond", Georgia, serif', flavor: '"IM Fell English", Georgia, serif', caps: true },
   { id: 'book', name: 'Book', note: 'One calm serif everywhere, no capitals.', display: '"EB Garamond", Georgia, serif', body: '"EB Garamond", Georgia, serif', flavor: '"EB Garamond", Georgia, serif', caps: false },
-  { id: 'clear', name: 'Atkinson Hyperlegible', note: 'Designed for maximum legibility.', display: '"Atkinson Hyperlegible", system-ui, sans-serif', body: '"Atkinson Hyperlegible", system-ui, sans-serif', flavor: '"Atkinson Hyperlegible", system-ui, sans-serif', caps: false },
+  { id: 'clear', name: 'Atkinson Hyperlegible', note: 'Designed for maximum legibility (the default).', display: '"Atkinson Hyperlegible", system-ui, sans-serif', body: '"Atkinson Hyperlegible", system-ui, sans-serif', flavor: '"Atkinson Hyperlegible", system-ui, sans-serif', caps: false },
   { id: 'system', name: 'Plain', note: 'Your computer’s own interface font.', display: 'system-ui, "Segoe UI", Roboto, sans-serif', body: 'system-ui, "Segoe UI", Roboto, sans-serif', flavor: 'system-ui, "Segoe UI", Roboto, sans-serif', caps: false },
 ];
 export const TEXT_SCALES = [0.9, 1, 1.12, 1.25, 1.4];
@@ -82,7 +82,7 @@ const VAR: Record<keyof Palette, string> = {
 };
 
 export function themeById(id: string): Theme { return THEMES.find(t => t.id === id) ?? THEMES[0]; }
-export function fontById(id: string): FontOption { return FONTS.find(f => f.id === id) ?? FONTS[0]; }
+export function fontById(id: string): FontOption { return FONTS.find(f => f.id === id) ?? FONTS[2]; }
 
 /** Apply a theme, font and text scale to the document root. */
 export function applyAppearance(themeId: string, fontId: string, scale: number) {

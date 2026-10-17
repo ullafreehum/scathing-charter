@@ -15,6 +15,8 @@ and the Long Chronicle.
 - Endings: on the last day a crossroads lets you retire (with an epilogue), keep trading with no end date, take a Charter seat (tier 2+), or take the Tong's mark (debt wiped, play on as their smuggler). Paying off the debt, reaching the top charter tier or high Mercy lets you retire early from the Bank tab. A debt over six times the note makes you indentured: no interest or killers, but the Tong takes 30% of every sale until it is paid.
 - Magistrate's hearing: when customs seizes your goods you can contest it in town with a Daedric tower duel (the rules of the classic card game Ants: raise your spire to 100 or topple the advocate's, with ebony, bindings and magicka). Win and you get your goods and fine back; lose and the fine doubles.
 - After the eruption Vivec City, Ebonheart and Fort Frostmoth become survivors' camps where merchants still trade, with scarcer stock and crisis prices, instead of vanishing from the map.
+- New games use Atkinson Hyperlegible, the most readable font (Classic and the others stay in Settings).
+- Softer sounds: healing plays a gentle bell, and the error and event cues are soft chimes instead of buzzes.
 
 ## 0.9.4 (beta)
 - Travel tab: the destination list now sits in the left column, so the map lines up with the price list and the tabs stay put.

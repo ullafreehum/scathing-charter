@@ -5,7 +5,7 @@ const KEY = 'ashfall-ledger';
 export type Slot = 'auto' | '1' | '2' | '3';
 export interface Meta { chronicleUnlocked: boolean; achievements: string[]; bestNetWorth: number; settings: Settings }
 export interface Settings { sound: boolean; volume: number; theme: string; font: string; textScale: number; ash: boolean; animations: boolean; hints: boolean }
-export const DEFAULT_SETTINGS: Settings = { sound: true, volume: 0.8, theme: 'ashlands', font: 'classic', textScale: 1, ash: true, animations: true, hints: true };
+export const DEFAULT_SETTINGS: Settings = { sound: true, volume: 0.8, theme: 'ashlands', font: 'clear', textScale: 1, ash: true, animations: true, hints: true };
 const DEFAULT_META: Meta = { chronicleUnlocked: false, achievements: [], bestNetWorth: 0, settings: DEFAULT_SETTINGS };
 
 /** Fill in missing settings and migrate the old {motion, largeText} switches. */
