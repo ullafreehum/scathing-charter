@@ -32,7 +32,7 @@ interface Store {
   dismissToast(id: number): void; setTradeQty(q: TradeQty): void; setPlan(dest: string | null): void;
   setScreen(s: Screen): void; setTab(t: Tab): void;
   start(cfg: NewGameConfig): void; load(g: GameState): void; continueAuto(): boolean;
-  act(a: Action): boolean; saveTo(slot: Slot): void;
+  act(a: Action): boolean; saveTo(slot: Slot): boolean;
   openCodex(id?: string | null): void; closeCodex(): void;
   setSettings(p: Partial<Settings>): void; resetSettings(): void; openSettings(): void; closeSettings(): void; clearError(): void;
 }
@@ -76,7 +76,7 @@ export const useGame = create<Store>()((set, get) => {
       set(s => ({ game: n, error: null, tab: arrived ? 'market' : s.tab, trip: trip ?? s.trip, tick: tick ?? s.tick, plan: s.plan === n.player.location ? null : s.plan, toasts: fresh.length ? [...s.toasts, ...fresh].slice(-3) : s.toasts }));
       return true;
     },
-    saveTo: slot => { const g = get().game; if (g) saveGame(g, slot); },
+    saveTo: slot => { const g = get().game; return !!g && saveGame(g, slot); },
     openCodex: id => { sfx.page(); set({ codex: id ?? null }); },
     closeCodex: () => set({ codex: undefined }),
     setSettings: p => {

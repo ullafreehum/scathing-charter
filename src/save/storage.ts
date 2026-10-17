@@ -25,19 +25,42 @@ export function normalizeSettings(s: Partial<Settings> & { motion?: boolean; lar
 
 function ls(): Storage | null { try { return typeof localStorage === 'undefined' ? null : localStorage; } catch { return null; } }
 
-export function saveGame(s: GameState, slot: Slot = 'auto'): void {
-  try { ls()?.setItem(`${KEY}/save/${slot}`, serialize(s)); } catch { /* quota or private mode: ignore */ }
+/** What a save menu shows about a slot, kept beside the save so menus need not parse the whole game. */
+export interface SlotInfo { day: number; name: string; location: string; seed: string; savedAt?: number }
+
+export function saveGame(s: GameState, slot: Slot = 'auto'): boolean {
+  try {
+    const store = ls(); if (!store) return false;
+    store.setItem(`${KEY}/save/${slot}`, serialize(s));
+    const info: SlotInfo = { day: s.day, name: s.player.name, location: s.player.location, seed: s.seed, savedAt: Date.now() };
+    store.setItem(`${KEY}/slot/${slot}`, JSON.stringify(info));
+    return true;
+  } catch { return false; /* quota or private mode */ }
 }
 export function loadGame(slot: Slot = 'auto'): GameState | null {
   const t = ls()?.getItem(`${KEY}/save/${slot}`);
   if (!t) return null;
   try { return deserialize(t); } catch { return null; }
 }
-export function slotInfo(slot: Slot): { day: number; name: string; location: string } | null {
-  const g = loadGame(slot);
-  return g ? { day: g.day, name: g.player.name, location: g.player.location } : null;
+export function slotInfo(slot: Slot): SlotInfo | null {
+  const store = ls(); if (!store?.getItem(`${KEY}/save/${slot}`)) return null;
+  try { const t = store.getItem(`${KEY}/slot/${slot}`); if (t) return JSON.parse(t) as SlotInfo; } catch { /* fall back to the save itself */ }
+  const g = loadGame(slot); // saves made before slot info existed: no save time
+  return g ? { day: g.day, name: g.player.name, location: g.player.location, seed: g.seed } : null;
 }
-export function deleteGame(slot: Slot) { ls()?.removeItem(`${KEY}/save/${slot}`); }
+export function deleteGame(slot: Slot) { ls()?.removeItem(`${KEY}/save/${slot}`); ls()?.removeItem(`${KEY}/slot/${slot}`); }
+
+/** "today 14:32", "yesterday 09:10" or "12 Oct 09:10", in the player's own clock. */
+export function savedWhen(ts: number | undefined): string {
+  if (!ts) return 'time unknown';
+  const d = new Date(ts), now = new Date();
+  const hm = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(now) - day(d)) / 86400000);
+  if (diff === 0) return `today ${hm}`;
+  if (diff === 1) return `yesterday ${hm}`;
+  return `${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' })} ${hm}`;
+}
 
 export function loadMeta(): Meta {
   try {

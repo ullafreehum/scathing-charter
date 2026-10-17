@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { animate, motion } from 'framer-motion';
 import { C } from '../data';
 import { branchKey, routeOptions, MODE_LABEL, type GameState, type RouteOption, type TravelMode } from '../engine';
@@ -8,6 +9,7 @@ import { themeById } from './themes';
 import { travelWarnings } from './hints';
 import { ago, outlook } from './prices';
 import { planRoute, type RoutePlan } from './route';
+import { BORDERS, ISLES, LAKES, MAINLAND, MARSH, MORROWIND_REGION, MOUNTAINS, RED_MOUNTAIN, RIVERS, SOLSTHEIM, VVARDENFELL } from './mapShapes';
 
 type Stroke = { stroke: string; dash?: string };
 const DASH: Record<TravelMode, string | undefined> = { strider: '2 4', boat: '6 4', 'inner-sea': '6 4', 'sea-of-ghosts': '8 5', coastal: '6 4', caravan: undefined, road: undefined, barge: '3 3', guide: '1 5' };
@@ -18,9 +20,6 @@ const STATUS_FILL: Record<string, string> = { thriving: 'var(--c-good)', uneasy:
 
 // Labels sit to the right of the dot unless that would collide with a neighbour.
 const LEFT = new Set(['ebonheart', 'fort-frostmoth', 'blacklight', 'cheydinhal', 'stormhold']);
-const MAINLAND = 'M0,120 L55,102 L115,108 L160,128 L230,132 L290,124 L350,128 L400,150 L440,175 L462,205 L455,250 L458,300 L478,350 L540,368 L610,368 L670,350 L715,300 L725,245 L715,195 L740,170 L800,180 L815,260 L790,330 L800,400 L770,470 L740,540 L712,620 L700,690 L705,722 L640,716 L580,726 L520,708 L470,692 L445,652 L420,632 L395,642 L370,682 L345,722 L290,742 L200,748 L100,738 L0,742 Z';
-const VVARDENFELL = 'M498,195 C520,170 580,160 625,178 C660,190 690,205 678,240 C668,270 640,300 610,318 C590,330 555,335 535,325 C510,312 492,285 490,250 C488,225 490,205 498,195 Z';
-const SOLSTHEIM = 'M455,70 C470,40 520,28 555,40 C580,52 578,85 556,100 C530,115 485,112 465,98 C452,90 450,80 455,70 Z';
 
 // ---- camera: centre + width in map units; height follows the box's aspect ratio
 const MAP_W = 1000, MAP_H = 760;
@@ -69,7 +68,8 @@ function Outlook({ g, dest }: { g: GameState; dest: string }) {
   );
 }
 
-export function MapView({ g }: { g: GameState }) {
+/** `side`: where the destination list goes (the left column of the game screen); beside the map if not given. */
+export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }) {
   const act = useGame(s => s.act);
   const plan = useGame(s => s.plan); const setPlan = useGame(s => s.setPlan);
   const light = themeById(useGame(s => s.meta.settings.theme)).kind === 'light';
@@ -211,9 +211,43 @@ export function MapView({ g }: { g: GameState }) {
   }
   const selOpts = sel ? byDest.get(sel) ?? [] : [];
 
+  const destinations = (
+    <Section title="Destinations" right={<span className="text-xs text-ash-400">keys 1–9</span>}>
+      {plan && plan !== here && (
+        <div className="mb-2 p-2 rounded border border-ember text-sm">
+          <div className="text-gold">Route plan to {C.locs[plan].name}</div>
+          {planned ? <>
+            <div className="text-xs text-ash-400">{planned.path.map(id => C.locs[id].name).join(' → ')} · {planned.days * g.timeScale} days</div>
+            <div className="flex gap-2 mt-1.5"><button className="btn btn-ember" disabled={!!planned.legs[0].blocked} onClick={() => travel(planned.legs[0])}>Next stop: {C.locs[planned.path[1]].name}</button><button className="btn btn-ghost" onClick={() => setPlan(null)}>Cancel</button></div>
+          </> : <div className="text-xs text-danger">No way through right now. <button className="linkish" onClick={() => setPlan(null)}>Cancel plan</button></div>}
+        </div>
+      )}
+      <div className="max-h-[560px] overflow-auto scroll-thin pr-1">
+        {dests.map((d, i) => {
+          const best = d.options.find(o => !o.blocked) ?? d.options[0];
+          const warn = travelWarnings(g, d.id, best.days).length;
+          return (
+            <div key={d.id} className={`flex items-center gap-2 py-1.5 px-1 border-t border-ash-700 rounded transition-colors ${hover === d.id || sel === d.id ? 'bg-ash-800' : ''}`}
+              onMouseEnter={() => setHover(d.id)} onMouseLeave={() => setHover(h => (h === d.id ? null : h))}>
+              {i < 9 && <kbd className="num text-xs text-ash-400 w-3 text-center" aria-hidden="true">{i + 1}</kbd>}
+              <button className="flex-1 min-w-0 text-left" onClick={() => setSel(d.id)} title="Show on the map">
+                <span className="text-bone">{C.locs[d.id].name}</span>{warn > 0 && <span className="text-danger text-xs" title="See warnings on the map card"> ⚠</span>}
+                <span className="block text-xs text-ash-400">{MODE_LABEL[best.mode]}{d.options.length > 1 ? ` (+${d.options.length - 1} more)` : ''} · {best.days * g.timeScale}d · <Money v={best.fare} /> · {bars(best.risk)}</span>
+              </button>
+              <button className={`btn ${g.player.cash < best.fare ? '' : 'btn-ember'}`} disabled={!!best.blocked} onClick={() => travel(best)}>{g.player.cash < best.fare ? 'Work for passage' : 'Go'}</button>
+            </div>
+          );
+        })}
+        {!dests.length && <p className="text-sm text-ash-400">No road leaves this place.</p>}
+      </div>
+      <p className="text-xs text-ash-400 mt-3">Go takes the fastest way; click a name for every way there, prices and warnings. Fares include a charge for heavy cargo; sellswords make the road safer.</p>
+    </Section>
+  );
+
   return (
-    <div className="grid xl:grid-cols-[1fr_320px] gap-3">
+    <>
       <div className="panel p-2 flex flex-col gap-2 min-w-0">
+
         <div className="flex flex-wrap items-center gap-1 px-1 text-sm">
           <span className="text-ash-400 mr-2">You are in <span className="text-bone">{C.locs[here]?.name ?? 'the wilds'}</span></span>
           <div className="flex flex-wrap gap-1 ml-auto" role="group" aria-label="Map view">
@@ -233,23 +267,33 @@ export function MapView({ g }: { g: GameState }) {
               <filter id="rough"><feTurbulence baseFrequency=".02" numOctaves="3" result="t" /><feDisplacementMap in="SourceGraphic" in2="t" scale="6" /></filter>
             </defs>
             <rect x={-1000} y={-1000} width={3000} height={2760} fill="url(#sea)" />
+            <clipPath id="land-clip"><path d={MAINLAND} /></clipPath>
             <g filter="url(#rough)">
+              <g fill="none" style={{ stroke: 'color-mix(in oklab, var(--c-map-sea) 70%, white)' }} strokeOpacity=".55" strokeWidth={6 * Math.min(1, u * 1.5)}>
+                <path d={MAINLAND} /><path d={VVARDENFELL} /><path d={SOLSTHEIM} />{ISLES.map((d, i) => <path key={i} d={d} />)}
+              </g>
               <path d={MAINLAND} style={{ fill: 'var(--c-map-land)', stroke: 'var(--c-map-coast)' }} strokeWidth={1.5 * Math.min(1, u)} />
+              <path d={MORROWIND_REGION} clipPath="url(#land-clip)" style={{ fill: 'var(--c-map-island)' }} fillOpacity=".55" />
               <path d={VVARDENFELL} style={{ fill: erupted ? 'color-mix(in oklab, var(--c-map-island) 70%, #9a2a10)' : 'var(--c-map-island)', stroke: 'var(--c-map-coast)' }} strokeWidth={1.5 * Math.min(1, u)} />
               <path d={SOLSTHEIM} style={{ fill: 'color-mix(in oklab, var(--c-map-land) 80%, #c8d4dc)', stroke: 'var(--c-map-coast)' }} strokeWidth={1.5 * Math.min(1, u)} />
-              <ellipse cx="300" cy="470" rx="30" ry="19" style={{ fill: 'var(--c-map-sea)', stroke: 'var(--c-map-coast)' }} />
+              {ISLES.map((d, i) => <path key={i} d={d} style={{ fill: 'var(--c-map-island)', stroke: 'var(--c-map-coast)' }} strokeWidth={Math.min(1, u)} />)}
+              {LAKES.map((d, i) => <path key={i} d={d} style={{ fill: 'var(--c-map-sea)', stroke: 'var(--c-map-coast)' }} strokeWidth={Math.min(1, u)} />)}
+            </g>
+            {RIVERS.map((d, i) => <path key={i} d={d} fill="none" style={{ stroke: 'var(--c-map-sea)' }} strokeWidth={2.5 * Math.min(1, u * 1.5)} strokeLinecap="round" />)}
+            <g fill="none" style={{ stroke: 'var(--c-map-label)' }} strokeOpacity=".32" strokeWidth={Math.min(1.1, u * 1.2)} strokeLinecap="round" strokeLinejoin="round">
+              <path d={MOUNTAINS} /><path d={MARSH} strokeOpacity=".8" />
+              <path d={RED_MOUNTAIN.d} strokeOpacity=".7" strokeWidth={Math.min(2, u * 2)} />
             </g>
             <g style={{ stroke: 'var(--c-map-label)' }} strokeOpacity=".25" strokeDasharray={`${4 * u} ${6 * u}`} strokeWidth={u} fill="none">
-              <path d="M440,175 C445,240 440,300 452,340 C455,400 452,440 455,470" /><path d="M0,330 C150,345 300,335 452,340" />
-              <path d="M455,470 C560,455 660,445 770,465" /><path d="M455,470 C475,540 470,600 450,650" /><path d="M0,560 C150,575 280,600 395,642" />
+              {BORDERS.map((d, i) => <path key={i} d={d} />)}
             </g>
             <g className="h-display" style={{ fill: 'var(--c-map-label)' }} fillOpacity=".4" fontSize={Math.min(22, Math.max(12 * u, Math.min(30 * u, 22)))} letterSpacing={6 * Math.min(1, u)}>
-              <text x="150" y="250">SKYRIM</text><text x="120" y="420">CYRODIIL</text><text x="650" y="430">MORROWIND</text><text x="560" y="610">BLACK MARSH</text><text x="140" y="660">ELSWEYR</text>
+              <text x="150" y="250">SKYRIM</text><text x="110" y="440">CYRODIIL</text><text x="580" y="452" textAnchor="middle">MORROWIND</text><text x="590" y="642" textAnchor="middle">BLACK MARSH</text><text x="140" y="660">ELSWEYR</text>
             </g>
             <g className="fell" style={{ fill: 'var(--c-info)' }} fillOpacity=".8" fontSize={Math.min(17, Math.max(11 * u, 17 * Math.min(1, u)))} fontStyle="italic">
-              <text x="240" y="60">Sea of Ghosts</text><text x="555" y="356">Inner Sea</text><text x="390" y="705">Topal Bay</text><text x="548" y="194" style={{ fill: 'var(--c-map-label)' }}>Vvardenfell</text><text x="490" y="22" style={{ fill: 'var(--c-map-label)' }}>Solstheim</text>
+              <text x="240" y="60">Sea of Ghosts</text><text x="548" y="347">Inner Sea</text><text x="362" y="712">Topal Bay</text><text x="830" y="420">Padomaic Ocean</text><text x="524" y="178" style={{ fill: 'var(--c-map-label)' }}>Vvardenfell</text><text x="562" y="30" style={{ fill: 'var(--c-map-label)' }}>Solstheim</text>
             </g>
-            {erupted && <circle cx="568" cy="238" r="140" fill="url(#plume)"><animate attributeName="r" values="130;150;130" dur="6s" repeatCount="indefinite" /></circle>}
+            {erupted && <circle cx={RED_MOUNTAIN.x} cy={RED_MOUNTAIN.y} r="140" fill="url(#plume)"><animate attributeName="r" values="130;150;130" dur="6s" repeatCount="indefinite" /></circle>}
             {war && <ellipse cx="610" cy="470" rx="150" ry="70" fill="url(#hatch)" />}
             {C.routeList.map(r => {
               const ov = g.world.routes[r.id] ?? {};
@@ -341,37 +385,7 @@ export function MapView({ g }: { g: GameState }) {
           {(['strider', 'inner-sea', 'sea-of-ghosts', 'caravan', 'road', 'barge', 'guide'] as TravelMode[]).map(m => <span key={m} className="flex items-center gap-1"><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke={modeStyle(m, light).stroke} strokeDasharray={modeStyle(m, light).dash} strokeWidth="2.5" /></svg>{MODE_LABEL[m]}</span>)}
         </div>
       </div>
-
-      <Section title="Destinations" right={<span className="text-xs text-ash-400">keys 1–9</span>}>
-        {plan && plan !== here && (
-          <div className="mb-2 p-2 rounded border border-ember text-sm">
-            <div className="text-gold">Route plan to {C.locs[plan].name}</div>
-            {planned ? <>
-              <div className="text-xs text-ash-400">{planned.path.map(id => C.locs[id].name).join(' → ')} · {planned.days * g.timeScale} days</div>
-              <div className="flex gap-2 mt-1.5"><button className="btn btn-ember" disabled={!!planned.legs[0].blocked} onClick={() => travel(planned.legs[0])}>Next stop: {C.locs[planned.path[1]].name}</button><button className="btn btn-ghost" onClick={() => setPlan(null)}>Cancel</button></div>
-            </> : <div className="text-xs text-danger">No way through right now. <button className="linkish" onClick={() => setPlan(null)}>Cancel plan</button></div>}
-          </div>
-        )}
-        <div className="max-h-[560px] overflow-auto scroll-thin pr-1">
-          {dests.map((d, i) => {
-            const best = d.options.find(o => !o.blocked) ?? d.options[0];
-            const warn = travelWarnings(g, d.id, best.days).length;
-            return (
-              <div key={d.id} className={`flex items-center gap-2 py-1.5 px-1 border-t border-ash-700 rounded transition-colors ${hover === d.id || sel === d.id ? 'bg-ash-800' : ''}`}
-                onMouseEnter={() => setHover(d.id)} onMouseLeave={() => setHover(h => (h === d.id ? null : h))}>
-                {i < 9 && <kbd className="num text-xs text-ash-400 w-3 text-center" aria-hidden="true">{i + 1}</kbd>}
-                <button className="flex-1 min-w-0 text-left" onClick={() => setSel(d.id)} title="Show on the map">
-                  <span className="text-bone">{C.locs[d.id].name}</span>{warn > 0 && <span className="text-danger text-xs" title="See warnings on the map card"> ⚠</span>}
-                  <span className="block text-xs text-ash-400">{MODE_LABEL[best.mode]}{d.options.length > 1 ? ` (+${d.options.length - 1} more)` : ''} · {best.days * g.timeScale}d · <Money v={best.fare} /> · {bars(best.risk)}</span>
-                </button>
-                <button className={`btn ${g.player.cash < best.fare ? '' : 'btn-ember'}`} disabled={!!best.blocked} onClick={() => travel(best)}>{g.player.cash < best.fare ? 'Work for passage' : 'Go'}</button>
-              </div>
-            );
-          })}
-          {!dests.length && <p className="text-sm text-ash-400">No road leaves this place.</p>}
-        </div>
-        <p className="text-xs text-ash-400 mt-3">Go takes the fastest way; click a name for every way there, prices and warnings. Fares include a charge for heavy cargo; sellswords make the road safer.</p>
-      </Section>
-    </div>
+      {side ? createPortal(<motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>{destinations}</motion.div>, side) : <div className="mt-3">{destinations}</div>}
+    </>
   );
 }
