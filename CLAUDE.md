@@ -5,7 +5,8 @@ Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-comme
 
 > Version **0.9.3** (beta): the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
 > bump it there and add a `CHANGELOG.md` entry for each release. To publish: write `docs/releases/v<version>.md`,
-> then push the tag `v<version>`; `.github/workflows/release.yml` builds the offline ZIP and creates the release.
+> and push it (or push the tag `v<version>`); `.github/workflows/release.yml` builds the offline ZIP, creates the
+> tag and publishes the release (pre-release while the version is 0.x).
 > Status: **playable** (M1–M7 done). Red Year campaign + Long Chronicle; see README.md to play.
 > Design: `docs/GAME_DESIGN.md` · Lore + sources + dispute register: `docs/LORE_BIBLE.md` · raw notes: `docs/research/`.
 > The unrelated `bandcamp.html` at the repo root predates this project — leave it alone.
