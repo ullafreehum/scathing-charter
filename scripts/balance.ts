@@ -103,7 +103,7 @@ function plan(s: GameState, st: Strat): { travel: RouteOption; buys: Buy[] } | n
   const oracleFlee = st === 'oracle' && s.day >= ERUPT - 20 && s.day < ERUPT + 2;
   let best: { travel: RouteOption; buys: Buy[]; score: number } | null = null;
   for (const o of routeOptions(s)) {
-    if (o.blocked || o.fare > s.player.cash) continue;
+    if (o.fare > s.player.cash) continue;
     if (oracleFlee && ['vvardenfell', 'solstheim'].includes(C.locs[o.dest].region)) continue;
     const there = quotes(s, o.dest);
     let carry = 0;
@@ -161,7 +161,7 @@ function play(seed: string, st: Strat, difficulty: Difficulty): { s: GameState; 
       const c = s.contracts[0];
       if (c && (s.player.cargo[c.good]?.qty ?? 0) >= c.qty) {
         const hop = nextHop(s, c.destination);
-        const opt = hop && routeOptions(s).find(o => o.dest === hop && !o.blocked && o.fare <= s.player.cash);
+        const opt = hop && routeOptions(s).find(o => o.dest === hop && o.fare <= s.player.cash);
         if (opt) { s = act(s, { t: 'travel', route: opt.route.id, mode: opt.modeIndex }); continue; }
       }
     }
@@ -171,8 +171,8 @@ function play(seed: string, st: Strat, difficulty: Difficulty): { s: GameState; 
       const n = act(s, { t: 'travel', route: p.travel.route.id, mode: p.travel.modeIndex });
       s = n === s ? act(s, { t: 'wait', days: 1 }) : n;
     } else {
-      const affordable = routeOptions(s).filter(o => !o.blocked && o.fare <= s.player.cash);
-      const opts = affordable.length ? affordable : routeOptions(s).filter(o => !o.blocked);
+      const affordable = routeOptions(s).filter(o => o.fare <= s.player.cash);
+      const opts = affordable.length ? affordable : routeOptions(s);
       s = opts.length && (turn % 3 === 0 || !affordable.length) ? act(s, { t: 'travel', route: opts[turn % opts.length].route.id, mode: opts[turn % opts.length].modeIndex }) : act(s, { t: 'wait', days: 3 });
     }
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { C } from '../data';
-import { DEPTH, bulkBuyTotal, capacity, cargoWeight, maxBuyQty, DIFFICULTY, D, dateOf, formatDate, moons, Rng, hashSeed, newGame, step, replay, quotes, routeOptions, netWorth, migrate, serialize, deserialize, SCHEMA_VERSION, RED_YEAR_END, type Action, type GameState, type NewGameConfig } from './index';
+import { DEPTH, bulkBuyTotal, capacity, cargoWeight, maxBuyQty, DIFFICULTY, D, dateOf, formatDate, moons, Rng, hashSeed, newGame, step, replay, quotes, routeOptions, routeOptionsFrom, netWorth, migrate, serialize, deserialize, SCHEMA_VERSION, RED_YEAR_END, type Action, type GameState, type NewGameConfig } from './index';
 
 const CFG: NewGameConfig = { seed: 'test-seed', backgroundId: 'hlaalu-bastard', name: 'Tester', difficulty: 'tong' };
 function act(s: GameState, a: Action): GameState { const r = step(s, a); if (r.error) throw new Error(r.error); return r.state; }
@@ -61,6 +61,13 @@ describe('game', () => {
     s = act(s, { t: 'wait', days: 7 });
     expect(s.note.balance).toBeCloseTo(DIFFICULTY.tong.debt * Math.pow(1.003, 7), 3);
   });
+  it('lets a broke trader hire on for wages', () => {
+    let s = drain(newGame(CFG));
+    const cash = s.player.cash, day = s.day;
+    s = drain(act(s, { t: 'labour', job: C.jobs[s.player.location][0].id, days: 3 }));
+    expect(s.day).toBe(day + 3);
+    expect(s.player.cash).toBeGreaterThan(cash);
+  });
   it('replays identically from seed and action log', () => {
     let s = drain(newGame(CFG));
     for (let i = 0; i < 25 && !s.over; i++) {
@@ -68,7 +75,7 @@ describe('game', () => {
       if (s.pending) { s = act(s, { t: 'choose', choice: s.pending.choices[0] === 'bribe' ? 'flee' : s.pending.choices[0] }); continue; }
       const q = quotes(s, s.player.location).filter(x => x.buy !== null && x.buy < s.player.cash / 4);
       if (q.length) { const r = step(s, { t: 'buy', good: q[0].good, qty: 1 }); if (!r.error) s = r.state; }
-      const opts = routeOptions(s).filter(o => !o.blocked && o.fare <= s.player.cash);
+      const opts = routeOptions(s).filter(o => o.fare <= s.player.cash);
       if (opts.length) s = act(s, { t: 'travel', route: opts[i % opts.length].route.id, mode: opts[i % opts.length].modeIndex });
       else s = act(s, { t: 'wait', days: 3 });
     }
@@ -82,7 +89,7 @@ describe('game', () => {
     // fast-forward to the eruption
     while (s.day < D(5, 2, 3) && !s.over) s = act(drain(s), { t: 'wait', days: 7 });
     s = drain(s);
-    expect(s.world.status.vivec).toBe('closed');
+    expect(s.world.status.vivec).toBe('camp');
     expect(s.world.status.balmora === 'ruined' || s.world.status.balmora === 'rebuilding').toBe(true);
     expect(s.world.branches['hlaalu:balmora']).toBe('closed');
     expect(s.frozen.length + (s.deposits['hlaalu:narsis'] ?? 0) > 0 || s.over !== null).toBe(true);
@@ -91,12 +98,40 @@ describe('game', () => {
   it('a broke trader works their passage instead of being stranded', () => {
     let s = drain(newGame(CFG));
     s.player.cash = 0;
-    const o = routeOptions(s).find(x => !x.blocked)!;
+    const o = routeOptions(s)[0];
     const r = step(s, { t: 'travel', route: o.route.id, mode: o.modeIndex });
     expect(r.error).toBeUndefined();
     s = r.state;
-    expect(s.day).toBeGreaterThanOrEqual(o.days + 2);
+    expect(s.day).toBeGreaterThanOrEqual(Math.min(3, o.days + 1));
     expect(s.log.some(l => l.text.includes('work your passage'))).toBe(true);
+  });
+  it('caps every leg at three days', () => {
+    const s = drain(newGame(CFG));
+    for (const L of C.locList) expect(routeOptionsFrom(s, L.id).every(o => o.days <= 3)).toBe(true);
+  });
+  it('the Tong always lends, at a rising rate', () => {
+    let s = drain(newGame(CFG));
+    const rate = s.note.rate, debt = s.note.balance;
+    s = act(s, { t: 'borrow', amount: s.note.original * 5 });
+    expect(s.note.balance).toBe(debt + s.note.original * 5);
+    expect(s.note.rate).toBeGreaterThan(rate);
+  });
+  it('offers a crossroads at the end of the calendar, and keep trading plays on', () => {
+    let s = drain(newGame(CFG));
+    s = { ...s, day: s.endDay - 1 };
+    s = drain(act(s, { t: 'wait', days: 1 }));
+    expect(s.over?.reason).toBe('calendar');
+    s = act(s, { t: 'crossroads', choice: 'trade' });
+    expect(s.over).toBeNull();
+    expect(s.ending?.kind).toBe('trade');
+    s = drain(act(s, { t: 'wait', days: 7 }));
+    expect(s.over).toBeNull();
+  });
+  it('turns runaway Tong debt into indenture', () => {
+    let s = drain(newGame(CFG));
+    s = act(s, { t: 'borrow', amount: s.note.original * 6 });
+    s = drain(act(s, { t: 'wait', days: 1 }));
+    expect(s.indentured).toBe(true);
   });
   it('reports net worth including debt', () => { expect(netWorth(newGame(CFG))).toBe(DIFFICULTY.tong.cash - DIFFICULTY.tong.debt); });
 });
@@ -106,7 +141,7 @@ describe('long chronicle', () => {
     const s = newGame({ ...CFG, mode: 'long-chronicle' });
     expect(s.mode).toBe('long-chronicle'); expect(s.timeScale).toBe(7);
     expect(dateOf(s.day)).toMatchObject({ year: 7, monthName: 'Morning Star', dom: 1 });
-    expect(s.world.status.vivec).toBe('closed'); expect(s.world.status.mournhold).toBe('occupied');
+    expect(s.world.status.vivec).toBe('camp'); expect(s.world.status.mournhold).toBe('occupied');
     expect(s.note.seat).toBe('narsis');
   });
   it('weeks pass per day of travel and Ocato falls in c. 4E 15', () => {
@@ -146,7 +181,7 @@ describe('price book', () => {
     let s = drain(newGame(CFG));
     expect(s.seen.balmora.day).toBe(0);
     expect(Object.keys(s.seen.balmora.buy).length).toBeGreaterThan(5);
-    const opt = routeOptions(s).find(o => !o.blocked)!;
+    const opt = routeOptions(s)[0];
     s = act(s, { t: 'travel', route: opt.route.id, mode: opt.modeIndex });
     while (s.pending) s = act(s, { t: 'choose', choice: s.pending.choices.includes('pass') ? 'pass' : s.pending.choices[s.pending.choices.length - 1] });
     s = drain(s);

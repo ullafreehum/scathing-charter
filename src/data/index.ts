@@ -12,6 +12,7 @@ import { BOOKS } from './books';
 import { CHARTER } from './charter';
 import { FACTIONS, GEAR, BACKGROUNDS, ACHIEVEMENTS } from './misc';
 import { EXTRA_CODEX } from './codex';
+import { JOBS } from './jobs';
 
 const byId = <T extends { id: string }>(xs: readonly T[]) => Object.fromEntries(xs.map(x => [x.id, x])) as Record<string, T>;
 
@@ -33,7 +34,7 @@ function buildCodex(): Record<string, CodexEntry> {
 
 export const C = {
   goodList: GOODS, goods: byId<Good>(GOODS),
-  locList: LOCATIONS, locs: byId<Location>(LOCATIONS),
+  locList: LOCATIONS, locs: byId<Location>(LOCATIONS), jobs: JOBS,
   routeList: ROUTES, routes: byId<Route>(ROUTES),
   history: HISTORY as readonly HistoryEvent[],
   encounters: ENCOUNTERS as readonly EncounterDef[],

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { C } from '../data';
-import { branchKey, houseName, pressure, shortDate, type GameState, type House } from '../engine';
+import { DEPOSIT_RATE, branchKey, houseName, pressure, shortDate, type GameState, type House } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
@@ -82,7 +82,8 @@ export function Bank({ g }: { g: GameState }) {
   return (
     <div className="grid xl:grid-cols-2 gap-3">
       <Section title="Your debt (Camonna Tong)">
-        {n.cleared ? <p className="text-moss">Paid off. You owe the Camonna Tong nothing.</p> : (
+        {n.cleared ? <><p className="text-moss">Paid off. You owe the Camonna Tong nothing.</p>
+          {atTong && <div className="flex flex-wrap gap-2 mt-3 items-center"><input className="input w-28 num" type="number" min={1} value={pay} onChange={e => setPay(toInt(e.target.value))} aria-label="Loan amount" /><button className="btn btn-ghost" onClick={() => act({ t: 'borrow', amount: pay })}>Borrow again</button></div>}</> : (
           <>
             <p className="text-sm text-parchment">You owe <b>Gavas Drelloth</b> <Money v={n.balance} className="text-ember" />. Interest is {(n.rate * 100).toFixed(2)}% a day: about <Money v={n.balance * n.rate} /> a day right now. Last payment: {shortDate(n.lastPaymentDay)}.</p>
             <p className="text-sm mt-1">{pr === 0 ? 'The Tong is patient, for now.' : pr === 1 ? 'Drelloth is getting impatient. Pay something soon.' : pr === 2 ? 'Debt collectors are looking for you on the roads.' : 'The Tong has sent killers after you. Pay now.'}</p>
@@ -91,11 +92,13 @@ export function Bank({ g }: { g: GameState }) {
                 <input className="input w-28 num" type="number" min={1} value={pay} onChange={e => setPay(toInt(e.target.value))} aria-label="Payment amount" />
                 <button className="btn btn-ember" onClick={() => { if (act({ t: 'pay', amount: pay })) coinBurst('cash', 'debt', coinsFor(pay)); }}>Pay</button>
                 <button className="btn" disabled={payAll < 1} onClick={() => { if (act({ t: 'pay', amount: payAll })) coinBurst('cash', 'debt', coinsFor(payAll)); }}>Pay all you can (<Money v={payAll} />)</button>
-                {loc === n.seat && <button className="btn btn-ghost" onClick={() => act({ t: 'borrow', amount: pay })} title="Borrow the amount in the box. This raises your interest rate.">Borrow</button>}
+                <button className="btn btn-ghost" onClick={() => act({ t: 'borrow', amount: pay })} title="Borrow the amount in the box. Every loan raises your interest rate, and a bigger debt sends harder collectors.">Borrow</button>
               </div>
             ) : <p className="text-sm text-ash-400 mt-2">You can’t pay here. Pay in {places}.</p>}
           </>
         )}
+        {g.indentured && <p className="text-sm text-danger mt-2">You are indentured: no interest and no collectors, but the Tong takes 30% of every sale until the note is paid.</p>}
+        {!!g.milestones?.length && !g.indentured && <div className="mt-3 text-sm"><button className="btn btn-ember" onClick={() => { if (confirm('Retire now? The game ends here with your fortune as it stands.')) act({ t: 'retire' }); }}>Retire</button> <span className="text-ash-400 text-xs">End the game now and read your epilogue.</span></div>}
         <p className="text-xs text-ash-400 mt-3"><CodexLink id="faction:tong">About the Camonna Tong</CodexLink></p>
       </Section>
       {(['hlaalu', 'eec'] as House[]).map(h => {
@@ -125,7 +128,7 @@ export function Bank({ g }: { g: GameState }) {
                 </div>
               </div>
             ) : <p className="text-xs text-ash-400 mt-2">No branch of this bank here. You can only use money at the branch where you deposited it.</p>}
-            <p className="text-xs text-ash-400 mt-2">{h === 'hlaalu' ? 'Pays 0.03% interest a day. 1% fee to withdraw. Branches in Vvardenfell and southern Morrowind.' : 'No interest. 2% fee to withdraw. Branches in Imperial ports.'} A <CodexLink id="topic:writ-of-coin">transfer</CodexLink> moves money between branches of the same bank.</p>
+            <p className="text-xs text-ash-400 mt-2">Pays {(DEPOSIT_RATE[h] * 100).toFixed(2)}% interest a day; money in the bank is safe from robbers. {h === 'hlaalu' ? '1% fee to withdraw. Branches in Vvardenfell and southern Morrowind; they can be frozen in a crisis.' : 'Lower interest but steadier. 2% fee to withdraw. Branches in Imperial ports.'} A <CodexLink id="topic:writ-of-coin">transfer</CodexLink> moves money between branches of the same bank.</p>
           </Section>
         );
       })}

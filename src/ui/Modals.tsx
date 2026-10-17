@@ -5,6 +5,7 @@ import { useGame } from '../store/game';
 import { exportFile } from '../save/storage';
 import { CodexLink, Money, Sources } from './widgets';
 import { FortuneChart } from './FortuneChart';
+import { DuelScreen } from './Duel';
 
 const CHOICE: Record<string, { label: string; hint: (g: GameState) => string }> = {
   fight: { label: 'Fight', hint: g => `Your strength ${power(g).toFixed(1)} against their ${g.pending!.threat}.` },
@@ -40,7 +41,8 @@ export function Overlays() {
   if (!g) return null;
   const item = g.inbox[0];
   let node: React.ReactNode = null;
-  if (g.pending) {
+  if (g.duel) node = <Card key="duel" wide><DuelScreen d={g.duel} /></Card>;
+  else if (g.pending) {
     const p = g.pending;
     node = (
       <Card key="enc">
@@ -101,16 +103,40 @@ export function Overlays() {
   return <AnimatePresence mode="wait">{node}</AnimatePresence>;
 }
 
+/** A short epilogue from how the game was played. */
+function verdict(g: GameState): string {
+  const nw = g.ending?.worth ?? netWorth(g);
+  const lines: string[] = [];
+  if (g.indentured) lines.push('You die in the Tong’s service, still paying.');
+  else if (!g.note.cleared) lines.push('Drelloth’s men never stop looking for you.');
+  else lines.push(nw > 50000 ? 'You buy a manor in Ebonheart’s new quarter and never carry a crate again.' : nw > 10000 ? 'You open a counting-room in Narsis and lend to younger traders.' : 'You settle in a quiet house by the sea, owing no one.');
+  if (g.player.mercy >= 60) lines.push('Refugees name their children after you.');
+  else if (g.player.profiteering > 20000) lines.push('In the camps they still spit at your name.');
+  if (g.charter.tier >= 3) lines.push('Your share of the Charter pays out for decades.');
+  return lines.join(' ');
+}
+
 function EndScreen({ g }: { g: GameState }) {
   const { act, setScreen, meta } = useGame();
   const nw = netWorth(g);
   const canChronicle = g.over?.reason === 'calendar' && g.mode === 'red-year' && (meta.chronicleUnlocked || nw > 0);
   const history = g.log.filter(l => l.tone === 'history');
+  const crossroads = g.over?.reason === 'calendar' && !g.ending;
   return (
     <Card wide>
-      <div className="text-xs h-display uppercase text-ember">{g.over?.reason === 'death' ? 'You died' : g.mode === 'long-chronicle' ? 'Long Chronicle complete' : 'Campaign complete: the Red Year is over'}</div>
+      <div className="text-xs h-display uppercase text-ember">{g.over?.reason === 'death' ? 'You died' : g.over?.reason === 'retired' ? 'You retired' : g.mode === 'long-chronicle' ? 'Long Chronicle complete' : 'Campaign complete: the Red Year is over'}</div>
       <h2 className="h-display text-3xl text-bone">{g.player.name}, {wealthTitle(nw)}</h2>
       <p className="text-parchment">{formatDate(g.day)}{g.over?.reason === 'death' ? '. Your journey ended on the road.' : '.'}</p>
+      {g.ending && <p className="text-parchment mt-1">{verdict(g)}</p>}
+      {crossroads && <div className="panel p-3 mt-3 text-sm">
+        <div className="h-display text-xs uppercase text-gold mb-1">The crossroads: what now?</div>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn btn-ember" onClick={() => act({ t: 'crossroads', choice: 'retire' })} title="End here and read your epilogue">Retire</button>
+          <button className="btn" onClick={() => act({ t: 'crossroads', choice: 'trade' })} title="Keep playing with no end date; your score is recorded now">Keep trading</button>
+          <button className="btn" disabled={g.charter.tier < 2} onClick={() => act({ t: 'crossroads', choice: 'charter' })} title="Needs charter tier 2 or more: play on as a Charter-Holder">Take a Charter seat</button>
+          <button className="btn" onClick={() => act({ t: 'crossroads', choice: 'tong' })} title="Your debt is wiped; you play on as a Tong smuggler, watched by the Legion">Take the Tong’s mark</button>
+        </div>
+      </div>}
       {conductTitles(g).length > 0 && <p className="text-gold mt-1">{conductTitles(g).join(' · ')}</p>}
       <div className="grid sm:grid-cols-2 gap-3 mt-4">
         <div className="panel p-3 text-sm space-y-0.5">

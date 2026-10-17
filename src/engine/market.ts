@@ -14,6 +14,7 @@ const STATUS_MULT: Partial<Record<LocStatus, Partial<Record<GoodCategory, number
   besieged: { food: 1.9, medicine: 2.1, material: 1.3, luxury: 0.6 },
   sacked: { food: 2.0, medicine: 2.2, luxury: 0.45, magic: 0.6 },
   occupied: { food: 1.6, medicine: 1.7, luxury: 0.5 },
+  camp: { food: 2.0, medicine: 2.2, material: 1.6, drink: 1.3, luxury: 0.7, magic: 0.85 },
 };
 
 /** What buying `qty` at a unit price costs: each extra unit in one purchase pushes the price up a little.
