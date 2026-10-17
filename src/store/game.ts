@@ -27,6 +27,7 @@ interface Store {
   screen: Screen; game: GameState | null; error: string | null; errorTick: number;
   tab: Tab; codex: string | null | undefined; meta: Meta; settingsOpen: boolean;
   toasts: Toast[]; tradeQty: TradeQty; plan: string | null;
+  trip: { id: number; from: string; to: string; days: number } | null; clearTrip(): void;
   dismissToast(id: number): void; setTradeQty(q: TradeQty): void; setPlan(dest: string | null): void;
   setScreen(s: Screen): void; setTab(t: Tab): void;
   start(cfg: NewGameConfig): void; load(g: GameState): void; continueAuto(): boolean;
@@ -50,7 +51,7 @@ export const useGame = create<Store>()((set, get) => {
   const meta = loadMeta();
   setSound(meta.settings.sound); setVolume(meta.settings.volume);
   return {
-    screen: 'title', game: null, error: null, errorTick: 0, tab: 'market', codex: undefined, meta, settingsOpen: false, toasts: [], tradeQty: 1, plan: null,
+    screen: 'title', game: null, error: null, errorTick: 0, tab: 'market', codex: undefined, meta, settingsOpen: false, toasts: [], tradeQty: 1, plan: null, trip: null,
     setScreen: screen => set({ screen }),
     setTab: tab => { sfx.page(); set({ tab }); },
     start: cfg => { const g = newGame(cfg); saveGame(g); set({ game: g, screen: 'game', tab: 'market', error: null, toasts: [], plan: null }); },
@@ -69,7 +70,8 @@ export const useGame = create<Store>()((set, get) => {
       // Arriving somewhere new opens the Market: that is nearly always the next step.
       const arrived = n.player.location !== g.player.location && n.player.location !== 'road';
       for (const t of fresh) setTimeout(() => get().dismissToast(t.id), t.text.length > 120 ? 11000 : 7000);
-      set(s => ({ game: n, error: null, tab: arrived ? 'market' : s.tab, plan: s.plan === n.player.location ? null : s.plan, toasts: fresh.length ? [...s.toasts, ...fresh].slice(-3) : s.toasts }));
+      const trip = arrived && C.locs[g.player.location] ? { id: n.actions.length, from: g.player.location === 'road' ? (g.pending?.routeId.split('~').find(x => x !== n.player.location) ?? '') : g.player.location, to: n.player.location, days: n.day - g.day } : null;
+      set(s => ({ game: n, error: null, tab: arrived ? 'market' : s.tab, trip: trip ?? s.trip, plan: s.plan === n.player.location ? null : s.plan, toasts: fresh.length ? [...s.toasts, ...fresh].slice(-3) : s.toasts }));
       return true;
     },
     saveTo: slot => { const g = get().game; if (g) saveGame(g, slot); },
@@ -86,5 +88,6 @@ export const useGame = create<Store>()((set, get) => {
     dismissToast: id => set(s => ({ toasts: s.toasts.filter(t => t.id !== id) })),
     setTradeQty: q => set({ tradeQty: q }),
     setPlan: plan => set({ plan }),
+    clearTrip: () => set({ trip: null }),
   };
 });

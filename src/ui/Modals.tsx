@@ -4,6 +4,7 @@ import { choiceOdds, conductTitles, depositsTotal, cargoValue, formatDate, netWo
 import { useGame } from '../store/game';
 import { exportFile } from '../save/storage';
 import { CodexLink, Money, Sources } from './widgets';
+import { FortuneChart } from './FortuneChart';
 
 const CHOICE: Record<string, { label: string; hint: (g: GameState) => string }> = {
   fight: { label: 'Fight', hint: g => `Your strength ${power(g).toFixed(1)} against their ${g.pending!.threat}.` },
@@ -122,6 +123,7 @@ function EndScreen({ g }: { g: GameState }) {
           {history.map((h, i) => <div key={i} className="text-parchment">{h.text}</div>)}
         </div>
       </div>
+      <div className="panel p-3 mt-3"><div className="h-display text-xs uppercase text-ash-400 mb-1">Your fortune</div><FortuneChart g={g} height={140} /></div>
       <div className="text-sm mt-3">Achievements: {g.achievements.map(a => C.achievements.find(x => x.id === a)?.name).join(', ') || 'none'}</div>
       <div className="flex flex-wrap gap-2 mt-4">
         {canChronicle && <button className="btn btn-ember" onClick={() => act({ t: 'chronicle' })}>Continue into the Long Chronicle →</button>}

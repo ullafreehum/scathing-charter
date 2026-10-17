@@ -3,6 +3,7 @@ import { C } from '../data';
 import { branchKey, houseName, pressure, shortDate, type GameState, type House } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
+import { GoodIcon } from './GoodIcon';
 
 const toInt = (v: string) => Math.max(1, Math.floor(Number(v) || 1));
 
@@ -48,7 +49,7 @@ function CharterSection({ g }: { g: GameState }) {
             <div className="h-display text-xs uppercase text-ash-400 mb-1">Stored in {whName}</div>
             {!stored.length && <p className="text-xs text-ash-400">Nothing yet.</p>}
             {stored.map(([id, lot]) => (
-              <div key={id} className="flex items-center gap-2 text-sm py-0.5"><span className="flex-1">{C.goods[id].name} ×{lot.qty}</span>
+              <div key={id} className="flex items-center gap-2 text-sm py-0.5"><span className="flex-1"><GoodIcon id={id} category={C.goods[id].category} /> {C.goods[id].name} ×{lot.qty}</span>
                 <button className="btn btn-ghost py-0" disabled={!atWarehouse} onClick={() => act({ t: 'unstash', good: id, qty: lot.qty })}>Take all</button></div>
             ))}
           </div>
@@ -57,7 +58,7 @@ function CharterSection({ g }: { g: GameState }) {
             {!atWarehouse ? <p className="text-xs text-ash-400">You can store and collect goods only in {whName}. Stored goods do not spoil and count toward your net worth.</p>
               : !carried.length ? <p className="text-xs text-ash-400">You carry nothing.</p>
               : carried.map(([id, lot]) => (
-                <div key={id} className="flex items-center gap-2 text-sm py-0.5"><span className="flex-1">{C.goods[id].name} ×{lot.qty}</span>
+                <div key={id} className="flex items-center gap-2 text-sm py-0.5"><span className="flex-1"><GoodIcon id={id} category={C.goods[id].category} /> {C.goods[id].name} ×{lot.qty}</span>
                   <button className="btn py-0" disabled={ch.tier < 2} onClick={() => act({ t: 'stash', good: id, qty: lot.qty })}>Store all</button></div>
               ))}
           </div>

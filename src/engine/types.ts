@@ -207,6 +207,8 @@ export interface WorldState {
 export interface Stats {
   trades: number; profit: number; maxNetWorth: number; journeys: number; encounters: number;
   fightsWon: number; smuggled: number; visited: string[]; reliefDelivered: number; contractsDone: number;
+  /** [day, net worth] sampled weekly, for the fortune chart */
+  worth?: [number, number][];
 }
 
 export interface GameState {

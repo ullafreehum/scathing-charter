@@ -3,6 +3,7 @@ import { C } from '../data';
 import { capacity, cargoWeight, fairValue, quotes, holidayAt, marketOpen, satRecoveryDays, type GameState, type Quote } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
+import { GoodIcon } from './GoodIcon';
 import { ago, bestSeenSell } from './prices';
 
 const LEG: Record<string, { label: string; cls: string; tip: string }> = {
@@ -90,7 +91,7 @@ export function Market({ g }: { g: GameState }) {
                 return (
                   <tr key={q.good} className={`border-t border-ash-700 hover:bg-ash-800 ${lot ? 'bg-ash-800/60' : ''}`}>
                     <td className="py-1.5 pr-2">
-                      <CodexLink id={`good:${q.good}`} className="text-bone">{G.name}</CodexLink>
+                      <GoodIcon id={q.good} category={G.category} /> <CodexLink id={`good:${q.good}`} className="text-bone">{G.name}</CodexLink>
                       {l.label && <span title={l.tip} className={`ml-1 text-[.7rem] h-display uppercase ${l.cls}`}>{l.label}</span>}
                       {sat < 0.85 && <span className="ml-1 text-[.7rem] h-display uppercase text-danger" title={`So much has been sold here lately that the price is down. Back to normal in about ${satRecoveryDays(sat)} days.`}>Flooded · {satRecoveryDays(sat)}d</span>}
                       {sat > 1.2 && <span className="ml-1 text-[.7rem] h-display uppercase text-gold" title={`So much has been bought here lately that the price is up. Back to normal in about ${satRecoveryDays(sat)} days.`}>Bought out · {satRecoveryDays(sat)}d</span>}
@@ -117,7 +118,7 @@ export function Market({ g }: { g: GameState }) {
       </Section>
       {cargoGoods.length > 0 && (
         <Section title="In your cargo, but nobody here buys it">
-          <div className="flex flex-wrap gap-3 text-sm">{cargoGoods.map(id => <span key={id}><CodexLink id={`good:${id}`}>{C.goods[id].name}</CodexLink> ×{g.player.cargo[id].qty}</span>)}</div>
+          <div className="flex flex-wrap gap-3 text-sm">{cargoGoods.map(id => <span key={id}><GoodIcon id={id} category={C.goods[id].category} /> <CodexLink id={`good:${id}`}>{C.goods[id].name}</CodexLink> ×{g.player.cargo[id].qty}</span>)}</div>
         </Section>
       )}
     </div>

@@ -86,6 +86,7 @@ function startChronicle(s: GameState, fresh: boolean) {
 // ---------------------------------------------------------------- daily tick
 export function tickDay(s: GameState, rng: Rng): void {
   s.day++;
+  if (s.day % 7 === 0) (s.stats.worth ??= []).push([s.day, netWorth(s)]);
   if (!s.note.cleared) s.note.balance = s.note.balance * (1 + s.note.rate);
   for (const k of Object.keys(s.deposits)) if (k.startsWith('hlaalu:') && s.world.branches[k] === 'open') s.deposits[k] *= 1.0003;
   // wages
