@@ -1,0 +1,19 @@
+# One-off: re-point the release tags at the rewritten commits. Delete after it runs.
+name: Re-point release tags
+on:
+  push:
+    branches: [retag-tmp]
+permissions:
+  contents: write
+jobs:
+  retag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: |
+          git tag -f v0.9.3 b049f259f519f8d728d674b910fca932c642ae80
+          git tag -f v0.9.4 d5e7b33f278351d12ac8c57b3052ef888e84704a
+          git push -f origin refs/tags/v0.9.3 refs/tags/v0.9.4
+          git ls-remote --tags origin
