@@ -5,6 +5,7 @@
 // its tip, or does the element's long-press shortcut (`onLongPress`) instead. The click after a long-press is dropped,
 // so a long-press never buys, travels or plays.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { PHONE, buzz } from './phone';
 
 const DELAY = 350; // ms before the first tip shows
 const WARM = 500;  // ms after a tip closes during which the next one shows at once
@@ -13,9 +14,9 @@ const SLOP = 10;   // px a finger may drift and still count as a tap or a long-p
 const ACTIVE = 'button:not(:disabled), a[href], input, select, textarea, label, [role="button"], [role="tab"], [role="radio"], [role="link"]';
 
 /** Ref callback for a long-press shortcut on touch screens, e.g. `ref={onLongPress(() => buyMax())}`. */
-export const onLongPress = (fn: (el: HTMLElement) => void) => (el: HTMLElement | null) => {
+export const onLongPress = <E extends Element>(fn: (el: E) => void) => (el: E | null) => {
   if (!el) return;
-  const h = (e: Event) => { e.preventDefault(); fn(el); };
+  const h = (e: Event) => { if (e.defaultPrevented) return; e.preventDefault(); if (PHONE) buzz(); fn(el); }; // the innermost shortcut wins
   el.addEventListener('longpress', h);
   return () => el.removeEventListener('longpress', h);
 };

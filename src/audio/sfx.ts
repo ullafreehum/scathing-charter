@@ -96,3 +96,9 @@ export function startWind(intensity: number) {
   wind = { stop: () => src.stop(), gain: g, level };
 }
 export function stopWind() { try { wind?.stop(); } catch { /* already stopped */ } wind = null; }
+
+/** The phone app going to the background (or coming back): silence everything, then pick up where it was. */
+export function pauseAudio(paused: boolean) {
+  if (!ctx) return;
+  void (paused ? ctx.suspend() : ctx.resume()).catch(() => { /* context closed */ });
+}

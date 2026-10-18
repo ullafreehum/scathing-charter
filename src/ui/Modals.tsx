@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { noContest } from './phone';
 import { useEffect, useRef } from 'react';
 import { C } from '../data';
 import { cardOptions, conductTitles, depositsTotal, cargoValue, formatDate, netWorth, wealthTitle, type GameState } from '../engine';
@@ -78,7 +79,7 @@ export function Overlays() {
           {cardOptions(g).map(o => (
             <button key={o.id} className="btn justify-start text-left py-2" disabled={!!o.disabled} title={o.disabled} aria-label={`${o.label}${o.odds !== undefined ? `, ${Math.round(o.odds * 100)}% chance` : ''}. ${o.disabled ?? o.stake}`} onClick={() => act({ t: 'choose', choice: o.id })}>
               <span className="flex w-full items-start gap-2 normal-case tracking-normal font-body">
-                <span className="flex flex-col items-start flex-1"><span className="h-display uppercase tracking-wider text-[.8rem]">{o.label}</span><span className="hint text-xs font-body">{o.disabled ?? o.stake}</span></span>
+                <span className="flex flex-col items-start flex-1"><span className="h-display uppercase tracking-wider text-[.8rem]">{o.label}</span><span className="hint text-xs font-body">{o.disabled ?? noContest(o.stake)}</span></span>
                 {o.odds !== undefined && <b className="text-sm text-bone tabular-nums">{Math.round(o.odds * 100)}%</b>}
               </span>
             </button>
@@ -113,7 +114,7 @@ export function Overlays() {
         {items.map((it, i) => (
           <div key={i} className={i ? 'border-t border-ash-600 pt-3 mt-3' : ''}>
             <h2 className="h-display text-xl text-bone mb-2">{it.title}</h2>
-            <p className="fell text-lg text-parchment whitespace-pre-line">{it.text}</p>
+            <p className="fell text-lg text-parchment whitespace-pre-line">{noContest(it.text)}</p>
           </div>
         ))}
         <ContinueButton className="btn btn-ember mt-4" onClick={() => act({ t: 'ack', n: items.length })} />
