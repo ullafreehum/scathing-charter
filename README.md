@@ -23,6 +23,8 @@ Welcome, outlander. There are two ways in, and both are free:
 New here? Pick **Easy (Fair Terms)** for your first game, and read [Your first five minutes](#-your-first-five-minutes)
 below. Want a taste first? **Card duel (practice)** on the title screen plays the magistrate's card hearing on its own.
 
+Curious about the look of the world? Leaf through the art book, **[Art of the Red Year](docs/artbook/scathing-charter-artbook.pdf)** (PDF).
+
 > Unofficial, non-commercial fan game. *The Elder Scrolls* is a trademark of ZeniMax Media / Bethesda
 > Softworks. This project is not affiliated with or endorsed by them.
 

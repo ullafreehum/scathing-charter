@@ -8,12 +8,15 @@ import { DUEL, DUEL_CARD, RES_NAME, canPlay, type DuelEvent, type DuelSide, type
 
 const ART = {
   ...import.meta.glob<string>('../assets/duel/*.svg', { eager: true, query: '?url', import: 'default' }),
+  ...import.meta.glob<string>('../assets/duel/*.png', { eager: true, query: '?url', import: 'default' }),
   ...import.meta.glob<string>('../assets/duel/cards/*.svg', { eager: true, query: '?url', import: 'default' }),
   ...import.meta.glob<string>('../assets/duel/cards-painted/*.jpg', { eager: true, query: '?url', import: 'default' }),
 };
-const keyOf = (path: string) => (path.includes('/cards-painted/') ? 'paint-' : path.includes('/cards/') ? 'art-' : '') + path.split('/').pop()!.replace(/\.(svg|jpg)$/, '');
+const keyOf = (path: string) => (path.includes('/cards-painted/') ? 'paint-' : path.includes('/cards/') ? 'art-' : '') + path.split('/').pop()!.replace(/\.(svg|jpg|png)$/, '');
 
 const W = 1280, H = 720, GROUND = 462, TRAY = 500, CARD_W = 240, CARD_H = 340;
+/** The picture window in card-frame.svg (the paintings are twice this size). */
+const ART_WIN = { x: 12, y: 44, w: 216, h: 176 } as const;
 const C = { text: 0xf3ebdb, muted: 0xd6c8b4, gold: 0xefc86f, good: 0xa6d884, bad: 0xff8576 };
 const RES: readonly Res[] = ['stone', 'steel', 'magicka'];
 const GEN = { stone: 'masons', steel: 'soldiers', magicka: 'mages' } as const;
@@ -23,14 +26,17 @@ const BODY = "'Atkinson Hyperlegible', 'Segoe UI', Verdana, sans-serif", DISPLAY
 type Who = 'you' | 'foe';
 type Field = 'tower' | 'wall';
 
-// Textures are rasterised once (SVGs at twice their size, sharp at 4K; paintings already are) and kept for later hearings.
+// Textures are made once and kept for later hearings: SVG icons rasterised at twice their size (sharp at 4K); the paintings
+// and the tower and wall PNGs are already at display size and load as they are.
 const TEX: Record<string, PIXI.Texture> = {};
 let loading: Promise<void> | null = null;
 function loadTextures(): Promise<void> {
   return (loading ??= Promise.all(Object.entries(ART).map(([path, url]) => new Promise<void>(res => {
+    if (/\/(spire|ward)\.svg$/.test(path)) { res(); return; } // the board draws the PNGs
     const img = new Image();
     img.onload = () => {
-      const x = path.endsWith('.svg') ? 2 : 1, cv = document.createElement('canvas'); cv.width = img.width * x; cv.height = img.height * x;
+      if (!path.endsWith('.svg')) { TEX[keyOf(path)] = PIXI.Texture.from(img); res(); return; }
+      const x = 2, cv = document.createElement('canvas'); cv.width = img.width * x; cv.height = img.height * x;
       cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height); TEX[keyOf(path)] = PIXI.Texture.from(cv); res();
     };
     img.onerror = () => res(); img.src = url;
@@ -73,7 +79,7 @@ export class DuelBoard {
   private speed: number;
   private lift: ((on: boolean) => void)[] = [];
   private ro: ResizeObserver;
-  private v!: { yS: Tower; yW: Tower; fS: Tower; fW: Tower; yP: Panel; fP: Panel; circle: PIXI.Container; hand: PIXI.Container; stageCard: PIXI.Container; bannerBg: PIXI.Graphics; bannerText: PIXI.Text; log: PIXI.Text; logBg: PIXI.Graphics };
+  private v!: { yS: Tower; yW: Tower; fS: Tower; fW: Tower; yP: Panel; fP: Panel; circle: PIXI.Container; hand: PIXI.Container; preview: PIXI.Container; stageCard: PIXI.Container; bannerBg: PIXI.Graphics; bannerText: PIXI.Text; log: PIXI.Text; logBg: PIXI.Graphics };
 
   private constructor(host: HTMLElement, private opts: BoardOptions) {
     this.speed = opts.motion ? 0.4 : 0;
@@ -178,7 +184,9 @@ export class DuelBoard {
     const hue = side === 'you' ? C.gold : 0xd8452f; // gold for you, Imperial red for the rival
     const isSpire = kind === 'spire', tw = isSpire ? 104 : 64, th = isSpire ? 410 : 240, crown = isSpire ? 100 : 24;
     const box = new PIXI.Container(); box.x = x;
-    const body = new PIXI.Container(), spr = sprite(kind, tw, th); spr.x = -tw / 2; body.addChild(spr);
+    const body = new PIXI.Container();
+    if (TEX[kind]) { const spr = sprite(kind, tw, th); spr.x = -tw / 2; body.addChild(spr); }
+    else body.addChild(new PIXI.Graphics().beginFill(0x4d3d34).drawRect(-tw / 2, 0, tw, th).endFill().lineStyle(3, C.gold).moveTo(-tw / 2, 2).lineTo(tw / 2, 2)); // no texture: plain stone, never a blank box
     const cracks = new PIXI.Graphics(); body.addChild(cracks);
     const flash = new PIXI.Graphics(); flash.beginFill(0xff6040).drawRect(-tw / 2, 0, tw, th).endFill(); flash.alpha = 0; body.addChild(flash);
     const mask = new PIXI.Graphics(); mask.beginFill(0xffffff).drawRect(-tw, GROUND - th - 60, tw * 2, th + 60).endFill();
@@ -233,32 +241,35 @@ export class DuelBoard {
   // ---------------------------------------------------------------- cards
   private makeCard(id: string, compact = false) {
     const k = DUEL_CARD[id], g = new PIXI.Container();
-    const art = sprite(artKey(id), 192, 132); art.position.set(24, 52); g.addChild(art);
+    const art = sprite(artKey(id), ART_WIN.w, ART_WIN.h); art.position.set(ART_WIN.x, ART_WIN.y); g.addChild(art);
     g.addChild(sprite('card-frame', CARD_W, CARD_H));
-    const nameSize = compact ? 26 : 22;
-    const name = txt(k.name, { fontSize: nameSize, fontWeight: '700', fill: 0xfbe7b0, stroke: 0x1a0705, strokeThickness: 4, align: 'center', wordWrap: true, wordWrapWidth: 160, lineHeight: nameSize });
-    name.anchor.set(0.5, 0.5); name.position.set(140, name.height > nameSize * 1.5 ? 38 : 33);
-    if (name.width > 164) name.scale.set(164 / name.width); g.addChild(name);
+    // The name: one line in the title band (y 10–40), shrunk to fit beside the cost badge.
+    const name = txt(k.name, { fontSize: compact ? 24 : 22, fontWeight: '700', fill: 0xfbe7b0, stroke: 0x1a0705, strokeThickness: 4 });
+    name.anchor.set(0.5, 0.5); name.position.set(140, 25);
+    if (name.width > 168) name.scale.set(168 / name.width); g.addChild(name);
     const icon = sprite(ICON[k.res], 64, 64); icon.position.set(-10, -10); g.addChild(icon);
     const cost = txt(String(k.cost), { fontSize: 32, fontWeight: '700', fill: 0xffffff, stroke: 0x000000, strokeThickness: 7 }); cost.anchor.set(0.5); cost.position.set(22, 22); g.addChild(cost);
-    // Rule text: dark ink on the parchment plate (y 196–306), one size on every card; the big card adds the flavour line.
-    const eff = txt(k.text, { fontSize: compact ? 27 : 23, fontWeight: '700', fill: 0x1a0f08, align: 'center', wordWrap: true, wordWrapWidth: 184, lineHeight: compact ? 30 : 26 });
-    eff.anchor.set(0.5, 0); g.addChild(eff);
-    if (compact) eff.position.set(120, 251 - eff.height / 2);
-    else {
-      const rule = new PIXI.Graphics(); g.addChild(rule);
-      const fl = txt(k.flavour, { fontSize: 16, fontStyle: 'italic', fill: 0x3e2d1c, align: 'center', wordWrap: true, wordWrapWidth: 176, lineHeight: 19 }); fl.anchor.set(0.5, 0); g.addChild(fl);
-      const top = 251 - (eff.height + 13 + fl.height) / 2; eff.position.set(120, top); fl.position.set(120, top + eff.height + 13);
-      rule.lineStyle(1, 0x8a6a3a, 0.8).moveTo(96, top + eff.height + 6).lineTo(144, top + eff.height + 6);
+    // Rule text: dark ink on the parchment plate (y 226–316), up to three lines.
+    const eff = txt(k.text, { fontSize: compact ? 26 : 22, fontWeight: '700', fill: 0x1a0f08, align: 'center', wordWrap: true, wordWrapWidth: 196, lineHeight: compact ? 28 : 24 });
+    eff.anchor.set(0.5, 0.5); eff.position.set(120, 271);
+    if (eff.height > 88) eff.scale.set(88 / eff.height); g.addChild(eff);
+    if (!compact) {
+      // The big card's flavour sits on the foot of the picture, over a dark fade.
+      const fade = new PIXI.Graphics();
+      for (let i = 0; i < 20; i++) fade.beginFill(0x0f0c0b, 0.85 * (i + 1) / 20).drawRect(ART_WIN.x, 180 + i * 2, ART_WIN.w, 2).endFill();
+      const fl = txt(k.flavour, { fontSize: 16, fontStyle: 'italic', fill: 0xf0e2c0, align: 'center', wordWrap: true, wordWrapWidth: 200, lineHeight: 18 });
+      fl.anchor.set(0.5, 0.5); fl.position.set(120, 200); if (fl.height > 36) fl.scale.set(36 / fl.height);
+      g.addChildAt(fade, 1); g.addChildAt(fl, 2);
     }
     return g;
   }
   // Unaffordable: the art goes grey and dark, and a strip at its foot says what is missing.
   private needBadge(id: string) {
     const k = DUEL_CARD[id], g = new PIXI.Container(), short = k.cost - this.duel.you[k.res];
-    const strip = new PIXI.Graphics(); strip.beginFill(0x3a0c07, 0.92).drawRect(24, 142, 192, 42).endFill().lineStyle(2, 0xff8576, 0.95).moveTo(24, 142).lineTo(216, 142); g.addChild(strip);
+    const x0 = ART_WIN.x, x1 = ART_WIN.x + ART_WIN.w, y0 = ART_WIN.y + ART_WIN.h - 42;
+    const strip = new PIXI.Graphics(); strip.beginFill(0x3a0c07, 0.92).drawRect(x0, y0, ART_WIN.w, 42).endFill().lineStyle(2, 0xff8576, 0.95).moveTo(x0, y0).lineTo(x1, y0); g.addChild(strip);
     const ic = sprite(ICON[k.res], 34, 34); ic.anchor.set(0.5); g.addChild(ic);
-    const t = txt(`Need ${short} more`, { fontSize: 29, fontWeight: '700', fill: 0xffe1d9 }); t.anchor.set(0, 0.5); t.position.set(120 - (t.width - 40) / 2, 163); ic.position.set(t.x - 22, 163);
+    const t = txt(`Need ${short} more`, { fontSize: 29, fontWeight: '700', fill: 0xffe1d9 }); t.anchor.set(0, 0.5); t.position.set(120 - (t.width - 40) / 2, y0 + 21); ic.position.set(t.x - 22, y0 + 21);
     if (t.width > 184) t.scale.set(184 / t.width); g.addChild(t); return g;
   }
 
@@ -293,21 +304,21 @@ export class DuelBoard {
     cg.beginFill(0xff5a14, 0.25).drawEllipse(0, 70, 120, 30).endFill(); circle.addChild(cg);
     const banner = new PIXI.Container(); banner.position.set(W / 2, 22);
     const bannerBg = new PIXI.Graphics(); banner.addChild(bannerBg);
-    const bannerText = txt('', { fontFamily: DISPLAY, fontSize: 23, fontWeight: '700' }); bannerText.anchor.set(0.5, 0); bannerText.y = 6; banner.addChild(bannerText);
+    const bannerText = txt('', { fontFamily: DISPLAY, fontSize: 23, fontWeight: '700' }); bannerText.anchor.set(0.5, 0.5); bannerText.y = 20; banner.addChild(bannerText);
     const log = txt('', { fontSize: 19, align: 'center', wordWrap: true, wordWrapWidth: 520, lineHeight: 24, stroke: 0x0f0c0b, strokeThickness: 4 }); log.anchor.set(0.5, 0); log.y = 50;
     const logBg = new PIXI.Graphics(); banner.addChild(logBg, log);
     this.v = {
       yS: this.makeTower('spire', 340, 'you'), yW: this.makeTower('ward', 462, 'you'), fS: this.makeTower('spire', W - 340, 'foe'), fW: this.makeTower('ward', W - 462, 'foe'),
-      yP: this.resPanel(16, 'you'), fP: this.resPanel(W - 266, 'foe'), circle, hand: new PIXI.Container(), stageCard: new PIXI.Container(), bannerBg, bannerText, log, logBg,
+      yP: this.resPanel(16, 'you'), fP: this.resPanel(W - 266, 'foe'), circle, hand: new PIXI.Container(), preview: Object.assign(new PIXI.Container(), { eventMode: 'none' as const }), stageCard: new PIXI.Container(), bannerBg, bannerText, log, logBg,
     };
     for (const t of [this.v.yS, this.v.yW, this.v.fS, this.v.fW]) root.addChild(t.box);
-    root.addChild(circle, this.v.yP.node, this.v.fP.node, banner, this.v.stageCard, this.v.hand, this.fx, this.floats);
+    root.addChild(circle, this.v.yP.node, this.v.fP.node, banner, this.v.stageCard, this.v.hand, this.v.preview, this.fx, this.floats);
   }
   private setTurn(who: Who | 'end', line?: string) {
     const t = this.v.bannerText, col = who === 'end' ? C.gold : who === 'you' ? C.good : C.bad;
     t.text = who === 'end' ? line ?? '' : who === 'you' ? 'Your turn' : 'Rival’s turn';
     t.style.fill = col;
-    this.v.bannerBg.clear().beginFill(0x0f0c0b, 0.8).lineStyle(1, col).drawRoundedRect(-t.width / 2 - 18, 0, t.width + 36, 38, 19).endFill();
+    this.v.bannerBg.clear().beginFill(0x0f0c0b, 0.8).lineStyle(1, col).drawRoundedRect(-t.width / 2 - 20, 0, t.width + 40, 40, 20).endFill();
     if (line !== undefined && who !== 'end') { this.history.unshift(line); this.history.length = Math.min(this.history.length, 3); }
     this.setLog();
   }
@@ -321,15 +332,24 @@ export class DuelBoard {
     for (const [t, side, f] of [[this.v.yS, 'you', 'tower'], [this.v.yW, 'you', 'wall'], [this.v.fS, 'foe', 'tower'], [this.v.fW, 'foe', 'wall']] as [Tower, Who, Field][]) { t.shown = s[side][f]; t.render(); }
     this.v.yP.update(s.you); this.v.fP.update(s.foe);
   }
+  private clearPreview() { for (const c of this.v.preview.removeChildren()) c.destroy({ children: true }); }
   private layoutHand() {
-    const hand = this.v.hand; hand.removeChildren(); this.lift = [];
+    const hand = this.v.hand; hand.removeChildren(); this.lift = []; this.clearPreview();
     const sc = 0.6, gap = 7, w = CARD_W * sc, x0 = (W - (DUEL.hand * w + (DUEL.hand - 1) * gap)) / 2;
     this.duel.you.hand.forEach((id, i) => {
       const card = this.makeCard(id, true); card.scale.set(sc); card.x = x0 + i * (w + gap); card.y = H - CARD_H * sc - 8;
       const baseY = card.y;
       card.eventMode = 'static'; card.cursor = 'pointer';
       const glow = new PIXI.Graphics(); glow.lineStyle(6, C.gold, 0.9).drawRoundedRect(-2, -2, CARD_W + 4, CARD_H + 4, 14); glow.visible = false; card.addChild(glow);
-      const lift = (on: boolean) => { on = on && !this.busy; card.y = on ? baseY - 14 : baseY; glow.visible = on; };
+      const lift = (on: boolean) => {
+        on = on && !this.busy; card.y = on ? baseY - 14 : baseY; glow.visible = on;
+        // The card big, just above the tray, so its picture and text can be read.
+        const pv = this.v.preview; this.clearPreview();
+        if (!on) return;
+        const big = this.makeCard(id), s = 0.9; big.scale.set(s);
+        big.x = Math.max(8, Math.min(W - CARD_W * s - 8, card.x + (w - CARD_W * s) / 2)); big.y = baseY - 14 - CARD_H * s - 10;
+        pv.addChild(big);
+      };
       this.lift.push(lift);
       card.on('pointerover', () => lift(true));
       card.on('pointerout', () => lift(false));
@@ -369,7 +389,7 @@ export class DuelBoard {
       if (k.kind === 'summon') {
         // The Daedra rises from the circle and strikes the other side.
         const circle = this.v.circle; circle.alpha = 0; await this.tween(circle, { alpha: 1 }, 200);
-        const d = sprite(artKey(ev.id), 192, 132); d.anchor.set(0.5); d.position.set(W / 2, 400); d.scale.set(0.1); this.root.addChildAt(d, this.root.getChildIndex(this.v.stageCard));
+        const d = sprite(artKey(ev.id), ART_WIN.w, ART_WIN.h); d.anchor.set(0.5); d.position.set(W / 2, 400); d.scale.set(0.1); this.root.addChildAt(d, this.root.getChildIndex(this.v.stageCard));
         const oval = new PIXI.Graphics(); oval.beginFill(0xffffff).drawEllipse(0, 0, d.texture.width * 0.4, d.texture.height * 0.48).endFill(); d.addChild(oval); d.mask = oval; // an oval portrait
         this.burst(W / 2, 400, 18, 'spark');
         await this.tween(d.scale, { x: 0.9, y: 0.9 }, 320);
@@ -404,7 +424,7 @@ export class DuelBoard {
       const k = DUEL_CARD[id]; this.setLog(`${k.name} costs ${k.cost} ${RES_NAME[k.res]}; you have ${this.duel.you[k.res]}.`);
       void this.shake(node, 5); return;
     }
-    this.busy = true; node.visible = false;
+    this.busy = true; node.visible = false; this.clearPreview();
     const discard = this.discard;
     if (discard) { this.discard = false; this.opts.discardOff(); }
     const next = this.opts.pick(i, discard); // the engine decides; the board only plays it back

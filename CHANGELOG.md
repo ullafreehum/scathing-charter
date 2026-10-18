@@ -4,6 +4,12 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.10.1 (beta): a bigger hearing
+- The card hearing fills the screen, and the pictures on the cards are half again as big. Hovering (or focusing) a card in your hand shows it full size.
+- Twelve new card pictures and a new card frame (Sorcerer's v2 set).
+- Card names stay on one line inside their band; "Your turn" sits centred in its banner.
+- Towers and walls load as plain images (no more black walls on some graphics cards), and draw as plain stone if an image is missing.
+
 ## 0.10.0 (beta): the focus release
 One goal, one choice per trip, and a Red Year you can see on the map. Now a Windows app.
 
