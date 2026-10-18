@@ -14,6 +14,8 @@ and the Long Chronicle.
 - Hold Shift in the market: the Buy and Sell of the row under the cursor (or the last row it was on) become Buy max and Sell max.
 - Hover the Bank figure in the top bar, or a strongbox on the Bank tab, to see its rate, what your money earns a day and the interest earned so far.
 - An Exit button on the title screen of the Windows app.
+- Music: "Ash & Ebony", a procedural score (Settings → Sound → Music, off by default). It darkens once Baar Dau falls and quickens during card duels.
+- Economy: restricted goods sold on the black market drop in price faster, an informer's fine also raises your heat, flooded markets recover faster, and the Scathing Charter costs 90,000.
 
 ## 0.10.0 (beta): the focus release
 One goal, one choice per trip, and a Red Year you can see on the map. Now a Windows app.

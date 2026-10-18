@@ -17,7 +17,7 @@ import { Toasts } from './Toasts';
 import { TravelBanner } from './TravelBanner';
 import { FxLayer, NightDip } from './fx';
 import { applyAppearance, themeById } from './themes';
-import { startWind, stopWind } from '../audio/sfx';
+import { setMusicMood, startWind, stopWind } from '../audio/sfx';
 
 function ashIntensity(day: number, region: string | undefined): number {
   let i = day < ERUPTION_DAY ? 0.12 + 0.75 * (day / ERUPTION_DAY) ** 2 : Math.max(0.55, 1.4 - (day - ERUPTION_DAY) / 400);
@@ -40,6 +40,8 @@ export function App() {
   useEffect(() => {
     if (screen === 'game' && st.sound) startWind(intensity); else stopWind();
   }, [screen, intensity, st.sound]);
+  const mood = screen === 'duel' || (screen === 'game' && game?.duel) ? 2 : ember ? 1 : 0;
+  useEffect(() => { setMusicMood(mood); }, [mood]);
   useEffect(() => { if (!error) return; const t = setTimeout(clearError, 3500); return () => clearTimeout(t); }, [error, errorTick, clearError]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

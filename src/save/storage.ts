@@ -4,8 +4,8 @@ import { deserialize, serialize, type GameState } from '../engine';
 const KEY = 'ashfall-ledger';
 export type Slot = 'auto' | '1' | '2' | '3';
 export interface Meta { chronicleUnlocked: boolean; achievements: string[]; bestNetWorth: number; settings: Settings }
-export interface Settings { sound: boolean; volume: number; theme: string; font: string; textScale: number; ash: boolean; animations: boolean; hints: boolean }
-export const DEFAULT_SETTINGS: Settings = { sound: true, volume: 0.8, theme: 'ashlands', font: 'clear', textScale: 1, ash: true, animations: true, hints: true };
+export interface Settings { sound: boolean; volume: number; theme: string; font: string; textScale: number; ash: boolean; animations: boolean; hints: boolean; music: boolean }
+export const DEFAULT_SETTINGS: Settings = { sound: true, volume: 0.8, theme: 'ashlands', font: 'clear', textScale: 1, ash: true, animations: true, hints: true, music: false };
 const DEFAULT_META: Meta = { chronicleUnlocked: false, achievements: [], bestNetWorth: 0, settings: DEFAULT_SETTINGS };
 
 /** Fill in missing settings and migrate the old {motion, largeText} switches. */
@@ -20,6 +20,7 @@ export function normalizeSettings(s: Partial<Settings> & { motion?: boolean; lar
     ash: s.ash ?? s.motion ?? true,
     animations: s.animations ?? s.motion ?? true,
     hints: s.hints ?? true,
+    music: s.music ?? false,
   };
 }
 

@@ -42,6 +42,7 @@ export function Settings() {
               value={Math.round(s.volume * 100)} onChange={e => setSettings({ volume: Number(e.target.value) / 100 })} />
             <span className="num w-12 text-right">{Math.round(s.volume * 100)}%</span>
           </label>
+          <label className={`flex items-center gap-2 mt-2 ${s.sound ? '' : 'opacity-50'}`}><input type="checkbox" checked={s.music} disabled={!s.sound} onChange={e => setSettings({ music: e.target.checked })} />Music</label>
         </Group>
 
         <Group title="Colour theme" note="Each theme takes its colours from a region of Vvardenfell. All of them are tested for comfortable reading contrast.">

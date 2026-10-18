@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { C } from '../data';
 import { newGame, step, netWorth, type Action, type GameState, type NewGameConfig } from '../engine';
 import { DEFAULT_SETTINGS, loadGame, loadMeta, normalizeSettings, saveGame, saveMeta, type Meta, type Settings, type Slot } from '../save/storage';
-import { sfx, setSound, setVolume } from '../audio/sfx';
+import { sfx, setMusic, setSound, setVolume } from '../audio/sfx';
 
 export type Screen = 'title' | 'new' | 'game' | 'duel';
 export type Tab = 'market' | 'map' | 'bank' | 'tavern' | 'outfitter' | 'ledger';
@@ -56,7 +56,7 @@ function recordMeta(get: () => Store, set: (p: Partial<Store>) => void, g: GameS
 
 export const useGame = create<Store>()((set, get) => {
   const meta = loadMeta();
-  setSound(meta.settings.sound); setVolume(meta.settings.volume);
+  setSound(meta.settings.sound); setVolume(meta.settings.volume); setMusic(meta.settings.music);
   return {
     screen: 'title', game: null, error: null, errorTick: 0, tab: 'market', codex: undefined, meta, settingsOpen: false, undo: [], toasts: [], tradeQty: 1, plan: null, trip: null, tick: null, ask: null,
     setScreen: screen => set({ screen }),
@@ -93,7 +93,7 @@ export const useGame = create<Store>()((set, get) => {
     closeCodex: () => set({ codex: undefined }),
     setSettings: p => {
       const meta = { ...get().meta, settings: normalizeSettings({ ...get().meta.settings, ...p }) };
-      setSound(meta.settings.sound); setVolume(meta.settings.volume); saveMeta(meta); set({ meta });
+      setSound(meta.settings.sound); setVolume(meta.settings.volume); setMusic(meta.settings.music); saveMeta(meta); set({ meta });
     },
     resetSettings: () => get().setSettings(DEFAULT_SETTINGS),
     openSettings: () => { sfx.page(); set({ settingsOpen: true }); },
