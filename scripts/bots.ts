@@ -1,7 +1,7 @@
 // The archetype bots shared by the balance scripts (balance.ts, focus-balance.ts). No output, no side effects.
 import { C } from '../src/data';
 import { CARD, jobsAt,
-  newGame, step, quotes, routeOptions, capacity, cargoWeight, power, D, DEPTH,
+  newGame, step, quotes, routeOptions, capacity, cargoWeight, power, D, DEPTH, charterPrice, charterReadyDay, netWorth,
   type Action, type Difficulty, type GameState, type RouteOption,
 } from '../src/engine';
 
@@ -26,8 +26,11 @@ export interface Track {
   spikeProfit: number; saleProfit: number;
   /** day each charter tier was bought, and cash on chosen days */
   tierDay: Record<number, number>; cashOn: Record<number, number>;
+  /** net worth on WORTH_DAYS */
+  worthOn: Record<number, number>;
 }
 export const CASH_DAYS = [30, 398, 427] as const;
+export const WORTH_DAYS = [600, 800, 1000] as const;
 let tracking: Track | null = null;
 
 export function act(s: GameState, a: Action): GameState {
@@ -46,6 +49,7 @@ export function act(s: GameState, a: Action): GameState {
       t.trips.push({ day: s.day, risk: mode.risk, shortHop, card: !!n.pending, profit: n.stats.profit });
     }
     for (const d of CASH_DAYS) if (s.day < d && n.day >= d) t.cashOn[d] = n.player.cash;
+    for (const d of WORTH_DAYS) if (s.day < d && n.day >= d) t.worthOn[d] = netWorth(n);
   }
   return n;
 }
@@ -94,6 +98,25 @@ function sellOff(s: GameState, st: Strat, mem: Mem): GameState {
   return s;
 }
 
+const cushionOf = (st: Strat) => st === 'greedy' ? 3000 : st === 'smuggler' ? 5000 : 10000;
+const tierPrice = (s: GameState) => charterPrice(s, (s.charter.tier + 1) as 1 | 2 | 3);
+const holdOver = (s: GameState) => charterReadyDay(s) <= s.day;
+/** Where a bot saving for the next tier should head: an office once it can pay, else the strongbox holding the rest. */
+function charterGoal(s: GameState, st: Strat): string | null {
+  if (!s.world.flags.relief || !s.note.cleared || s.charter.tier >= 3 || !holdOver(s)) return null;
+  const need = tierPrice(s) + cushionOf(st);
+  const near = (to: readonly string[]) => to.filter(x => x === s.player.location || nextHop(s, x)).sort((a, b) => hops(s, a) - hops(s, b))[0] ?? null;
+  if (s.player.cash > need) return C.charter.offices.includes(s.player.location) ? null : near(C.charter.offices);
+  const banked = Object.entries(s.deposits).filter(([, v]) => v > 0);
+  if (banked.length && s.player.cash + banked.reduce((a, [, v]) => a + v, 0) > need) return near(banked.map(([k]) => k).filter(k => k !== s.player.location));
+  return null;
+}
+function hops(s: GameState, to: string): number {
+  let n = 0; let x = s; // walk the BFS path; cheap enough for the few targets used
+  while (x.player.location !== to && n < 40) { const h = nextHop(x, to); if (!h) return 99; x = { ...x, player: { ...x.player, location: h } }; n++; }
+  return n;
+}
+
 function upkeep(s: GameState, st: Strat): GameState {
   const loc = s.player.location; const L = C.locs[loc];
   if (s.player.health < 55) s = act(s, { t: 'heal' });
@@ -113,13 +136,14 @@ function upkeep(s: GameState, st: Strat): GameState {
   // careful bots bank their surplus, except while saving up for the next charter tier
   const saving = s.world.flags.relief && s.charter.tier < 3;
   if ((st === 'prudent' || st === 'oracle') && !saving && s.note.cleared && s.player.cash > 25000 && (loc === 'imperial-city' || loc === 'solitude')) s = act(s, { t: 'deposit', amount: s.player.cash - 15000 });
+  // saving for a tier: empty the strongbox here
+  if (saving && (s.deposits[loc] ?? 0) > 0 && s.world.branches[loc] === 'open') s = act(s, { t: 'withdraw', amount: s.deposits[loc] });
   if (s.player.location === 'leyawiin' && !s.player.licence && s.player.cash > 2000) s = act(s, { t: 'licence' });
   // the Scathing Charter: renew when asked, buy the next tier when there is a cushion left over
   if (C.charter.offices.includes(loc)) {
     if (s.charter.renewDue !== null) s = act(s, { t: 'renew' });
     const next = C.charter.tiers[s.charter.tier];
-    const cushion = st === 'greedy' ? 3000 : st === 'smuggler' ? 5000 : 10000;
-    if (next && s.world.flags.relief && s.note.cleared && s.player.cash > next.price + cushion) s = act(s, { t: 'charter' });
+    if (next && s.world.flags.relief && s.note.cleared && s.player.cash > tierPrice(s) + cushionOf(st)) s = act(s, { t: 'charter' });
   }
   return s;
 }
@@ -177,7 +201,7 @@ function plan(s: GameState, st: Strat): { travel: RouteOption; buys: Buy[] } | n
 export function play(seed: string, st: Strat, difficulty: Difficulty): { s: GameState; mem: Mem } {
   let s = newGame({ seed, backgroundId: st === 'smuggler' ? 'caravaner' : 'hlaalu-bastard', name: 'Bot', difficulty });
   const mem: Mem = { heatPeak: 0, profit: {}, legs: {}, bought: {}, clearedDay: null, peakDebt: s.note.balance, cards: {}, brokeDay: null, recovered: false,
-    track: { trips: [], paid: 0, loans: [], spikeProfit: 0, saleProfit: 0, tierDay: {}, cashOn: {} } };
+    track: { trips: [], paid: 0, loans: [], spikeProfit: 0, saleProfit: 0, tierDay: {}, cashOn: {}, worthOn: {} } };
   tracking = mem.track;
   for (let turn = 0; turn < 3000 && !s.over; turn++) {
     while (s.inbox.length) s = act(s, { t: 'ack' });
@@ -212,6 +236,10 @@ export function play(seed: string, st: Strat, difficulty: Difficulty): { s: Game
         if (opt) { s = act(s, { t: 'travel', route: opt.route.id, mode: opt.modeIndex }); continue; }
       }
     }
+    const goal = charterGoal(s, st);
+    const hop = goal && nextHop(s, goal);
+    const toGoal = hop && routeOptions(s).filter(o => o.dest === hop && o.fare <= s.player.cash).sort((a, b) => a.days - b.days)[0];
+    if (toGoal) { s = act(s, { t: 'travel', route: toGoal.route.id, mode: toGoal.modeIndex }); continue; }
     const p = plan(s, st);
     if (p) {
       for (const b of p.buys) { const n = act(s, { t: 'buy', good: b.good, qty: b.qty }); if (n !== s) mem.bought[b.good] = s.player.location; s = n; }

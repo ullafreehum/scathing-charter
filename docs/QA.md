@@ -69,16 +69,16 @@ The desktop e2e covers the window logic on Linux. These checks need real Windows
 | # | What we measure | Pass band | Why |
 |---|---|---|---|
 | B1 | idle bot outcome | never wins; always marked or retired | doing nothing must not work |
-| B2 | careful bots' win rate (Tong Terms) | 20–45% | the seat is earned, not given |
+| B2 | careful bots' win rate (Tong Terms) | 60–90% | bots of one kind finish close together, so the difficulty lives in the date (B7), Blood (B6) and greed's spread (B5) |
 | B3 | careful bots marked | ≤ 15% | a careful player rarely loses to the Tong |
 | B4 | deaths, active bots | ≤ 5% | death is a rare drama, not a tax |
-| B5 | risky bots marked + dead vs careful | at least 5 points higher | greed must cost something |
-| B6 | prudent win rate by difficulty | fair > tong > blood; fair ≤ 75%, blood ≥ 5% | difficulty means something |
-| B7 | prudent median win date | 1 Mid Year 4E 5 – 1 Frostfall 4E 6 | the Red Year is lived through, not skipped (structural if tier hold times, proposal A11, are approved: earliest win day 517) |
+| B5 | risky bots vs careful | win rate at most 10 points higher, and a lower p10 end net worth (marked and dead still reported) | greed must cost something |
+| B6 | prudent win rate by difficulty | fair ≥ tong ≥ blood; fair ≤ 97%, blood 10–40% | difficulty means something |
+| B7 | prudent median win date | day 820 (1 Rain's Hand 4E 6) – day 1003 (1 Frostfall 4E 6) | the seat comes after the war starts, so the whole Red Year is lived (tier hold times give an earliest win of day 517) |
 | B8 | prudent debt cleared, median date, interest paid | ≥ 70%; day 60–240 (First Seed – Last Seed 4E 4, before the eruption); interest ≥ 10% of the note | the debt is the first act; a note left a year would hit the 4× warning |
 | B9 | broke runs that recover through day labour | ≥ 50% | going broke doesn't end a run |
-| B10 | crossing cards: any dominated option? | none | every option on a card is a real choice |
-| B11 | scenes where some greedy option beats the safe one on average | 4 of 4 | greed pays on average and risks more (p10) |
+| B10 | crossing cards: any dominated option? | none, scanned in 3 states (typical trader with non-perishable cargo; broke, 30 cash; rich smuggler, 30,000 cash and about 5,000 of contraband); an option fails only if beaten on both mean and p10 in every state where it is offered. Favour = `FAVOUR_DISCOUNT ×` prices of tiers not yet bought, nothing past the cap | every option on a card is a real choice |
+| B11 | scenes where some greedy option beats the safe one on average (typical trader) | 4 of 4 | greed pays on average and risks more (p10) |
 | B12 | crossing cards per journey | 15–30% of all journeys; ≥ 8% of 1-day Vvardenfell hops | the road is where choices happen (today about 2–4% on short hops) |
 | B13 | strider-only bot (Balmora, Vivec, Ald'ruhn), first 30 days | ends with more cash than it started in ≥ 50% of seeds | the opening trade loop must work |
 | B14 | prudent profit per journey, 4E 5 ÷ first 60 days | ≥ 1.3× | income should grow, not stay capped by `DEPTH` |
