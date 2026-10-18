@@ -6,7 +6,7 @@ and the Long Chronicle.
 
 ## 0.10.1 (beta): a bigger hearing
 - The card hearing fills the screen, and the pictures on the cards are half again as big. Hovering (or focusing) a card in your hand shows it full size.
-- Twelve new card pictures and a new card frame (Sorcerer's v2 set).
+- New pictures for all 30 cards (from Sinan's sheets) and a new card frame.
 - Card names stay on one line inside their band; "Your turn" sits centred in its banner.
 - Towers and walls load as plain images (no more black walls on some graphics cards), and draw as plain stone if an image is missing.
 
