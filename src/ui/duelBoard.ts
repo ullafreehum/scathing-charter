@@ -343,11 +343,11 @@ export class DuelBoard {
       const glow = new PIXI.Graphics(); glow.lineStyle(6, C.gold, 0.9).drawRoundedRect(-2, -2, CARD_W + 4, CARD_H + 4, 14); glow.visible = false; card.addChild(glow);
       const lift = (on: boolean) => {
         on = on && !this.busy; card.y = on ? baseY - 14 : baseY; glow.visible = on;
-        // The card big, just above the tray, so its picture and text can be read.
+        // The card big, where a played card shows (between the towers, so both sides stay in view).
         const pv = this.v.preview; this.clearPreview();
         if (!on) return;
         const big = this.makeCard(id), s = 0.9; big.scale.set(s);
-        big.x = Math.max(8, Math.min(W - CARD_W * s - 8, card.x + (w - CARD_W * s) / 2)); big.y = baseY - 14 - CARD_H * s - 10;
+        big.x = W / 2 - (CARD_W * s) / 2; big.y = 262 - (CARD_H * s) / 2;
         pv.addChild(big);
       };
       this.lift.push(lift);
