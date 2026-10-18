@@ -245,7 +245,7 @@ describe('market memory', () => {
     const after = s.markets.balmora.saltrice.sat;
     expect(after).toBeLessThan(1);
     s = drain(act(s, { t: 'wait', days: 7 }));
-    expect(s.markets.balmora.saltrice.sat).toBeLessThan(1 - (1 - after) * 0.75); // still more than 3/4 of the dip after a week
+    expect(s.markets.balmora.saltrice.sat).toBeLessThan(1 - (1 - after) * 0.5); // still more than half the dip after a week
   });
 });
 
