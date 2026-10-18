@@ -4,8 +4,8 @@ import { useGame } from '../store/game';
 import { useAnimationsOn } from './motion';
 import type { DuelBoard } from './duelBoard';
 import frame from '../assets/duel/card-frame.svg';
-import spire from '../assets/duel/spire.svg';
-import ward from '../assets/duel/ward.svg';
+import spire from '../assets/duel/spire.png';
+import ward from '../assets/duel/ward.png';
 import bg from '../assets/duel/background.svg';
 import ebony from '../assets/duel/cost-ebony.svg';
 import bindings from '../assets/duel/cost-bindings.svg';
@@ -33,7 +33,7 @@ const gameLeave = () => { useGame.getState().act({ t: 'duel', card: 0 }); };
 
 /** The magistrate's hearing: a tower duel. Play a card, or discard one; first to a 100-high tower (or to topple the other) wins.
  *  In a game it plays through the engine; on its own (from the title screen) `play` and `leave` drive a practice duel. */
-export function DuelScreen({ d, play = gamePlay, leave = gameLeave, kicker = 'Before the magistrate', leaveLabel = 'Leave the court' }: { d: DuelState; play?: Play; leave?: () => void; kicker?: string; leaveLabel?: string }) {
+export function DuelScreen({ d, play = gamePlay, leave = gameLeave, kicker = 'Before the magistrate', leaveLabel = 'Leave the court', extra }: { d: DuelState; play?: Play; leave?: () => void; kicker?: string; leaveLabel?: string; extra?: React.ReactNode }) {
   const playRef = useRef(play); playRef.current = play;
   const motion = useAnimationsOn();
   const [discard, setDiscard] = useState(false);
@@ -65,10 +65,9 @@ export function DuelScreen({ d, play = gamePlay, leave = gameLeave, kicker = 'Be
   const now = mode === 'board' ? shown : d;
   return (
     <div>
-      <div className="text-xs h-display uppercase text-ember">{kicker}</div>
-      <h2 className="h-display text-2xl text-bone">The hearing{now.winner ? (now.winner === 'you' ? ': you win' : ': you lose') : ''}</h2>
+      <h2 className="flex flex-wrap items-baseline gap-x-3"><span className="text-xs h-display uppercase text-ember">{kicker}</span><span className="h-display text-lg text-bone">The hearing{now.winner ? (now.winner === 'you' ? ': you win' : ': you lose') : ''}</span></h2>
       {mode !== 'plain' && (
-        <div ref={host} data-turn={shown.turn} data-winner={shown.winner ?? ''} className="relative mx-auto mt-2 rounded overflow-hidden bg-black" style={{ width: 'min(100%, calc((90dvh - 11rem) * 16 / 9))', aspectRatio: '16 / 9' }}>
+        <div ref={host} data-turn={shown.turn} data-winner={shown.winner ?? ''} className="relative mx-auto mt-1 rounded overflow-hidden bg-black" style={{ width: 'min(100%, calc((100dvh - 6.25rem) * 16 / 9))', aspectRatio: '16 / 9' }}>
           {mode === 'loading' && <div className="absolute inset-0 grid place-items-center text-ash-400 text-sm">Setting up the court…</div>}
         </div>
       )}
@@ -80,6 +79,7 @@ export function DuelScreen({ d, play = gamePlay, leave = gameLeave, kicker = 'Be
           <button className={`btn ${discard ? 'btn-ember' : ''}`} aria-pressed={discard} onClick={() => setDiscard(x => !x)}
             title="Throw a card away instead of playing it (you still lose the turn)">{discard ? 'Discarding: pick a card' : 'Discard a card'}</button>
         )}
+        {extra}
         {mode === 'board' && motion && (
           <div role="group" aria-label="Speed" className="flex items-center gap-1 ml-auto">
             <span className="text-ash-400 text-xs mr-1">Speed</span>
@@ -134,11 +134,11 @@ function PlainBoard({ d, discard, play, played }: { d: DuelState; discard: boole
             return (
               <button key={i} className={`relative aspect-[240/340] text-left ${ok ? 'hover:-translate-y-1 transition-transform' : 'opacity-50'}`} disabled={!ok} title={c.flavour}
                 onClick={() => { if (play(i, discard)) played(); }}>
-                {art && <img src={art} alt="" className="absolute" style={{ left: '10%', top: '15.3%', width: '80%', height: '38.8%' }} />}
+                {art && <img src={art} alt="" className="absolute" style={{ left: '5%', top: '12.94%', width: '90%', height: '51.76%' }} />}
                 <img src={frame} alt="" className="absolute inset-0 w-full h-full" />
-                <span className="absolute left-[10%] right-[10%] top-[4%] text-[0.69rem] text-bone leading-tight">{c.name}</span>
+                <span className="absolute left-[16%] right-[6%] top-[4.5%] text-[0.69rem] text-bone leading-tight truncate text-center">{c.name}</span>
                 <span className={`absolute right-[8%] top-[4%] flex items-center gap-0.5 text-[0.69rem] ${RES_STYLE[c.res].cls}`}><img src={RES_STYLE[c.res].icon} alt={RES_NAME[c.res]} className="w-3.5 h-3.5" />{c.cost}</span>
-                <span className="absolute left-[10%] right-[10%] top-[57%] text-[0.69rem] ink leading-tight">{c.text}<span className="block italic opacity-70 mt-1">{c.flavour}</span></span>
+                <span className="absolute left-[9%] right-[9%] top-[67%] text-[0.69rem] ink leading-tight text-center">{c.text}</span>
               </button>
             );
           })}
@@ -161,9 +161,9 @@ export function PracticeDuel() {
   };
   const again = () => { rng.current = new Rng(hashSeed(`practice-${Math.random()}`)); setD(newDuel(rng.current)); setRound(r => r + 1); };
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      <DuelScreen key={round} d={d} play={play} leave={again} kicker="A practice hearing" leaveLabel="Play again" />
-      <button className="btn btn-ghost mt-3" onClick={() => setScreen('title')}>Back to the title</button>
+    <div className="max-w-none px-4 py-2">
+      <DuelScreen key={round} d={d} play={play} leave={again} kicker="A practice hearing" leaveLabel="Play again"
+        extra={<button className="btn btn-ghost" onClick={() => setScreen('title')}>Back to the title</button>} />
     </div>
   );
 }

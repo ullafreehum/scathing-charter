@@ -35,7 +35,7 @@ export function maxBuyQty(price: number | null, depth: number, cash: number, fre
 }
 
 /** Daily recovery of market saturation toward normal (1 = none). Higher = markets remember your trades longer. */
-export const SAT_RECOVERY = 0.97;
+export const SAT_RECOVERY = 0.94;
 /** Days until a market you flooded or bought out is back within 5% of its normal price. */
 export function satRecoveryDays(sat: number): number {
   const gap = Math.abs(sat - 1);

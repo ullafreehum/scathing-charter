@@ -10,7 +10,7 @@ import { exportFile, savedWhen, slotInfo, type Slot } from '../save/storage';
 import { CodexLink, DateWidget, Delta, Meter, RollingMoney, StatusPill } from './widgets';
 import { TimeRibbon } from './TimeRibbon';
 import { Market } from './Market';
-import { Bank } from './Bank';
+import { Bank, bankTip } from './Bank';
 import { Tavern } from './Tavern';
 import { Outfitter } from './Outfitter';
 import { MapView } from './MapView';
@@ -68,7 +68,7 @@ function TopBar({ g }: { g: GameState }) {
       <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm ml-auto items-center">
         <span title="Cash on hand" id="cash-counter">Cash <RollingMoney v={g.player.cash} className="text-bone" /><Delta value={g.player.cash} /></span>
         <span title={`Your debt to the Camonna Tong${g.note.cleared ? '' : ` (interest about ${Math.round(g.note.balance * g.note.rate)} a day)`}`}><CodexLink id="topic:the-note">Debt</CodexLink> {g.note.cleared ? <span className="text-moss">cleared</span> : <><span id="debt-counter"><RollingMoney v={g.note.balance} className={pr >= 2 ? 'text-danger' : 'text-ember'} /></span><Delta value={g.note.balance} upIsGood={false} /></>}{pr > 0 && !g.note.cleared && <span className="text-danger ml-1" title="The Camonna Tong is losing patience">{'⚠'.repeat(pr)}</span>}</span>
-        <span title="All deposits in banks (frozen ones at their expected payout)">Bank <RollingMoney v={depositsTotal(g)} /></span>
+        <span title={bankTip(g)}>Bank <RollingMoney v={depositsTotal(g)} /></span>
         <span title="Cargo weight / capacity">Cargo <span className="num">{cargoWeight(g)}/{capacity(g)}</span></span>
         <span className="flex items-center gap-1" title="Health">♥ <Meter v={g.player.health} color={g.player.health < 35 ? 'var(--c-bad)' : 'var(--c-good)'} /></span>
         <span title="Cash + bank deposits + cargo value − debt">Net worth <RollingMoney v={netWorth(g)} className="text-gold" /></span>

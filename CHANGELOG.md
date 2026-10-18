@@ -4,6 +4,19 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.10.1 (beta): a bigger hearing
+- The card hearing fills the screen, and the pictures on the cards are half again as big. Hovering (or focusing) a card in your hand shows it full size.
+- New pictures for all 30 cards (from Sinan's sheets) and a new card frame.
+- Card names stay on one line inside their band; "Your turn" sits centred in its banner.
+- Towers and walls load as plain images (no more black walls on some graphics cards), and draw as plain stone if an image is missing.
+- Smoother play in the browser: trading no longer repaints the whole page for a second (the top-bar numbers change at once instead of rolling, and the traded row's glow is cheaper).
+- Hover tips are the game's own: they show quickly, match the theme, work on greyed-out buttons, and keep line breaks. Buttons no longer lift on hover, which made them flicker under the cursor.
+- Hold Shift in the market: the Buy and Sell of the row under the cursor (or the last row it was on) become Buy max and Sell max.
+- Hover the Bank figure in the top bar, or a strongbox on the Bank tab, to see its rate, what your money earns a day and the interest earned so far.
+- An Exit button on the title screen of the Windows app.
+- Music: "Ash & Ebony", a procedural score (Settings → Sound → Music, off by default). It darkens once Baar Dau falls and quickens during card duels.
+- Economy: restricted goods sold on the black market drop in price faster, an informer's fine also raises your heat, flooded markets recover faster, and the Scathing Charter costs 90,000.
+
 ## 0.10.0 (beta): the focus release
 One goal, one choice per trip, and a Red Year you can see on the map. Now a Windows app.
 

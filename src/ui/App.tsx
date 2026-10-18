@@ -5,6 +5,7 @@ import { useGame } from '../store/game';
 import { ERUPTION_DAY } from '../data/history';
 import { C } from '../data';
 import { AshLayer } from './AshLayer';
+import { TooltipLayer } from './Tooltip';
 import { Title } from './Title';
 import { NewGame } from './NewGame';
 import { GameScreen } from './Game';
@@ -16,7 +17,7 @@ import { Toasts } from './Toasts';
 import { TravelBanner } from './TravelBanner';
 import { FxLayer, NightDip } from './fx';
 import { applyAppearance, themeById } from './themes';
-import { startWind, stopWind } from '../audio/sfx';
+import { setMusicMood, startWind, stopWind } from '../audio/sfx';
 
 function ashIntensity(day: number, region: string | undefined): number {
   let i = day < ERUPTION_DAY ? 0.12 + 0.75 * (day / ERUPTION_DAY) ** 2 : Math.max(0.55, 1.4 - (day - ERUPTION_DAY) / 400);
@@ -39,6 +40,8 @@ export function App() {
   useEffect(() => {
     if (screen === 'game' && st.sound) startWind(intensity); else stopWind();
   }, [screen, intensity, st.sound]);
+  const mood = screen === 'duel' || (screen === 'game' && game?.duel) ? 2 : ember ? 1 : 0;
+  useEffect(() => { setMusicMood(mood); }, [mood]);
   useEffect(() => { if (!error) return; const t = setTimeout(clearError, 3500); return () => clearTimeout(t); }, [error, errorTick, clearError]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -68,6 +71,7 @@ export function App() {
       {screen === 'game' && <NightDip />}
       <FxLayer />
       <ConfirmDialog />
+      <TooltipLayer />
       <AnimatePresence>
         {error && <motion.div key={errorTick} role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] panel px-4 py-2 text-danger shake" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>{error}</motion.div>}
       </AnimatePresence>

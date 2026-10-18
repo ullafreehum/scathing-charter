@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { C } from '../data';
 import { DEPTH, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight, fairValue, maxBuyQty, quotes, routeOptions, FREIGHT, holidayAt, marketOpen, satRecoveryDays, canContest, courtCost, formatDate, type GameState, type Quote } from '../engine';
 import { useGame } from '../store/game';
@@ -25,6 +25,16 @@ export function Market({ g }: { g: GameState }) {
   const traded = (good: string) => setGlow(x => ({ good, n: (x?.n ?? 0) + 1 }));
   const [filter, setFilter] = useState<Filter>('all');
   const [sort, setSort] = useState<Sort>('usual');
+  // Holding Shift turns the Buy and Sell of the row under the cursor (or the last one it was on) into Buy max and Sell max.
+  const lastRow = useRef<string | null>(null);
+  const [maxRow, setMaxRow] = useState<string | null>(null);
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => setMaxRow(e.shiftKey ? lastRow.current : null);
+    const off = () => setMaxRow(null);
+    window.addEventListener('keydown', key); window.addEventListener('keyup', key); window.addEventListener('blur', off);
+    return () => { window.removeEventListener('keydown', key); window.removeEventListener('keyup', key); window.removeEventListener('blur', off); };
+  }, []);
+  const enterRow = (good: string, e: PointerEvent) => { lastRow.current = good; if (e.shiftKey) setMaxRow(good); };
   const loc = g.player.location;
   const qs = quotes(g, loc);
   const hol = holidayAt(g, loc);
@@ -101,8 +111,10 @@ export function Market({ g }: { g: GameState }) {
                 const G = C.goods[q.good]; const lot = g.player.cargo[q.good];
                 const r = ratio(q);
                 const maxBuy = maxBuyQty(q.buy, DEPTH[G.category], keepFare ? Math.max(0, g.player.cash - fareWith(free)) : g.player.cash, free, G.weight);
-                const nBuy = amt === 'max' ? maxBuy : Math.min(amt, maxBuy);
-                const nSell = lot && q.sell !== null ? (amt === 'max' ? lot.qty : Math.min(amt, lot.qty)) : 0;
+                const asMax = amt === 'max' || maxRow === q.good;
+                const nBuy = asMax ? maxBuy : Math.min(amt as number, maxBuy);
+                const nSell = lot && q.sell !== null ? (asMax ? lot.qty : Math.min(amt as number, lot.qty)) : 0;
+                const maxWord = maxRow === q.good ? 'max ' : '';
                 const margin = lot && q.sell !== null ? Math.round(q.sell - lot.cost) : null;
                 const l = LEG[q.legality];
                 const sat = g.markets[loc]?.[q.good]?.sat ?? 1;
@@ -124,10 +136,11 @@ export function Market({ g }: { g: GameState }) {
                   best && `Best price seen elsewhere: ${best.price} in ${C.locs[best.loc].name}, ${ago(best.age)}. Prices move, so older figures are less reliable.`,
                 ].filter((x): x is string => !!x);
                 return [
-                  <motion.tr key={q.good} layout="position" className={`border-t border-ash-700 hover:bg-ash-800 ${lot ? 'bg-ash-800/60' : ''} ${glow?.good === q.good ? (glow.n % 2 ? 'row-glow-a' : 'row-glow-b') : ''}`}
+                  <motion.tr key={q.good} onPointerEnter={e => enterRow(q.good, e)} className={`relative border-t border-ash-700 hover:bg-ash-800 ${lot ? 'bg-ash-800/60' : ''}`}
                     initial={arriving ? { opacity: 0, x: -10 } : { opacity: 0 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
                     transition={{ duration: 0.28, delay: arriving ? Math.min(i, 15) * 0.028 : 0, ease: [0.22, 1, 0.36, 1] }}>
                     <td className="py-1.5 pr-2">
+                      {glow?.good === q.good && <span key={glow.n} className="row-glow" aria-hidden="true" />}
                       <GoodIcon id={q.good} category={G.category} /> <CodexLink id={`good:${q.good}`} className="text-bone">{G.name}</CodexLink>
                       {l.label && <span title={l.tip} className={`ml-1 text-[.7rem] h-display uppercase ${l.cls}`}>{l.label}</span>}
                       {sat < 0.85 && <span className="ml-1 text-[.7rem] h-display uppercase text-danger" title={`So much has been sold here lately that the price is down. Back to normal in about ${satRecoveryDays(sat)} days.`}>Flooded · {satRecoveryDays(sat)}d</span>}
@@ -142,8 +155,8 @@ export function Market({ g }: { g: GameState }) {
                     <td className="text-right num pl-3">{lot ? <motion.span key={lot.qty} className="inline-block" initial={{ scale: 1.4 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 600, damping: 15 }} title={`You paid ${Math.round(lot.cost)} each on average`}>{lot.qty}</motion.span> : <span className="text-ash-400">0</span>}</td>
                     <td className="text-right pl-3 whitespace-nowrap">{best ? <span title={`Seen in ${C.locs[best.loc].name} ${ago(best.age)}. Prices move, so older figures are less reliable.`}><Money v={best.price} />{edge !== null && edge > 0 && <span className="text-moss text-xs"> (+{Math.round(edge)})</span>}<span className="block text-xs text-ash-400">{C.locs[best.loc].name}, {ago(best.age)}</span></span> : <span className="text-ash-400 text-xs">not seen yet</span>}</td>
                     <td className="whitespace-nowrap pl-3 text-right space-x-1">
-                      <button className="btn" disabled={nBuy < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'buy', good: q.good, qty: nBuy })) { coinBurst('cash', el, coinsFor(nBuy * (q.buy ?? 0))); traded(q.good); } }} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} for ${bulkBuyTotal(q.buy!, nBuy, DEPTH[G.category]).toLocaleString('en-US')} septims (the most you can afford and carry: ${maxBuy}). Buying many at once raises the price a little.`}>Buy {nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</button>
-                      <button className="btn" disabled={nSell < 1} onClick={async e => { const el = e.currentTarget; if (margin !== null && margin < 0 && !(await useGame.getState().confirm({ title: `Sell at a loss?`, text: `${nSell} ${G.name} at ${-margin} below what you paid each: ${-margin * nSell} septims lost in all.`, yes: 'Sell anyway' }))) return; if (act({ t: 'sell', good: q.good, qty: nSell })) { coinBurst(el, 'cash', coinsFor(nSell * (q.sell ?? 0))); traded(q.good); } }} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>Sell {nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</button>
+                      <button className="btn" disabled={nBuy < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'buy', good: q.good, qty: nBuy })) { coinBurst('cash', el, coinsFor(nBuy * (q.buy ?? 0))); traded(q.good); } }} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} for ${bulkBuyTotal(q.buy!, nBuy, DEPTH[G.category]).toLocaleString('en-US')} septims (the most you can afford and carry: ${maxBuy}). Buying many at once raises the price a little.`}>Buy {maxWord}{nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</button>
+                      <button className="btn" disabled={nSell < 1} onClick={async e => { const el = e.currentTarget; if (margin !== null && margin < 0 && !(await useGame.getState().confirm({ title: `Sell at a loss?`, text: `${nSell} ${G.name} at ${-margin} below what you paid each: ${-margin * nSell} septims lost in all.`, yes: 'Sell anyway' }))) return; if (act({ t: 'sell', good: q.good, qty: nSell })) { coinBurst(el, 'cash', coinsFor(nSell * (q.sell ?? 0))); traded(q.good); } }} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>Sell {maxWord}{nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</button>
                       {(nBuy > 0 || nSell > 0) && <div className="text-xs text-ash-400 mt-0.5">{nBuy > 0 && <span title="Total cost, and cargo space left after buying">−<span className="num">{buyTotal.toLocaleString('en-US')}</span> · {free - nBuy * G.weight} space left</span>}{nBuy > 0 && nSell > 0 && ' | '}{nSell > 0 && <span title="What this sale brings in">+<span className="num">{sellTotal.toLocaleString('en-US')}</span></span>}</div>}
                     </td>
                   </motion.tr>,
@@ -155,7 +168,7 @@ export function Market({ g }: { g: GameState }) {
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-ash-400 mt-2">Buy and Sell use the amount chosen above, capped by your cash, cargo space and what you own. ▼ cheap / ▲ expensive compared with the usual price across Tamriel. * sold with a restriction. ▸ opens a good's details. “Best seen elsewhere” comes from towns you have visited, so it can be out of date. Selling a lot lowers the price; buying a lot raises it.</p>
+        <p className="text-xs text-ash-400 mt-2">Buy and Sell use the amount chosen above, capped by your cash, cargo space and what you own. Hold Shift to make them Buy max and Sell max on the row under your cursor. ▼ cheap / ▲ expensive compared with the usual price across Tamriel. * sold with a restriction. ▸ opens a good's details. “Best seen elsewhere” comes from towns you have visited, so it can be out of date. Selling a lot lowers the price; buying a lot raises it.</p>
       </Section>
       {cargoGoods.length > 0 && (
         <Section title="In your cargo, but nobody here buys it">

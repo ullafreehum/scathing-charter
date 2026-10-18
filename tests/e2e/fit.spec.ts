@@ -33,7 +33,7 @@ for (const [w, h] of SIZES) {
     test('market, map and hearing fit', async ({ page }) => {
       const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
       await boot(page, drained());
-      const bar = page.getByTitle('Cash on hand');
+      const bar = page.locator('[data-tip*="Cash on hand"]');
       await expect(bar).toBeInViewport();
       await fits(page, 'market');
       await page.getByRole('tab', { name: 'Travel' }).click();

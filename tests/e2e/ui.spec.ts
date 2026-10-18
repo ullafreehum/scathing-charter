@@ -2,10 +2,10 @@
 import { test, expect, type Page } from '@playwright/test';
 
 const num = (s: string) => Number((s.match(/-?[\d,]+/)?.[0] ?? 'NaN').replace(/,/g, ''));
-const purse = async (p: Page) => num(await p.getByTitle('Cash on hand').innerText());
-const vaults = async (p: Page) => num(await p.getByTitle(/All deposits/).innerText());
-const note = async (p: Page) => num(await p.getByTitle('Your debt to the Camonna Tong').innerText());
-const load = async (p: Page) => (await p.getByTitle(/Cargo weight/).innerText()).match(/(\d+)\/(\d+)/)!.slice(1).map(Number);
+const purse = async (p: Page) => num(await p.locator('[data-tip*="Cash on hand"]').innerText());
+const vaults = async (p: Page) => num(await p.locator('[data-tip*="All deposits"]').innerText());
+const note = async (p: Page) => num(await p.locator('[data-tip*="Your debt to the Camonna Tong"]').innerText());
+const load = async (p: Page) => (await p.locator('[data-tip*="Cargo weight"]').innerText()).match(/(\d+)\/(\d+)/)!.slice(1).map(Number);
 const dateText = (p: Page) => p.locator('header .h-display').nth(1).innerText();
 async function clear(p: Page) {
   for (let i = 0; i < 10; i++) {
@@ -189,7 +189,7 @@ test('travel: map views, zoom, travel card, planner, keys; Go moves you and the 
   // the price book remembers Balmora: in the Market column and in Travel
   await expect(page.getByText(/Balmora, \d+ days? ago/).first()).toBeVisible();
   await page.getByRole('tab', { name: 'Travel' }).click();
-  await page.getByTitle('Show on the map').filter({ hasText: 'Balmora' }).click();
+  await page.locator('[data-tip*="Show on the map"]').filter({ hasText: 'Balmora' }).click();
   await expect(page.getByRole('group', { name: 'Travel to Balmora' })).toContainText(/Prices seen (today|\d+ days? ago)/);
   await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-travel-outlook.png' });
   await page.getByRole('tab', { name: 'Market' }).click();
@@ -296,7 +296,7 @@ test('goal line on every tab; the browser confirm box is never used; practice du
   await page.getByRole('button', { name: 'Cancel' }).click();
   expect(await note(page)).toBe(before);
   // Back to the title, then the duel on its own.
-  await page.getByTitle('Save, export, quit').click();
+  await page.locator('[data-tip*="Save, export, quit"]').click();
   await page.getByRole('button', { name: /title/i }).first().click();
   await page.getByRole('button', { name: 'Card duel (practice)' }).click();
   await expect(page.getByText('A practice hearing')).toBeVisible();

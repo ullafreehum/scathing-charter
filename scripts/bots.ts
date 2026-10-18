@@ -34,7 +34,8 @@ export const WORTH_DAYS = [600, 800, 1000] as const;
 let tracking: Track | null = null;
 
 export function act(s: GameState, a: Action): GameState {
-  const r = step(s, a); if (r.error) return s;
+  // Bots never replay, so drop the action log first: cloning a growing log every step made a run quadratic.
+  const r = step(s.actions.length ? { ...s, actions: [] } : s, a); if (r.error) return s;
   const n = r.state, t = tracking;
   if (t) {
     if (a.t === 'pay') t.paid += s.player.cash - n.player.cash;

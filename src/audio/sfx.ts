@@ -1,14 +1,28 @@
 // Tiny procedural Web Audio effects: no audio files, works offline.
+import { createScore, type Score } from './score';
 let ctx: AudioContext | null = null;
 let enabled = true;
 let volume = 0.8;
 let wind: { stop: () => void; gain: GainNode; level: number } | null = null;
+let musicOn = false, mood: 0 | 1 | 2 = 0;
+let music: Score | null = null;
+const MUSIC_LEVEL = 0.4; // the score's own level at full volume
 
-export function setSound(on: boolean) { enabled = on; if (!on) stopWind(); }
+export function setSound(on: boolean) { enabled = on; if (!on) stopWind(); syncMusic(); }
 /** Master volume 0–1 for effects and wind. */
 export function setVolume(v: number) {
   volume = Math.max(0, Math.min(1, v));
   if (wind && ctx) wind.gain.gain.setTargetAtTime(wind.level * volume, ctx.currentTime, 0.2);
+  music?.setVolume(MUSIC_LEVEL * volume); syncMusic();
+}
+/** The background score (Settings → Music): plays while music and sound are on and the volume is above zero. */
+export function setMusic(on: boolean) { musicOn = on; syncMusic(); }
+/** 0 calm, 1 after Baar Dau falls, 2 during a card duel. */
+export function setMusicMood(m: 0 | 1 | 2) { mood = m; music?.setMood(m); }
+function syncMusic() {
+  const want = musicOn && enabled && volume > 0;
+  if (want && !music) { const a = ac(); if (!a) return; music = createScore(a, a.destination); music.setMood(mood); music.start(MUSIC_LEVEL * volume); }
+  else if (!want && music) { music.stop(); music = null; }
 }
 function ac(): AudioContext | null {
   if (!enabled || volume <= 0) return null;

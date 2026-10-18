@@ -85,6 +85,7 @@ function createWindow() {
 const winOf = e => BrowserWindow.fromWebContents(e.sender);
 ipcMain.handle('desktop:is-fullscreen', e => winOf(e)?.isFullScreen() ?? false);
 ipcMain.on('desktop:set-fullscreen', (e, on) => winOf(e)?.setFullScreen(on === true));
+ipcMain.on('desktop:quit', () => app.quit());
 ipcMain.on('desktop:dialog-open', (_e, open) => { dialogOpen = open === true; });
 
 Menu.setApplicationMenu(null);

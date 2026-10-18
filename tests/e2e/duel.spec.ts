@@ -51,6 +51,7 @@ test('hearing: the board plays cards by mouse and keyboard, and the duel ends', 
 test.describe('with animations on', () => {
   test.use({ contextOptions: { reducedMotion: 'no-preference' } });
   test('hearing: Fast plays a turn with effects, Skip finishes at once', async ({ page }) => {
+    test.setTimeout(240_000); // plays the rest of the duel turn by turn: slow under software WebGL with the bigger board
     const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
     await boot(page);
     const board = page.locator('[data-turn]');

@@ -10,6 +10,7 @@ export interface DesktopBridge {
   setDialogOpen(open: boolean): void;
   onFullScreenChange(cb: (on: boolean) => void): () => void;
   onScaleStep(cb: (step: 1 | -1 | 0) => void): () => void;
+  quit(): void;
 }
 declare global { interface Window { desktop?: DesktopBridge } }
 

@@ -24,6 +24,10 @@ export const SPIKE_UP = [1.6, 2.6] as const;
 /** Black-market sale: chance per unit of enforcement that an informer stings you, and the share of the sale fined. */
 export const STING_CHANCE = 0.1;
 export const STING_FINE = 0.6;
+/** Black-market sales of restricted goods move the price this much faster (a fence's market is thin). */
+export const BLACK_DEPTH = 0.6;
+/** Heat added when an informer catches a black-market sale. */
+export const STING_HEAT = 15;
 export const DIFFICULTY = {
   fair: { cash: 700, debt: 2000, rate: 0.002 },
   tong: { cash: 550, debt: 4000, rate: 0.003 },
@@ -117,7 +121,10 @@ export function tickDay(s: GameState, rng: Rng): void {
   checkMark(s);
   if (s.over) return;
   milestones(s);
-  for (const k of Object.keys(s.deposits)) if (s.world.branches[k] === 'open') s.deposits[k] *= 1 + depositRate(k);
+  for (const k of Object.keys(s.deposits)) if (s.world.branches[k] === 'open') {
+    const before = s.deposits[k]; s.deposits[k] *= 1 + depositRate(k);
+    const earned = (s.stats.interest ??= {}); earned[k] = (earned[k] ?? 0) + s.deposits[k] - before;
+  }
   // wages
   const hold = s.player.conveyance === 'chartered-hold' ? 10 : 0;
   const wages = s.player.porters * WAGES.porter.day + s.player.sellswords * WAGES.sellsword.day + hold;
@@ -482,7 +489,7 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
   const g = C.goods[good];
   const qty = Math.floor(qtyIn);
   if (!q || qty <= 0) return 'Nobody here deals in that.';
-  const depth = DEPTH[g.category];
+  const depth = DEPTH[g.category] * (kind === 'sell' && q.legality === 'restricted' && q.sellNote?.startsWith('black') ? BLACK_DEPTH : 1);
   const cell = s.markets[loc][good];
   unlock(s, `good:${good}`);
   if (kind === 'buy') {
@@ -504,6 +511,7 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
       if (rng.chance(here(s).enforcement * STING_CHANCE * C.backgrounds[s.player.backgroundId].customsMod * heatMult(s.player.heat))) {
         const fine = Math.round(total * STING_FINE); total -= fine;
         s.appeal = { loc, goods: {}, fine, until: s.day + APPEAL_DAYS };
+        addHeat(s, STING_HEAT);
         log(s, `An EEC informer was watching. Fine: ${fine} septims.`, 'bad');
         s.inbox.push({ kind: 'result', title: 'An informer', text: `The East Empire Company does not forgive unlicensed ${g.name}. You are fined ${fine} septims. You can contest the fine before a magistrate, here or in a court town, within ${APPEAL_DAYS} days (Market tab).` });
       }

@@ -92,7 +92,14 @@ function scan(s: GameState, label: string) {
 }
 let s0 = newGame({ seed: 'scan', backgroundId: 'deserter', name: 'Scan', difficulty: 'tong' });
 scan(s0, 'Economy at 1 Morning Star 4E 4');
-s0.player.cash = 1e7; while (s0.day < ERUPT + 40) { while (s0.inbox.length) s0 = act(s0, { t: 'ack' }); s0 = act(s0, { t: 'wait', days: 7 }); }
+s0.player.cash = 1e7;
+// The note stays paid up and any card is settled: a pending card (Tong collectors come while you rest since 0.10.0) made this loop endless.
+while (s0.day < ERUPT + 40) {
+  while (s0.inbox.length) s0 = act(s0, { t: 'ack' });
+  if (s0.pending) { const n = act(s0, { t: 'choose', choice: 'flee' }); s0 = n !== s0 ? n : act(s0, { t: 'choose', choice: s0.pending.choices[0] }); continue; }
+  s0.note.lastPaymentDay = s0.day;
+  const n = act(s0, { t: 'wait', days: 7 }); if (n === s0) throw new Error('economy scan setup stuck'); s0 = n;
+}
 scan(s0, `Economy at ${shortDate(s0.day)} (after the eruption)`);
 
 // targets
