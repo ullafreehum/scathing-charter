@@ -28,6 +28,8 @@ export const STING_FINE = 0.6;
 export const BLACK_DEPTH = 0.6;
 /** Heat added when an informer catches a black-market sale. */
 export const STING_HEAT = 15;
+/** Buying restricted goods moves their price this much faster (small, watched supply). */
+export const RESTRICTED_BUY_DEPTH = 0.5;
 export const DIFFICULTY = {
   fair: { cash: 700, debt: 2000, rate: 0.002 },
   tong: { cash: 550, debt: 4000, rate: 0.003 },
@@ -489,7 +491,7 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
   const g = C.goods[good];
   const qty = Math.floor(qtyIn);
   if (!q || qty <= 0) return 'Nobody here deals in that.';
-  const depth = DEPTH[g.category] * (kind === 'sell' && q.legality === 'restricted' && q.sellNote?.startsWith('black') ? BLACK_DEPTH : 1);
+  const depth = DEPTH[g.category] * (kind === 'sell' && q.legality === 'restricted' && q.sellNote?.startsWith('black') ? BLACK_DEPTH : 1) * (kind === 'buy' && q.legality === 'restricted' ? RESTRICTED_BUY_DEPTH : 1);
   const cell = s.markets[loc][good];
   unlock(s, `good:${good}`);
   if (kind === 'buy') {
