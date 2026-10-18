@@ -127,6 +127,11 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
   mask-image: var(--fade-x), var(--fade-y); mask-composite: intersect;
   filter: drop-shadow(0 12px 28px var(--shadow-strong));
 }
+/* touch screens: a long-press shows a tip or does a shortcut, so it must not select text or open the browser's menu */
+@media (pointer: coarse) {
+  body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  input, textarea { -webkit-user-select: text; user-select: text; }
+}
 /* hover tips (Tooltip.tsx) */
 .tip { border-radius: 6px; box-shadow: 0 6px 18px var(--shadow-strong); line-height: 1.45; }
 /* a traded market row glows briefly: an overlay that fades out (opacity only, so the page isn't repainted every frame) */

@@ -5,6 +5,7 @@ import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
 import { coinBurst, coinsFor } from './fx';
+import { onLongPress } from './Tooltip';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ago, bestSeenSell } from './prices';
 
@@ -123,6 +124,13 @@ export function Market({ g }: { g: GameState }) {
                 const buyTotal = nBuy > 0 ? bulkBuyTotal(q.buy!, nBuy, DEPTH[G.category]) : 0;
                 const sellTotal = nSell > 0 ? bulkSellTotal(q.sell!, nSell, DEPTH[G.category]) : 0;
                 const isOpen = open === q.good;
+                // Buy and Sell, also used by the long-press shortcut (max for this row) on touch screens.
+                const buy = (n: number, el: Element) => { if (n >= 1 && act({ t: 'buy', good: q.good, qty: n })) { coinBurst('cash', el, coinsFor(n * (q.buy ?? 0))); traded(q.good); } };
+                const sell = async (n: number, el: Element) => {
+                  if (n < 1 || q.sell === null) return;
+                  if (margin !== null && margin < 0 && !(await useGame.getState().confirm({ title: `Sell at a loss?`, text: `${n} ${G.name} at ${-margin} below what you paid each: ${-margin * n} septims lost in all.`, yes: 'Sell anyway' }))) return;
+                  if (act({ t: 'sell', good: q.good, qty: n })) { coinBurst(el, 'cash', coinsFor(n * (q.sell ?? 0))); traded(q.good); }
+                };
                 // Everything the row's hover tips say, written out for touch and keyboard players.
                 const details = [
                   l.tip,
@@ -155,8 +163,8 @@ export function Market({ g }: { g: GameState }) {
                     <td className="text-right num pl-3">{lot ? <motion.span key={lot.qty} className="inline-block" initial={{ scale: 1.4 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 600, damping: 15 }} title={`You paid ${Math.round(lot.cost)} each on average`}>{lot.qty}</motion.span> : <span className="text-ash-400">0</span>}</td>
                     <td className="text-right pl-3 whitespace-nowrap">{best ? <span title={`Seen in ${C.locs[best.loc].name} ${ago(best.age)}. Prices move, so older figures are less reliable.`}><Money v={best.price} />{edge !== null && edge > 0 && <span className="text-moss text-xs"> (+{Math.round(edge)})</span>}<span className="block text-xs text-ash-400">{C.locs[best.loc].name}, {ago(best.age)}</span></span> : <span className="text-ash-400 text-xs">not seen yet</span>}</td>
                     <td className="whitespace-nowrap pl-3 text-right space-x-1">
-                      <button className="btn" disabled={nBuy < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'buy', good: q.good, qty: nBuy })) { coinBurst('cash', el, coinsFor(nBuy * (q.buy ?? 0))); traded(q.good); } }} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} for ${bulkBuyTotal(q.buy!, nBuy, DEPTH[G.category]).toLocaleString('en-US')} septims (the most you can afford and carry: ${maxBuy}). Buying many at once raises the price a little.`}>Buy {maxWord}{nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</button>
-                      <button className="btn" disabled={nSell < 1} onClick={async e => { const el = e.currentTarget; if (margin !== null && margin < 0 && !(await useGame.getState().confirm({ title: `Sell at a loss?`, text: `${nSell} ${G.name} at ${-margin} below what you paid each: ${-margin * nSell} septims lost in all.`, yes: 'Sell anyway' }))) return; if (act({ t: 'sell', good: q.good, qty: nSell })) { coinBurst(el, 'cash', coinsFor(nSell * (q.sell ?? 0))); traded(q.good); } }} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>Sell {maxWord}{nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</button>
+                      <button className="btn" disabled={nBuy < 1} ref={onLongPress(el => buy(maxBuy, el))} onClick={e => buy(nBuy, e.currentTarget)} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} for ${bulkBuyTotal(q.buy!, nBuy, DEPTH[G.category]).toLocaleString('en-US')} septims (the most you can afford and carry: ${maxBuy}). Buying many at once raises the price a little.`}>Buy {maxWord}{nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</button>
+                      <button className="btn" disabled={nSell < 1} ref={onLongPress(el => void sell(lot?.qty ?? 0, el))} onClick={e => void sell(nSell, e.currentTarget)} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>Sell {maxWord}{nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</button>
                       {(nBuy > 0 || nSell > 0) && <div className="text-xs text-ash-400 mt-0.5">{nBuy > 0 && <span title="Total cost, and cargo space left after buying">−<span className="num">{buyTotal.toLocaleString('en-US')}</span> · {free - nBuy * G.weight} space left</span>}{nBuy > 0 && nSell > 0 && ' | '}{nSell > 0 && <span title="What this sale brings in">+<span className="num">{sellTotal.toLocaleString('en-US')}</span></span>}</div>}
                     </td>
                   </motion.tr>,
