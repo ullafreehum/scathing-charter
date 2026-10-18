@@ -86,6 +86,7 @@ describe('game', () => {
     let s = drain(newGame(CFG));
     s = act(s, { t: 'deposit', amount: 100 });
     s.player.location = 'balmora';
+    s.note.cleared = true; // no collectors while fast-forwarding
     // fast-forward to the eruption
     while (s.day < D(5, 2, 3) && !s.over) s = act(drain(s), { t: 'wait', days: 7 });
     s = drain(s);
@@ -189,6 +190,7 @@ describe('long chronicle', () => {
   it('weeks pass per day of travel and Ocato falls in c. 4E 15', () => {
     let s = drain(newGame({ ...CFG, mode: 'long-chronicle' }));
     s.player.cash = 1e6;
+    s.note.cleared = true; // no collectors while fast-forwarding
     while (s.day < D(15, 9, 1) && !s.over) s = drain(act(s, { t: 'wait', days: 7 }));
     expect(s.world.fired).toContain('ocato-assassinated');
     expect(s.world.flags.interregnum).toBe(1);

@@ -6,7 +6,7 @@ import { D, shortDate } from './calendar';
 import { DEPTH, SAT_RECOVERY, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight, holidayAt, legalityAt, marketOpen, midPrice, quotes } from './market';
 import { MAX_LEG_DAYS, routeOptions, routeOptionsFrom, type RouteOption } from './travel';
 import { applyHistory, branchKey, catchUpHistory, clampRep, houseName } from './history';
-import { HEAT, addHeat, buildPending, cardOptions, contrabandValue, heatMult, rollEncounter, resolve } from './encounters';
+import { APPEAL_DAYS, HEAT, addHeat, buildPending, canContest, cardOptions, contrabandValue, courtCost, heatMult, restCollectorChance, rollEncounter, resolve } from './encounters';
 import { charterPrice, charterReadyDay, checkAchievements, netWorth } from './score';
 import { duelTurn, newDuel } from './duel';
 import { SCHEMA_VERSION } from './save';
@@ -80,7 +80,7 @@ export function newGame(cfg: NewGameConfig): GameState {
   makeOffers(s, rng, s.player.location);
   recordPrices(s);
   s.log.push({ day: 0, text: `New Life Festival in Balmora. You owe Gavas Drelloth ${diff.debt} septims.`, tone: 'neutral' });
-  s.inbox.push({ kind: 'result', title: 'Your debt', text: `It is the New Life Festival, 4E 4, in Balmora. You owe Gavas Drelloth of the Camonna Tong ${diff.debt} septims, at ${(diff.rate * 100).toFixed(1)}% interest a day. You have ${diff.cash} septims and a pack guar. Pay him back at the Bank tab in Balmora. The Tong will wait about two months before sending collectors.` });
+  s.inbox.push({ kind: 'result', title: 'Your debt', text: `It is the New Life Festival, 4E 4, in Balmora. You owe Gavas Drelloth of the Camonna Tong ${diff.debt} septims, at ${(diff.rate * 100).toFixed(1)}% interest a day. You have ${diff.cash} septims and a pack guar. Pay him back at the Bank tab in Balmora. The Tong will wait about two months before sending collectors. First pay off the Tong. Then buy your way into the Scathing Charter before the end of 4E 6: that is how you win.` });
   s.rng = rng.state();
   findBooks(s);
   return s;
@@ -111,6 +111,7 @@ export function jobPay(s: GameState, loc: string, job: Job): number {
 // ---------------------------------------------------------------- daily tick
 export function tickDay(s: GameState, rng: Rng): void {
   s.day++;
+  if (s.appeal && (s.appeal.until ?? s.day - 1) < s.day) s.appeal = null; // seizures and fines can be contested for APPEAL_DAYS
   if (s.day % 7 === 0) (s.stats.worth ??= []).push([s.day, netWorth(s)]);
   if (!s.note.cleared) s.note.balance = s.note.balance * (1 + s.note.rate);
   checkMark(s);
@@ -265,7 +266,6 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
     case 'charter': case 'renew': return charter(s, a.t);
     case 'stash': case 'unstash': return warehouse(s, a.t, a.good, a.qty);
     case 'travel': {
-      s.appeal = null;
       const opt = routeOptions(s).find(o => o.route.id === a.route && o.modeIndex === a.mode);
       if (!opt) return 'That route is not open.';
       s.stats.journeys++;
@@ -286,7 +286,13 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       if (s.player.cash >= cost) s.player.cash -= cost;
       else { s.player.health = Math.max(1, s.player.health - 2 * a.days); log(s, 'You cannot pay for a bed, so you sleep rough in the ash.', 'bad'); }
       tickDays(s, rng, a.days * s.timeScale);
-      if (!s.over) makeOffers(s, rng, s.player.location);
+      if (s.over) return;
+      makeOffers(s, rng, s.player.location);
+      // Resting with the note unpaid: the Tong's collectors may find you in town.
+      if (!s.pending && rng.chance(restCollectorChance(s, a.days))) {
+        const def = C.encounters.find(e => e.kind === 'enforcer')!;
+        s.pending = buildPending(s, def, '', loc, 0);
+      }
       return;
     }
     case 'labour': {
@@ -360,12 +366,12 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       if (res.teleport) { arrive(s, rng, res.teleport, true); return; }
       tickDays(s, rng, ((res.delay ?? 0) + p.remainingDays) * s.timeScale);
       if (s.over) { s.player.location = p.dest; return; }
-      if (p.customs && s.player.location !== 'road') return; // a search at the gate: already arrived (a road patrol is not)
+      if ((p.customs || !p.routeId) && s.player.location !== 'road') return; // a search at the gate or a visit in town: already there (a road patrol is not)
       arrive(s, rng, p.dest, true);
       return;
     }
     case 'appeal': {
-      if (!s.appeal || s.appeal.loc !== loc) return 'There is nothing to contest here.';
+      if (!canContest(s)) return s.appeal ? 'Contest it where it happened, or at a court: Vivec, Ebonheart, Narsis or Mournhold.' : 'There is nothing to contest.';
       s.duel = newDuel(rng);
       log(s, 'You contest the seizure. The magistrate’s advocate sets out his case.');
       return;
@@ -382,8 +388,8 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
           s.player.cash += ap.fine;
           s.inbox.push({ kind: 'result', title: 'Case won', text: `The magistrate rules for you: your goods and your ${ap.fine}-septim fine are returned.` });
         } else {
-          const more = Math.min(s.player.cash, ap.fine); s.player.cash -= more;
-          s.inbox.push({ kind: 'result', title: 'Case lost', text: `The magistrate rules against you and doubles the fine: ${more} septims more.` });
+          const more = Math.min(s.player.cash, courtCost(ap)); s.player.cash -= more;
+          s.inbox.push({ kind: 'result', title: 'Case lost', text: ap.fine > 0 ? `The magistrate rules against you and doubles the fine: ${more} septims more.` : `The magistrate rules against you. The seizure stands, and you pay ${more} septims in court costs.` });
         }
       }
       return;
@@ -497,8 +503,9 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
     if (q.legality === 'restricted' && q.sellNote?.startsWith('black')) {
       if (rng.chance(here(s).enforcement * STING_CHANCE * C.backgrounds[s.player.backgroundId].customsMod * heatMult(s.player.heat))) {
         const fine = Math.round(total * STING_FINE); total -= fine;
+        s.appeal = { loc, goods: {}, fine, until: s.day + APPEAL_DAYS };
         log(s, `An EEC informer was watching. Fine: ${fine} septims.`, 'bad');
-        s.inbox.push({ kind: 'result', title: 'An informer', text: `The East Empire Company does not forgive unlicensed ${g.name}. You are fined ${fine} septims.` });
+        s.inbox.push({ kind: 'result', title: 'An informer', text: `The East Empire Company does not forgive unlicensed ${g.name}. You are fined ${fine} septims. You can contest the fine before a magistrate, here or in a court town, within ${APPEAL_DAYS} days (Market tab).` });
       }
     }
     if (q.legality === 'contraband') { s.stats.smuggled += qty; addHeat(s, Math.min(15, 2 + total / 250)); }

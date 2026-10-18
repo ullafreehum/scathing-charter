@@ -81,8 +81,14 @@ test('market: amount picker, buy and sell, filters, capped amounts, next-step hi
   await page.getByRole('radio', { name: 'All', exact: true }).click();
   // Max sells everything you own of it
   await page.getByRole('radio', { name: 'Max' }).click();
-  page.once('dialog', d => d.accept()); // selling at a loss asks first
   await row.getByRole('button', { name: /^Sell/ }).click();
+  // selling at a loss asks first, in the game's own dialog: Escape cancels, then Sell anyway sells
+  await expect(page.getByRole('alertdialog', { name: 'Sell at a loss?' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  expect(await purse(page)).toBe(p1);
+  await row.getByRole('button', { name: /^Sell/ }).click();
+  await page.getByRole('button', { name: 'Sell anyway' }).click();
   expect(await purse(page)).toBeGreaterThan(p1);
   expect((await load(page))[0]).toBe(0);
   // a huge custom amount is capped to what you can afford and carry
@@ -271,5 +277,31 @@ test('settings: themes, fonts, text size, motion and sound persist', async ({ pa
   await page.getByRole('button', { name: 'Reset to defaults' }).click();
   await expect(html).toHaveAttribute('data-theme', 'ashlands');
   await expect(page.getByRole('checkbox', { name: 'Falling ash' })).toBeChecked();
+  expect(errors).toEqual([]);
+});
+
+test('goal line on every tab; the browser confirm box is never used; practice duel from the title', async ({ page }) => {
+  await page.addInitScript(() => { window.confirm = () => { throw new Error('window.confirm was called'); }; });
+  const errors = await start(page);
+  for (const t of ['Market', 'Travel', 'Bank', 'Tavern', 'Shop', 'Journal']) {
+    await page.getByRole('tab').filter({ hasText: t }).first().click();
+    await expect(page.getByRole('button', { name: /^Goal: pay off the Tong$/ })).toBeVisible();
+  }
+  await page.getByRole('button', { name: /^Goal:/ }).click();
+  await expect(page.getByRole('tab', { name: /Bank/ })).toHaveAttribute('aria-selected', 'true');
+  // Borrowing asks in the game's own dialog; Cancel borrows nothing.
+  const before = await note(page);
+  await page.getByRole('button', { name: 'Borrow', exact: true }).click();
+  await expect(page.getByRole('alertdialog', { name: /^Borrow/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  expect(await note(page)).toBe(before);
+  // Back to the title, then the duel on its own.
+  await page.getByTitle('Save, export, quit').click();
+  await page.getByRole('button', { name: /title/i }).first().click();
+  await page.getByRole('button', { name: 'Card duel (practice)' }).click();
+  await expect(page.getByText('A practice hearing')).toBeVisible();
+  await expect(page.locator('[data-turn] canvas, button.relative.aspect-\\[240\\/340\\]').first()).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('button', { name: 'Back to the title' }).click();
+  await expect(page.getByRole('button', { name: 'New game' })).toBeVisible();
   expect(errors).toEqual([]);
 });

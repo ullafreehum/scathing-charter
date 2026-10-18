@@ -35,6 +35,16 @@ One goal, one choice per trip, and a Red Year you can see on the map. Now a Wind
   - Final values (round 2): charter tiers cost 15,000, 40,000 and 80,000; customs duty is 40% and Chameleon works 85% of the time at a gate; Tong collectors catch a runner 35% of the time; luxuries, magic goods and medicine sell in bigger amounts before the price drops; ruined towns and camps pay less of a premium; price spikes are smaller.
   - Black-market sales are riskier: informers sting more often and the fine is 60% of the sale.
   - Seizures after declaring (or a failed bribe) can now be contested at a hearing; animals no longer take bribes or carry coin.
+- More ways into the magistrate's card hearing, always your choice: any seizure (declaring without the duty, a failed bribe, being caught running) and any black-market informer's fine can be contested for 30 days, in the town where it happened or at the courts of Vivec, Ebonheart, Narsis and Mournhold. Win and you get it all back; lose and you pay the fine again, or court costs.
+- The card duel can be played on its own from the title screen (Card duel (practice)).
+- Caught running from customs: only the contraband is seized, with no fine. Running is a little likelier to work.
+- The Tong's collectors can find you while you rest 3 or 7 days with the note overdue.
+- Your goal is always in the top bar; it opens the Bank tab, where the steps are.
+- Selling at a loss, borrowing and retiring ask in the game's own dialog (Escape cancels, Enter confirms).
+- Borrow is greyed out once Drelloth stops lending (five times the note), with the reason.
+- The Bitter Coast cove deal is smaller (2 to 6 units at 70% of fair value); helping refugees at cost earns a slightly bigger Charter discount.
+- Lore: no stalhrim at Ebonheart in 4E 4; Ashlanders only on the Balmora to Ald'ruhn strider route; smugglers' coves only on sea routes; no relief council before the Red Year.
+- Faster in the browser: the falling ash draws at 30 frames a second and at most 1600 pixels across.
 - Saves from 0.9.x load and carry on (save format v7).
 
 ## 0.9.6 (beta): fixes from a playtest

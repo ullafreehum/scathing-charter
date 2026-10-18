@@ -28,6 +28,38 @@ function Card({ children, wide = false, board = false, parchment = false, label 
   );
 }
 
+/** The game's own yes/no dialog: Cancel has focus, Escape cancels, Enter confirms. */
+export function ConfirmDialog() {
+  const ask = useGame(s => s.ask);
+  const answer = useGame(s => s.answer);
+  const no = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!ask) return;
+    no.current?.focus({ preventScroll: true });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); answer(e.key === 'Enter'); }
+    };
+    window.addEventListener('keydown', onKey, true); // capture: before the app's own Escape handling
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [ask, answer]);
+  return (
+    <AnimatePresence>
+      {ask && (
+        <motion.div key="ask" className="fixed inset-0 z-[70] scrim flex items-center justify-center p-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+          <motion.div role="alertdialog" aria-modal="true" aria-labelledby="ask-title" aria-describedby="ask-text" className="panel-solid max-w-md w-full p-5" initial={{ y: 16, scale: 0.97 }} animate={{ y: 0, scale: 1 }} transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
+            <h2 id="ask-title" className="h-display text-xl text-bone">{ask.title}</h2>
+            <p id="ask-text" className="mt-2 text-sm text-parchment">{ask.text}</p>
+            <div className="flex flex-wrap justify-end gap-2 mt-4">
+              <button ref={no} className="btn" onClick={() => answer(false)}>{ask.no ?? 'Cancel'}</button>
+              <button className="btn btn-ember" onClick={() => answer(true)}>{ask.yes}</button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export function Overlays() {
   const g = useGame(s => s.game);
   const act = useGame(s => s.act);

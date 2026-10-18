@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { DUEL, DUEL_CARD, GEN_FIELD, RES_NAME, canPlay, type DuelSide, type DuelState, type Res } from '../engine';
+import { DUEL, DUEL_CARD, GEN_FIELD, RES_NAME, Rng, canPlay, duelTurn, hashSeed, newDuel, type DuelSide, type DuelState, type Res } from '../engine';
 import { useGame } from '../store/game';
 import { useAnimationsOn } from './motion';
 import type { DuelBoard } from './duelBoard';
@@ -26,9 +26,15 @@ type Speed = keyof typeof SPEEDS;
 const SPEED_KEY = 'ashfall-ledger/ui/duel-speed';
 function readSpeed(): Speed { try { const v = localStorage.getItem(SPEED_KEY); if (v && v in SPEEDS) return v as Speed; } catch { /* storage blocked */ } return 'Normal'; }
 
-/** The magistrate's hearing: a tower duel. Play a card, or discard one; first to a 100-high tower (or to topple the other) wins. */
-export function DuelScreen({ d }: { d: DuelState }) {
-  const act = useGame(s => s.act);
+/** Plays a card (or discards it): the duel after the turn, or null if it was refused. */
+type Play = (card: number, discard: boolean) => DuelState | null;
+const gamePlay: Play = (card, discard) => (useGame.getState().act({ t: 'duel', card, discard }) ? useGame.getState().game?.duel ?? null : null);
+const gameLeave = () => { useGame.getState().act({ t: 'duel', card: 0 }); };
+
+/** The magistrate's hearing: a tower duel. Play a card, or discard one; first to a 100-high tower (or to topple the other) wins.
+ *  In a game it plays through the engine; on its own (from the title screen) `play` and `leave` drive a practice duel. */
+export function DuelScreen({ d, play = gamePlay, leave = gameLeave, kicker = 'Before the magistrate', leaveLabel = 'Leave the court' }: { d: DuelState; play?: Play; leave?: () => void; kicker?: string; leaveLabel?: string }) {
+  const playRef = useRef(play); playRef.current = play;
   const motion = useAnimationsOn();
   const [discard, setDiscard] = useState(false);
   const [speed, setSpeed] = useState<Speed>(readSpeed);
@@ -42,9 +48,9 @@ export function DuelScreen({ d }: { d: DuelState }) {
   useEffect(() => {
     let gone = false;
     const el = host.current; if (!el) return;
-    import('./duelBoard').then(m => m.DuelBoard.create(el, useGame.getState().game?.duel ?? d, {
+    import('./duelBoard').then(m => m.DuelBoard.create(el, d, {
       motion: motionAtStart.current,
-      pick: (i, discard) => (useGame.getState().act({ t: 'duel', card: i, discard }) ? useGame.getState().game?.duel ?? null : null),
+      pick: (i, discard) => playRef.current(i, discard),
       settled: s => { if (!gone) setShown(s); },
       discardOff: () => { if (!gone) setDiscard(false); },
     })).then(b => {
@@ -59,17 +65,17 @@ export function DuelScreen({ d }: { d: DuelState }) {
   const now = mode === 'board' ? shown : d;
   return (
     <div>
-      <div className="text-xs h-display uppercase text-ember">Before the magistrate</div>
+      <div className="text-xs h-display uppercase text-ember">{kicker}</div>
       <h2 className="h-display text-2xl text-bone">The hearing{now.winner ? (now.winner === 'you' ? ': you win' : ': you lose') : ''}</h2>
       {mode !== 'plain' && (
         <div ref={host} data-turn={shown.turn} data-winner={shown.winner ?? ''} className="relative mx-auto mt-2 rounded overflow-hidden bg-black" style={{ width: 'min(100%, calc((90dvh - 11rem) * 16 / 9))', aspectRatio: '16 / 9' }}>
           {mode === 'loading' && <div className="absolute inset-0 grid place-items-center text-ash-400 text-sm">Setting up the court…</div>}
         </div>
       )}
-      {mode === 'plain' && <PlainBoard d={d} discard={discard} played={() => setDiscard(false)} />}
+      {mode === 'plain' && <PlainBoard d={d} discard={discard} play={play} played={() => setDiscard(false)} />}
       <div className="flex flex-wrap items-center gap-3 mt-2 text-sm">
         {now.winner ? (
-          <button className="btn btn-ember" autoFocus onClick={() => act({ t: 'duel', card: 0 })}>Leave the court</button>
+          <button className="btn btn-ember" autoFocus onClick={leave}>{leaveLabel}</button>
         ) : (
           <button className={`btn ${discard ? 'btn-ember' : ''}`} aria-pressed={discard} onClick={() => setDiscard(x => !x)}
             title="Throw a card away instead of playing it (you still lose the turn)">{discard ? 'Discarding: pick a card' : 'Discard a card'}</button>
@@ -115,8 +121,7 @@ function Side({ s, title }: { s: DuelSide; title: string }) {
 }
 
 /** The plain board: used while WebGL is missing or the animated board failed to load. */
-function PlainBoard({ d, discard, played }: { d: DuelState; discard: boolean; played: () => void }) {
-  const act = useGame(s => s.act);
+function PlainBoard({ d, discard, play, played }: { d: DuelState; discard: boolean; play: Play; played: () => void }) {
   return (
     <div className="p-1 rounded" style={{ backgroundImage: `url(${bg})`, backgroundSize: 'cover' }}>
       <p className="text-xs text-ash-400">Build your tower to {DUEL.win}, or knock your rival’s down to 0. Damage hits the wall first. Each turn your income adds stone, troops and magic.</p>
@@ -128,7 +133,7 @@ function PlainBoard({ d, discard, played }: { d: DuelState; discard: boolean; pl
             const c = DUEL_CARD[id]; const ok = discard || canPlay(d.you, id); const art = artUrl(id);
             return (
               <button key={i} className={`relative aspect-[240/340] text-left ${ok ? 'hover:-translate-y-1 transition-transform' : 'opacity-50'}`} disabled={!ok} title={c.flavour}
-                onClick={() => { if (act({ t: 'duel', card: i, discard })) played(); }}>
+                onClick={() => { if (play(i, discard)) played(); }}>
                 {art && <img src={art} alt="" className="absolute" style={{ left: '10%', top: '15.3%', width: '80%', height: '38.8%' }} />}
                 <img src={frame} alt="" className="absolute inset-0 w-full h-full" />
                 <span className="absolute left-[10%] right-[10%] top-[4%] text-[0.69rem] text-bone leading-tight">{c.name}</span>
@@ -139,6 +144,26 @@ function PlainBoard({ d, discard, played }: { d: DuelState; discard: boolean; pl
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+/** The duel on its own, from the title screen: no stakes, a fresh deal each time. */
+export function PracticeDuel() {
+  const setScreen = useGame(s => s.setScreen);
+  const [round, setRound] = useState(0);
+  const rng = useRef<Rng | null>(null);
+  const [d, setD] = useState<DuelState>(() => { rng.current = new Rng(hashSeed(`practice-${Math.random()}`)); return newDuel(rng.current); });
+  const play: Play = (card, discard) => {
+    const next = structuredClone(d); // like the engine: never change the shown state in place
+    if (duelTurn(next, rng.current!, card, discard)) return null;
+    setD(next); return next;
+  };
+  const again = () => { rng.current = new Rng(hashSeed(`practice-${Math.random()}`)); setD(newDuel(rng.current)); setRound(r => r + 1); };
+  return (
+    <div className="max-w-6xl mx-auto p-4">
+      <DuelScreen key={round} d={d} play={play} leave={again} kicker="A practice hearing" leaveLabel="Play again" />
+      <button className="btn btn-ghost mt-3" onClick={() => setScreen('title')}>Back to the title</button>
     </div>
   );
 }

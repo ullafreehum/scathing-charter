@@ -91,6 +91,8 @@ export type EncounterKind = 'hostile' | 'enforcer' | 'customs' | 'mercy' | 'haza
 export interface EncounterDef extends Sourced {
   id: string; kind: EncounterKind; title: string; text: string;
   regions: readonly Region[] | 'any'; modes?: readonly TravelMode[];
+  /** only on these routes (ids like `balmora~aldruhn`) */
+  routes?: readonly string[];
   from?: number; to?: number; flag?: string;
   weight: number; threat: number; faction?: FactionId;
   /** fraction of cargo lost on a bad outcome */
@@ -261,7 +263,8 @@ export interface GameState {
   /** Highest debt warning already sent (4 or 5 times the note) */
   markWarned?: number;
   /** goods seized by customs that can still be contested before the magistrate in this town */
-  appeal?: { loc: string; goods: Record<string, Lot>; fine: number } | null;
+  /** Something taken that can be contested at a hearing: in the town it happened, or at any court town, until `until`. */
+  appeal?: { loc: string; goods: Record<string, Lot>; fine: number; until?: number } | null;
   duel?: DuelState | null;
 }
 

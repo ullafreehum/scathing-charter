@@ -6,7 +6,9 @@ import { C } from '../../src/data';
 const shot = (page: Page, name: string) => page.screenshot({ path: `tests/e2e/__screenshots__/diag-${name}.png` });
 function act(s: GameState, a: Action): GameState { const r = step(s, a); if (r.error) throw new Error(`${a.t}: ${r.error}`); return r.state; }
 function drain(s: GameState) { while (s.inbox.length) s = act(s, { t: 'ack' }); return s; }
-function until(s: GameState, day: number) { while (s.day < day - 7) s = drain(act(drain(s), { t: 'wait', days: 7 })); while (s.day < day) s = drain(act(drain(s), { t: 'wait', days: 1 })); return s; }
+// Collectors can visit while resting: run from them, so fast-forwarding never stalls on a card.
+const rest = (s: GameState, days: number) => { s = drain(act(drain(s), { t: 'wait', days })); return s.pending ? drain(act(s, { t: 'choose', choice: s.pending.choices.includes('flee') ? 'flee' : s.pending.choices[0] })) : s; };
+function until(s: GameState, day: number) { while (s.day < day - 7) s = rest(s, 7); while (s.day < day) s = rest(s, 1); return s; }
 const base = () => drain(newGame({ seed: 'DIAG', backgroundId: 'hlaalu-bastard', name: 'Diagnostic Dren', difficulty: 'tong' }));
 
 async function boot(page: Page, s: GameState, errors: string[]) {

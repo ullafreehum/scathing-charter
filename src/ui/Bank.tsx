@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { C } from '../data';
-import { MARK_RATIO, borrowRate, charterPrice, charterReadyDay, daysUntil, depositRate, WITHDRAW_FEE, houseName, pressure, shortDate, strongboxCities, type GameState } from '../engine';
+import { LEND_RATIO, MARK_RATIO, borrowRate, charterPrice, charterReadyDay, daysUntil, depositRate, WITHDRAW_FEE, houseName, pressure, shortDate, strongboxCities, type GameState } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
@@ -98,7 +98,7 @@ export function Bank({ g }: { g: GameState }) {
     const n = g.note, rate = borrowRate(g, loan), bal = (n.cleared ? 0 : n.balance) + loan;
     const days = daysUntil(bal, rate, n.original * MARK_RATIO, g.timeScale);
     const clock = days === null ? '' : ` At ${(rate * 100).toFixed(2)}% a day, your debt passes ${MARK_RATIO} times the note in ${days} days if you pay nothing.`;
-    if (confirm(`Borrow ${loan} septims from the Tong?${clock}`)) act({ t: 'borrow', amount: loan });
+    void useGame.getState().confirm({ title: `Borrow ${loan} septims?`, text: `Every loan raises your interest rate.${clock}`, yes: 'Borrow' }).then(ok => { if (ok) act({ t: 'borrow', amount: loan }); });
   };
   const [box, setBox] = useState(100);
   const loc = g.player.location;
@@ -106,6 +106,7 @@ export function Bank({ g }: { g: GameState }) {
   const held = Math.floor(g.deposits[loc] ?? 0);
   const n = g.note;
   const atTong = loc === n.seat || n.agents.includes(loc);
+  const lendRoom = Math.floor(n.original * LEND_RATIO - (n.cleared ? 0 : n.balance));
   const pr = pressure(g);
   const places = [n.seat, ...n.agents].map(a => C.locs[a].name).join(' or ');
   const payAll = Math.min(g.player.cash, Math.ceil(n.balance));
@@ -127,13 +128,14 @@ export function Bank({ g }: { g: GameState }) {
               </div>
               <div className="flex flex-wrap gap-2 mt-2 items-center">
                 <input className="input w-28 num" type="number" min={1} value={loan} onChange={e => setLoan(toInt(e.target.value))} aria-label="Loan amount" />
-                <button className="btn btn-ghost" onClick={borrow} title="Borrow the amount in this box. Every loan raises your interest rate, and a bigger debt sends harder collectors.">Borrow</button>
+                <button className="btn btn-ghost" onClick={borrow} disabled={lendRoom < 1} title={lendRoom < 1 ? 'Drelloth will not lend you more: he stops at five times the note. Pay something first.' : `Borrow the amount in this box (at most ${lendRoom} more). Every loan raises your interest rate, and a bigger debt sends harder collectors.`}>Borrow</button>
+                {lendRoom < 1 && <span className="text-xs text-ash-400">Drelloth lends up to five times the note. Pay something first.</span>}
               </div>
             </>) : <p className="text-sm text-ash-400 mt-2">You can’t pay here. Pay in {places}.</p>}
           </>
         )}
         {!n.cleared && <p className="text-xs text-ash-400 mt-2">If the debt passes {MARK_RATIO} times the note (<Money v={n.original * MARK_RATIO} />), the Tong puts its mark on you and the game ends.</p>}
-        {!!g.milestones?.length && <div className="mt-3 text-sm"><button className="btn btn-ember" onClick={() => { if (confirm('Retire now? The game ends here with your fortune as it stands.')) act({ t: 'retire' }); }}>Retire</button> <span className="text-ash-400 text-xs">End the game now and read your epilogue.</span></div>}
+        {!!g.milestones?.length && <div className="mt-3 text-sm"><button className="btn btn-ember" onClick={() => { void useGame.getState().confirm({ title: 'Retire now?', text: 'The game ends here, with your fortune as it stands.', yes: 'Retire' }).then(ok => { if (ok) act({ t: 'retire' }); }); }}>Retire</button> <span className="text-ash-400 text-xs">End the game now and read your epilogue.</span></div>}
         <p className="text-xs text-ash-400 mt-3"><CodexLink id="faction:tong">About the Camonna Tong</CodexLink></p>
       </Section>
       <Section title="Strongboxes">

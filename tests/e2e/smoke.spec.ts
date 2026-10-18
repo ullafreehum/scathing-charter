@@ -46,7 +46,7 @@ test('new game → trade → travel → codex → save/continue', async ({ page 
   await shot(page, '08-rumour');
   await clearModals(page);
   await page.getByRole('button', { name: 'Codex' }).click();
-  await page.getByRole('button', { name: 'Historians disagree' }).click();
+  await page.getByRole('button', { name: 'Historians disagree', exact: true }).click();
   await shot(page, '09-codex');
   await page.keyboard.press('Escape');
   await page.reload();

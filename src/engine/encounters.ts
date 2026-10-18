@@ -59,16 +59,43 @@ export function cardChance(s: GameState, opt: Pick<RouteOption, 'risk' | 'days'>
   return Math.min(0.6, 0.06 + 0.05 * opt.risk * Math.sqrt(opt.days)) * DIFF[s.difficulty].enc * Math.max(0.4, 1 - 0.12 * s.player.sellswords);
 }
 
+const reachOf = (regs: readonly Region[], morrowind: boolean) => regs.some(r => r === 'blackmarsh' || r === 'elsweyr') ? 0 : morrowind ? 1 : 0.4;
+
+/** Courts where any open seizure or fine can be contested, and how long a seizure stays open. */
+export const COURT_TOWNS = ['vivec', 'ebonheart', 'narsis', 'mournhold'] as const;
+export const APPEAL_DAYS = 30;
+const CONTEST_HINT = `You can contest the seizure before a magistrate, here or in a court town (Vivec, Ebonheart, Narsis, Mournhold), within ${APPEAL_DAYS} days (Market tab).`;
+/** Whether the open seizure or fine can be contested here (the duel stays optional: the player chooses to). */
+export function canContest(s: GameState): boolean {
+  const ap = s.appeal; if (!ap) return false;
+  if (ap.until !== undefined && s.day > ap.until) return false;
+  return ap.loc === s.player.location || (COURT_TOWNS as readonly string[]).includes(s.player.location);
+}
+/** What losing a hearing costs: the fine again, or court costs when nothing was fined. */
+export function courtCost(ap: NonNullable<GameState['appeal']>): number {
+  if (ap.fine > 0) return ap.fine;
+  let v = 0; for (const lot of Object.values(ap.goods)) v += lot.qty * lot.cost;
+  return Math.max(25, Math.round(v * 0.1));
+}
+
+/** Resting 3 or 7 days with the note unpaid: the Tong may find you in town. Same odds as on the road, for every 3 days. */
+export function restCollectorChance(s: GameState, days: number): number {
+  if (days < 3) return 0;
+  const reg = C.locs[s.player.location]?.region; if (!reg) return 0;
+  const reach = reachOf([reg], reg === 'vvardenfell' || reg === 'mainland');
+  return Math.min(1, pressure(s) * 0.06 * reach * days / 3);
+}
+
 export function rollEncounter(s: GameState, rng: Rng, opt: RouteOption): EncounterDef | null {
   const pr = pressure(s);
   const regs = regionsOf(opt);
   const morrowind = regs.some(r => r === 'vvardenfell' || r === 'mainland');
-  const tongReach = regs.some(r => r === 'blackmarsh' || r === 'elsweyr') ? 0 : morrowind ? 1 : 0.4;
+  const tongReach = reachOf(regs, morrowind);
   const pEnf = pr * 0.06 * tongReach;
   if (!rng.chance(cardChance(s, opt) + pEnf)) return null;
   const cands = C.encounters.filter(e =>
     (e.regions === 'any' || e.regions.some(r => regs.includes(r))) &&
-    (!e.modes || e.modes.includes(opt.mode)) &&
+    (!e.modes || e.modes.includes(opt.mode)) && (!e.routes || e.routes.includes(opt.route.id)) &&
     (e.from === undefined || s.day >= e.from) && (e.to === undefined || s.day < e.to) &&
     (!e.flag || s.world.flags[e.flag]) &&
     !(e.kind === 'enforcer' && (pr === 0 || tongReach === 0)) &&
@@ -143,7 +170,7 @@ function keepLightest(s: GameState, limit: number): void {
 export function fightChance(s: GameState): number { return Math.max(0.08, Math.min(0.92, 0.5 + (power(s) - s.pending!.threat) * 0.07)); }
 export function fleeChance(s: GameState): number {
   const loadRatio = cargoWeight(s) / Math.max(1, capacity(s));
-  return Math.max(0.1, Math.min(0.85, 0.7 - loadRatio * 0.4 - (s.pending!.customs ? 0.25 : 0)));
+  return Math.max(0.1, Math.min(0.85, 0.7 - loadRatio * 0.4 - (s.pending!.customs ? 0.1 : 0)));
 }
 function customsBribeChance(s: GameState): number { return 0.85 - C.locs[s.pending!.dest].enforcement * 0.08; }
 function chameleonChance(s: GameState): number { return s.pending!.customs ? CARD.chameleonAtGate : 0.9; }
@@ -201,7 +228,7 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
         const duty = dutyOf(s);
         if (s.player.cash >= duty) { s.player.cash -= duty; addHeat(s, -10); return { text: `The officer pockets your ${p.bribe} septims, then books you anyway: you pay the ${duty} septims duty as well.`, good: false }; }
         const { taken } = seizeContraband(s);
-        return { text: `The officer pockets your ${p.bribe} septims, then books you anyway. You cannot pay the ${duty} duty, so they seize ${taken}.`, good: false };
+        return { text: `The officer pockets your ${p.bribe} septims, then books you anyway. You cannot pay the ${duty} duty, so they seize ${taken}. ${CONTEST_HINT}`, good: false };
       }
       if (def.kind === 'enforcer') s.note.lastPaymentDay = s.day;
       if (p.customs) addHeat(s, -10);
@@ -215,7 +242,7 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
         return { text: `You declare everything and pay ${duty} septims in duty. The officer stamps your papers.`, good: true };
       }
       const { taken } = seizeContraband(s);
-      return { text: `You declare it, but cannot pay the duty. They seize ${taken} and let you go without a fine.`, good: false };
+      return { text: `You declare it, but cannot pay the duty. They seize ${taken} and let you go without a fine. ${CONTEST_HINT}`, good: false };
     }
     case 'pay-note': {
       const { ask, fee, off } = tongPayment(s);
@@ -237,7 +264,7 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
       s.player.scrolls.chameleon--;
       // Customs officers are trained to look for shimmering air; bandits are not.
       if (rng.chance(chameleonChance(s))) { if (p.customs) addHeat(s, 5); return { text: 'The scroll crackles; light bends round you. You walk past them.', good: true }; }
-      if (p.customs) { const { taken } = seizeContraband(s); return { text: `The Chameleon spell flickers out at the worst moment. They seize ${taken}.`, good: false }; }
+      if (p.customs) { const { taken } = seizeContraband(s); return { text: `The Chameleon spell flickers out at the worst moment. They seize ${taken}. ${CONTEST_HINT}`, good: false }; }
       return { text: `The Chameleon spell flickers out at the worst moment. Spotted! You lose ${loseCargo(s, rng, def.loss * 0.5)}.`, good: false };
     }
     case 'almsivi': case 'divine': {
@@ -257,7 +284,7 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
       if (!r.units) { const c = Math.min(s.player.cash, 25); s.player.cash -= c; s.player.mercy += 2; return { text: `You have no food to spare, so you press ${c} septims into their hands.`, good: true }; }
       s.player.cash += r.total; s.player.mercy += 2; s.charter.favour = (s.charter.favour ?? 0) + 1;
       s.player.rep.temple = clampRep(s.player.rep.temple + 2); s.player.rep.redoran = clampRep(s.player.rep.redoran + 2);
-      return { text: `You hand over ${r.units} measures at what you paid (${r.total} septims). Someone blesses you in the name of Saint Veloth, and the relief council takes note.`, good: true };
+      return { text: `You hand over ${r.units} measures at what you paid (${r.total} septims). Someone blesses you in the name of Saint Veloth, and ${s.world.flags.erupted ? 'the relief council' : 'the Council’s clerks'} take${s.world.flags.erupted ? 's' : ''} note.`, good: true };
     }
     case 'sell-dear': {
       const r = relief(s, false);
@@ -278,9 +305,9 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
       const g = def.goods?.length ? rng.pick(def.goods) : 'moon-sugar';
       const good = C.goods[g];
       const salvage = def.id.includes('salvage') || def.id.includes('buried');
-      const unit = salvage ? 0 : Math.max(1, Math.round(fairValue(s, g) * 0.55));
+      const unit = salvage ? 0 : Math.max(1, Math.round(fairValue(s, g) * 0.7));
       const room = Math.floor((capacity(s) - cargoWeight(s)) / good.weight);
-      let qty = Math.min(rng.int(3, 12), room, unit ? Math.floor(s.player.cash / unit) : 99);
+      let qty = Math.min(rng.int(2, 6), room, unit ? Math.floor(s.player.cash / unit) : 99);
       if (qty <= 0) return { text: 'You have no room (or coin) for it.', good: false };
       qty = Math.max(1, qty);
       s.player.cash -= qty * unit;
@@ -310,7 +337,7 @@ function seizeContraband(s: GameState): { taken: string; value: number } {
     if (legalityAt(s, dest, g) !== 'contraband') continue;
     value += lot.qty * fairValue(s, g); taken.push(`${lot.qty} ${C.goods[g].name}`); seized[g] = { ...lot }; delete s.player.cargo[g];
   }
-  if (taken.length) s.appeal = { loc: dest, goods: seized, fine: 0 };
+  if (taken.length) s.appeal = { loc: dest, goods: seized, fine: 0, until: s.day + APPEAL_DAYS };
   return { taken: taken.join(', ') || 'nothing', value: Math.round(value) };
 }
 
@@ -374,7 +401,7 @@ export function cardOptions(s: GameState): CardOption[] {
       case 'fight': return { id, label: 'Fight', odds: odds(id), stake: `Your strength ${power(s).toFixed(1)} against their ${p.threat}. Lose: wounds, ${cargoAt(s, loss)} and ${Math.round(s.player.cash * 0.15)} cash.` };
       case 'flee':
         if (p.kind === 'enforcer') return { id, label: 'Run', odds: odds(id), stake: `${Math.round(CARD.tongCatch * 100)}% they catch you: wounds and a quarter of your cargo. This road is watched for ${CARD.watchDays} days either way.` };
-        return { id, label: p.customs ? 'Run for it' : 'Flee', odds: odds(id), stake: p.customs ? 'Caught: everything banned is seized and fined, and you are hurt.' : `Caught: wounds and ${cargoAt(s, loss * 0.6)}. Easier with a light load.` };
+        return { id, label: p.customs ? 'Run for it' : 'Flee', odds: odds(id), stake: p.customs ? 'Caught: everything banned is seized (you can contest it) and you are hurt.' : `Caught: wounds and ${cargoAt(s, loss * 0.6)}. Easier with a light load.` };
       case 'bribe': return p.customs
         ? { id, label: 'Bribe the officer', odds: odds(id), stake: `${p.bribe} septims. If it fails they keep it and you pay the ${dutyOf(s)} duty as well.`, disabled: s.player.cash < p.bribe ? `You need ${p.bribe} septims.` : undefined }
         : { id, label: 'Pay them off', stake: `${p.bribe} septims, and you go on unharmed.`, disabled: s.player.cash < p.bribe ? `You need ${p.bribe} septims.` : undefined };
@@ -413,16 +440,15 @@ export function cardOptions(s: GameState): CardOption[] {
 
 function confiscate(s: GameState, rng: Rng, injured: boolean): { text: string; good: boolean } {
   const p = s.pending!;
-  let value = 0; const taken: string[] = []; const seized: Record<string, Lot> = {};
+  const taken: string[] = []; const seized: Record<string, Lot> = {};
   for (const [g, lot] of Object.entries(s.player.cargo)) {
     if (legalityAt(s, p.dest, g) !== 'contraband') continue;
-    value += lot.qty * fairValue(s, g); taken.push(`${lot.qty} ${C.goods[g].name}`); seized[g] = { ...lot }; delete s.player.cargo[g];
+    taken.push(`${lot.qty} ${C.goods[g].name}`); seized[g] = { ...lot }; delete s.player.cargo[g];
   }
-  const wanted = heatLevel(s.player.heat) === 'wanted';
-  const fine = Math.min(s.player.cash, Math.round(value * (wanted ? 0.4 : 0.2)));
-  if (taken.length) s.appeal = { loc: p.dest, goods: seized, fine };
-  s.player.cash -= fine; s.player.rep.legion = clampRep(s.player.rep.legion - 4);
+  // Caught running: only the contraband is seized, with no fine, and it can be contested.
+  if (taken.length) s.appeal = { loc: p.dest, goods: seized, fine: 0, until: s.day + APPEAL_DAYS };
+  s.player.rep.legion = clampRep(s.player.rep.legion - 4);
   addHeat(s, -40);
   const d = injured ? hurt(s, rng, 5, 15) : 0;
-  return { text: `Confiscated: ${taken.join(', ') || 'nothing'}. Fine: ${fine} septims${wanted ? ' (doubled: you were wanted)' : ''}.${d ? ` You took ${d} wounds in the scuffle.` : ''}${taken.length ? ' You may contest the seizure before the magistrate while you are in town (Market tab).' : ''}`, good: false };
+  return { text: `Confiscated: ${taken.join(', ') || 'nothing'}.${d ? ` You took ${d} wounds in the scuffle.` : ''}${taken.length ? ` ${CONTEST_HINT}` : ''}`, good: false };
 }

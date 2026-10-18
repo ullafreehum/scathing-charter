@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { C } from '../data';
-import { CARD, FAVOUR_DISCOUNT, FAVOUR_MAX, buildPending, cardChance, cardOptions, charterPrice, choiceOdds, contrabandValue, fairValue, migrate, newGame, serialize, step, type Action, type GameState, type NewGameConfig } from './index';
+import { CARD, FAVOUR_DISCOUNT, canContest, courtCost, restCollectorChance, FAVOUR_MAX, buildPending, cardChance, cardOptions, charterPrice, choiceOdds, contrabandValue, fairValue, migrate, newGame, serialize, step, type Action, type GameState, type NewGameConfig } from './index';
 
 const CFG: NewGameConfig = { seed: 'cards', backgroundId: 'hlaalu-bastard', name: 'Tester', difficulty: 'tong' };
 function act(s: GameState, a: Action): GameState { const r = step(s, a); if (r.error) throw new Error(r.error); return r.state; }
@@ -197,5 +197,54 @@ describe('crossing cards', () => {
     const old = JSON.parse(serialize(s));
     old.schemaVersion = 5; old.pending.choices = ['give', 'sell-dear', 'pass'];
     expect(migrate(old).pending!.choices).toEqual(['at-cost', 'sell-dear', 'pass']);
+  });
+});
+
+describe('hearings and collectors', () => {
+  const customsId = C.encounters.find(e => e.kind === 'customs')!.id;
+  it('a seizure after declaring can be contested where it happened or at any court, for 30 days, and losing costs court fees', () => {
+    let s = card(customsId, x => { sugar(x); x.player.cash = 0; x.player.location = 'ebonheart'; });
+    s = act(s, { t: 'choose', choice: 'declare' });
+    expect(s.appeal?.goods['moon-sugar']?.qty).toBe(10);
+    expect(s.appeal?.fine).toBe(0);
+    expect(canContest(s)).toBe(true);
+    s.player.location = 'balmora'; expect(canContest(s)).toBe(false);
+    s.player.location = 'narsis'; expect(canContest(s)).toBe(true);
+    expect(courtCost(s.appeal!)).toBe(Math.max(25, Math.round(10 * 40 * 0.1)));
+    s.day = s.appeal!.until! + 1; expect(canContest(s)).toBe(false);
+  });
+  it('caught running at a gate: only the contraband is seized, with no fine, and it can be contested', () => {
+    const s = card(customsId, x => { sugar(x); x.player.cash = 1000; });
+    for (let i = 0; i < 40; i++) {
+      const t = structuredClone(s); t.rng = newGame({ ...CFG, seed: `run${i}` }).rng;
+      const r = step(t, { t: 'choose', choice: 'flee' });
+      if (!r.state.appeal) continue;
+      expect(r.state.player.cash).toBe(1000);
+      expect(r.state.appeal.fine).toBe(0);
+      return;
+    }
+    throw new Error('never caught');
+  });
+  it('creatures take no bribe and carry no coin', () => {
+    for (const def of C.encounters.filter(e => e.creature)) {
+      const s = card(def.id);
+      expect(s.pending!.choices, def.id).not.toContain('bribe');
+    }
+  });
+  it('resting 3 or 7 days with the note badly overdue can bring the collectors to town; resting 1 day never does', () => {
+    const s = start(); s.note.balance = s.note.original * 4.5; s.note.lastPaymentDay = s.day - 90;
+    expect(restCollectorChance(s, 1)).toBe(0);
+    expect(restCollectorChance(s, 7)).toBeGreaterThan(restCollectorChance(s, 3));
+    let found = false;
+    for (let i = 0; i < 40 && !found; i++) {
+      const t = structuredClone(s); t.rng = newGame({ ...CFG, seed: `rest${i}` }).rng;
+      const r = step(t, { t: 'wait', days: 7 }); if (r.error) throw new Error(r.error);
+      if (r.state.pending?.kind === 'enforcer') {
+        found = true;
+        const done = act(r.state, { t: 'choose', choice: r.state.pending.choices[0] });
+        expect(done.player.location).toBe('balmora'); // still in town, nothing stuck
+      }
+    }
+    expect(found).toBe(true);
   });
 });

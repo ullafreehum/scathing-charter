@@ -14,7 +14,7 @@ export function warehouseValue(s: GameState): number {
   return v;
 }
 /** Council favour from relief given at cost: 0.3% off each charter tier per point, at most 1.5%. */
-export const FAVOUR_DISCOUNT = 0.003, FAVOUR_MAX = 5;
+export const FAVOUR_DISCOUNT = 0.004, FAVOUR_MAX = 5;
 /** Price of the next charter tier for this player, after favour. */
 export function charterPrice(s: GameState, tier: 1 | 2 | 3): number {
   const base = C.charter.tiers[tier - 1].price;

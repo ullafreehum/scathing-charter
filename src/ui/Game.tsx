@@ -4,7 +4,7 @@ import { nextSteps, type Hint } from './hints';
 import { planRoute } from './route';
 import { AnimatePresence, motion } from 'framer-motion';
 import { C } from '../data';
-import { capacity, cargoWeight, formatDate, netWorth, depositsTotal, pressure, type GameState } from '../engine';
+import { capacity, cargoWeight, charterPrice, formatDate, netWorth, depositsTotal, pressure, type GameState } from '../engine';
 import { useGame, type Tab } from '../store/game';
 import { exportFile, savedWhen, slotInfo, type Slot } from '../save/storage';
 import { CodexLink, DateWidget, Delta, Meter, RollingMoney, StatusPill } from './widgets';
@@ -72,6 +72,7 @@ function TopBar({ g }: { g: GameState }) {
         <span title="Cargo weight / capacity">Cargo <span className="num">{cargoWeight(g)}/{capacity(g)}</span></span>
         <span className="flex items-center gap-1" title="Health">♥ <Meter v={g.player.health} color={g.player.health < 35 ? 'var(--c-bad)' : 'var(--c-good)'} /></span>
         <span title="Cash + bank deposits + cargo value − debt">Net worth <RollingMoney v={netWorth(g)} className="text-gold" /></span>
+        <GoalChip g={g} />
         <button className="btn" onClick={() => openCodex(null)} title="Codex (c)">Codex</button>
         <button className="btn btn-ghost" onClick={openSettings} aria-label="Settings" title="Settings: sound, theme, font, text size"><span aria-hidden="true">⚙</span><span className="hidden xl:inline">Settings</span></button>
         <div className="relative" ref={menuRef}>
@@ -150,6 +151,21 @@ function LocationPanel({ g }: { g: GameState }) {
         </div>
       )}
     </aside>
+  );
+}
+
+/** The win condition, always in view: clear the debt, then own the Scathing Charter. Opens the Bank, where the steps are. */
+function GoalChip({ g }: { g: GameState }) {
+  const setTab = useGame(s => s.setTab);
+  const price = charterPrice(g, 3), worth = Math.max(0, Math.round(netWorth(g)));
+  const held = g.charter.tier >= 3;
+  const text = held ? (g.note.cleared ? 'Charter held: you won' : 'Goal: now clear the debt')
+    : !g.note.cleared ? 'Goal: pay off the Tong' : `Goal: Charter ${worth.toLocaleString('en')} / ${price.toLocaleString('en')}`;
+  return (
+    <button className="btn btn-ghost py-0.5 flex-col items-start gap-0.5 text-xs" onClick={() => setTab('bank')} title="Win: own the Scathing Charter and owe the Tong nothing. Your net worth against the seat's price; the steps are on the Bank tab.">
+      <span>{text}</span>
+      {!held && g.note.cleared && <span className="block h-1 w-full rounded bg-ash-700 overflow-hidden" aria-hidden="true"><span className="block h-full bg-gold" style={{ width: `${Math.min(100, (100 * worth) / price)}%` }} /></span>}
+    </button>
   );
 }
 

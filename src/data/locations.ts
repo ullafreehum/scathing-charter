@@ -54,7 +54,7 @@ export const LOCATIONS: Location[] = [
       { name: 'Factor Quintus Arrenius', race: 'Imperial', trade: 'East Empire Company factor', line: '“Ebony, glass, Dwemer goods: all by Company licence, all at Company prices.”', categories: 'all', lean: 1.02, eec: true },
       { name: 'Hjordis Ice-Wake', race: 'Nord', trade: 'ship’s chandler', line: '“Sea of Ghosts cargo comes through me, or it rots on the dock.”', categories: ['food', 'drink', 'material', 'medicine'], lean: 0.99 },
     ],
-    tendencies: T('kwama-eggs .9 saltrice 1 sujamma 1 skingrad-wine 1.15 nord-mead 1.1 timber 1.2 raw-glass 1 raw-ebony 1 stalhrim 1.2 dwemer-artifacts 1 soul-gems 1 healing-draughts 1 bug-musk 1.1') },
+    tendencies: T('kwama-eggs .9 saltrice 1 sujamma 1 skingrad-wine 1.15 nord-mead 1.1 timber 1.2 raw-glass 1 raw-ebony 1 dwemer-artifacts 1 soul-gems 1 healing-draughts 1 bug-musk 1.1') },
   { id: 'mournhold', codex: ['person:helseth'], name: 'Mournhold', region: 'mainland', jurisdiction: 'morrowind', x: 612, y: 392, faction: 'Royal Court (King Helseth)', status: 'thriving', refuge: 'blacklight',
     blurb: 'Royal capital of Morrowind in Deshaan, where King Hlaalu Helseth reigns. Almalexia, the Tribune who ruled here, is dead: she slew Sotha Sil and fell to the Nerevarine in 3E 427. Azura then cleared the city’s ash storms as a gift to the Dunmer. Three years earlier Helseth abolished slavery by decree, and the Great Houses have not forgiven him.',
     laws: 'Royal law. Slavery is abolished (3E 430). Moon sugar and skooma are banned by provincial law.',

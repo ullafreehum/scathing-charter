@@ -5,12 +5,23 @@
 *A trading game set in the world of The Elder Scrolls, at the dawn of the Fourth Era.*
 
 It is **1 Morning Star 4E 4** in Balmora. You owe the Camonna Tong 4,000 septims, you own one pack guar,
-and you have three years. Buy low, sell high, and keep ahead of the debt through the last calm year, the
-**Red Year**, and the war that follows. Every place, good and event is drawn from Elder Scrolls lore,
-with sources you can click.
+and you have three years. Buy low, sell high, pay off the debt and buy your way into the **Scathing Charter**,
+through the last calm year, the **Red Year**, and the war that follows. Every place, good and event is drawn
+from Elder Scrolls lore, with sources you can click.
 
-> **Just want to play?** Download **`ScathingCharter-Setup-<version>.exe`** from
-> [Releases](https://github.com/ullafreehum/scathing-charter/releases) and run it. Nothing else to install.
+## ▶ Play now
+
+Welcome, outlander. There are two ways in, and both are free:
+
+- **In your browser:** **[play The Scathing Charter online](https://ullafreehum.github.io/scathing-charter/)**.
+  Nothing to install. It works on any computer with a modern browser, and your saves stay in that browser.
+- **On Windows:** download the game from the **[v0.10.0 release](https://github.com/ullafreehum/scathing-charter/releases/tag/v0.10.0)**.
+  Take **`ScathingCharter-Setup-0.10.0.exe`** to install it, or **`ScathingCharter-Portable-0.10.0.exe`** to run it
+  from anywhere with no install. The game isn't signed, so Windows may say *"Windows protected your PC"*: click
+  **More info**, then **Run anyway**.
+
+New here? Pick **Easy (Fair Terms)** for your first game, and read [Your first five minutes](#-your-first-five-minutes)
+below. Want a taste first? **Card duel (practice)** on the title screen plays the magistrate's card hearing on its own.
 
 > Unofficial, non-commercial fan game. *The Elder Scrolls* is a trademark of ZeniMax Media / Bethesda
 > Softworks. This project is not affiliated with or endorsed by them.
@@ -19,7 +30,7 @@ with sources you can click.
 
 ## 🕯️ Install on Windows
 
-1. Open **[Releases](https://github.com/ullafreehum/scathing-charter/releases)** and download the newest
+1. Open the **[latest release](https://github.com/ullafreehum/scathing-charter/releases/tag/v0.10.0)** (or [all releases](https://github.com/ullafreehum/scathing-charter/releases)) and download the newest
    **`ScathingCharter-Setup-<version>.exe`**. (Prefer no install? Take **`ScathingCharter-Portable-<version>.exe`**:
    one file that runs from anywhere, such as a USB stick.)
 2. Run it. The game isn't signed, so the first time Windows may say *"Windows protected your PC"*: click
@@ -44,7 +55,7 @@ new Setup and run it; your saves stay.
 
 You're now in **Balmora**. The screen has three parts:
 - **Top bar:** the date (with the two moons), your **Cash**, your **Debt** (it grows every day),
-  **Bank** (deposits), **Cargo** (weight / capacity), health ♥ and **Net worth** (your score), plus the
+  **Bank** (deposits), **Cargo** (weight / capacity), health ♥, **Net worth** (your score) and your **Goal**, plus the
   **Codex** and **⚙ Settings** buttons.
 - **Left panel:** where you are: its story, its laws, and the merchants here. Underlined words open the
   **Codex** (the in-game encyclopaedia).
