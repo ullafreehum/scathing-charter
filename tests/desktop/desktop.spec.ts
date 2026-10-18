@@ -26,7 +26,7 @@ test('first launch: full screen, no menu, bridge present, game boots', async () 
   const { app, page } = await launch(dir);
   expect(await isFull(app)).toBe(true);
   expect(await app.evaluate(({ Menu }) => Menu.getApplicationMenu())).toBeNull();
-  expect(await page.evaluate(() => Object.keys(window.desktop ?? {}).sort())).toEqual(['isFullScreen', 'onFullScreenChange', 'onScaleStep', 'setDialogOpen', 'setFullScreen']);
+  expect(await page.evaluate(() => Object.keys(window.desktop ?? {}).sort())).toEqual(['isFullScreen', 'onFullScreenChange', 'onScaleStep', 'quit', 'setDialogOpen', 'setFullScreen']);
   expect(await page.evaluate(() => typeof (window as unknown as { require?: unknown }).require)).toBe('undefined'); // no Node in the page
   await app.close();
 });

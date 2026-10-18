@@ -3,7 +3,7 @@
 A lore-dense, Dope Wars–style trading game set in the Elder Scrolls universe at the dawn of the
 Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-commercial fan project.
 
-> Version **0.10.0** (beta): the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
+> Version **0.10.1** (beta): the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
 > bump it there and add a `CHANGELOG.md` entry for each release. To publish: write `docs/releases/v<version>.md`,
 > and push it (or push the tag `v<version>`); `.github/workflows/release.yml` creates the
 > tag, publishes the release and a Windows runner attaches the Electron Setup and Portable .exe (pre-release while the version is 0.x).
@@ -52,7 +52,8 @@ src/
             (route planner) are pure helpers over GameState. Tooltip.tsx turns every `title` into a fast themed hover tip (kept in `data-tip`; e2e tests select by it). Decorative motion goes through motion.ts
             (Animations setting + reduced motion); fx.tsx holds coin flights and the night dip.
             duelBoard.ts = the hearing's Pixi.js board (lazy chunk), playing back DuelState.events from the engine.
-  audio/    Procedural Web Audio (no audio files needed).
+  audio/    Procedural Web Audio (no audio files needed): sfx.ts (effects, wind, music switch); score.js = the
+            "Ash & Ebony" score (moods: calm, after Baar Dau, duel; mood set in App.tsx).
 tests/e2e/  Playwright specs; screenshots go to tests/e2e/__screenshots__/.
 docs/       GAME_DESIGN.md, LORE_BIBLE.md, research/ (raw researcher notes).
 ```
