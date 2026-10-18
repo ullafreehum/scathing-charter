@@ -83,8 +83,8 @@ export function Market({ g }: { g: GameState }) {
           </span>
         </div>
       )}
-      {hol && !hol.marketClosed && <div className="panel p-3 text-sm"><span className="text-gold h-display">{hol.name}.</span> {hol.text}</div>}
-      {(loc === 'lilmoth' || loc === 'stormhold') && !g.player.licence && <div className="panel p-3 text-sm text-ember">Foreigners need a trade licence here. Buy one at the Lilmoth gate (Shop & Temple tab) or from the Argonian agent in Leyawiin.</div>}
+      {hol && !hol.marketClosed && <div className="market-notice panel p-3 text-sm" onClick={e => e.currentTarget.classList.toggle('open')}><span className="text-gold h-display">{hol.name}.</span> {hol.text}</div>}
+      {(loc === 'lilmoth' || loc === 'stormhold') && !g.player.licence && <div className="market-notice panel p-3 text-sm text-ember" onClick={e => e.currentTarget.classList.toggle('open')}>Foreigners need a trade licence here. Buy one at the Lilmoth gate (Shop & Temple tab) or from the Argonian agent in Leyawiin.</div>}
       {!PHONE && canContest(g) && g.appeal && (
         <div className="panel p-3 flex flex-wrap items-center gap-2 text-sm">
           <span className="text-gold h-display">{Object.keys(g.appeal.goods).length ? 'Seized goods.' : 'A fine to contest.'}</span>
@@ -98,7 +98,7 @@ export function Market({ g }: { g: GameState }) {
           <button className="btn btn-ember ml-auto" onClick={() => act({ t: 'deliver', id: c.id })}>Deliver</button>
         </div>
       ); })}
-      <Section title={PHONE ? '' : 'Goods'} right={<span className="text-xs text-ash-400">Cash <Money v={g.player.cash} className="text-gold" /> · <span title="The fare grows with your cargo: the second figure is the fare with your hold full">cheapest trip <Money v={fareWith(0)} /> (full load <Money v={fareWith(free)} />)</span> · space left {free}</span>}>
+      <Section className="market-sec" title={PHONE ? '' : 'Goods'} right={<span className="text-xs text-ash-400">Cash <Money v={g.player.cash} className="text-gold" /> · <span title="The fare grows with your cargo: the second figure is the fare with your hold full">cheapest trip <Money v={fareWith(0)} /> (full load <Money v={fareWith(free)} />)</span> · space left {free}</span>}>
         <div className="market-head flex flex-wrap items-center gap-x-4 gap-y-2 mb-2 text-sm">
           {PHONE && <button className="btn" onClick={() => usePhone.getState().setSheet('town')}>Town ▾</button>}
           <div className="flex items-center gap-1" role="radiogroup" aria-label="Trade amount">

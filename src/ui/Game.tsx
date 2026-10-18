@@ -4,7 +4,7 @@ import { nextSteps, type Hint } from './hints';
 import { planRoute } from './route';
 import { AnimatePresence, motion } from 'framer-motion';
 import { C } from '../data';
-import { capacity, cargoWeight, charterPrice, formatDate, netWorth, depositsTotal, pressure, type GameState } from '../engine';
+import { capacity, cargoWeight, charterPrice, formatDate, shortDate, netWorth, depositsTotal, pressure, type GameState } from '../engine';
 import { useGame, type Tab } from '../store/game';
 import { exportFile, savedWhen, slotInfo, type Slot } from '../save/storage';
 import { CodexLink, DateWidget, Delta, Meter, Money, RollingMoney, StatusPill } from './widgets';
@@ -156,15 +156,16 @@ function LocationPanel({ g }: { g: GameState }) {
 }
 
 /** The win condition, always in view: clear the debt, then own the Scathing Charter. Opens the Bank, where the steps are. */
-function GoalChip({ g }: { g: GameState }) {
+function GoalChip({ g, short = false }: { g: GameState; short?: boolean }) {
   const setTab = useGame(s => s.setTab);
   const price = charterPrice(g, 3), worth = Math.max(0, Math.round(netWorth(g)));
   const held = g.charter.tier >= 3;
   const text = held ? (g.note.cleared ? 'Charter held: you won' : 'Goal: now clear the debt')
     : !g.note.cleared ? 'Goal: pay off the Tong' : `Goal: Charter ${worth.toLocaleString('en')} / ${price.toLocaleString('en')}`;
+  const shortText = held ? (g.note.cleared ? 'Won' : 'Clear debt') : !g.note.cleared ? 'Pay the Tong' : `Charter ${Math.min(100, Math.floor((100 * worth) / price))}%`;
   return (
     <button className="btn btn-ghost py-0.5 flex-col items-start gap-0.5 text-xs" onClick={() => setTab('bank')} title="Win: own the Scathing Charter and owe the Tong nothing. Your net worth against the seat's price; the steps are on the Bank tab.">
-      <span>{text}</span>
+      <span>{short ? shortText : text}</span>
       {!held && g.note.cleared && <span className="block h-1 w-full rounded bg-ash-700 overflow-hidden" aria-hidden="true"><span className="block h-full bg-gold" style={{ width: `${Math.min(100, (100 * worth) / price)}%` }} /></span>}
     </button>
   );
@@ -252,20 +253,21 @@ function PhoneGame() {
   const { sheet, setSheet, tabs } = usePhone();
   useEffect(() => { if (tabs[tabs.length - 1] !== tab) tabs.push(tab); if (tabs.length > 20) tabs.splice(0, tabs.length - 20); }, [tab, tabs]);
   const close = () => setSheet(null);
+  const [hintOff, setHintOff] = useState(false); // the Market's hint line goes once dismissed or after the first purchase
   const pr = pressure(g);
   const L = C.locs[g.player.location];
   const road = g.player.location === 'road';
   return (
     <div className="phone-shell">
       <header className="phone-strip panel">
-        <button className="btn btn-ghost" onClick={() => setSheet('time')} title="The time, and the date in the game"><span className="num">{formatDate(g.day, false)}</span> · <span className="text-bone">{L?.name ?? 'On the road'}</span></button>
+        <button className="btn btn-ghost" onClick={() => setSheet('time')} title="The time, and the date in the game"><span className="num">{shortDate(g.day).replace(/ 4E \d+$/, '')}</span> · <span className="text-bone">{L?.name ?? 'Road'}</span></button>
         <button className="btn btn-ghost gap-3" onClick={() => setSheet('wallet')} title="Your money: cash, debt, bank and net worth">
           <span id="cash-counter">Cash <RollingMoney v={g.player.cash} className="text-bone" /></span>
           <span>Debt {g.note.cleared ? <span className="text-moss">cleared</span> : <span id="debt-counter"><RollingMoney v={g.note.balance} className={pr >= 2 ? 'text-danger' : 'text-ember'} /></span>}{pr > 0 && !g.note.cleared && <span className="text-danger ml-0.5">{'⚠'.repeat(pr)}</span>}</span>
           <span>Cargo <span className="num">{cargoWeight(g)}/{capacity(g)}</span></span>
         </button>
         <span className="flex items-center gap-1" title="Health">♥ <Meter v={g.player.health} color={g.player.health < 35 ? 'var(--c-bad)' : 'var(--c-good)'} /></span>
-        <GoalChip g={g} />
+        <GoalChip g={g} short />
         <button className="btn btn-ghost ml-auto" onClick={() => setSheet('menu')} aria-label="Menu" title="Codex, settings, save, quit">☰</button>
       </header>
       <nav className="phone-rail" role="tablist" aria-orientation="vertical">
@@ -286,7 +288,7 @@ function PhoneGame() {
           {tab === 'ledger' && <Ledger g={g} />}
         </>}
         </div>
-        {hints && tab === 'market' && !road && <NextSteps g={g} one />}
+        {hints && tab === 'market' && !road && !hintOff && !g.actions.some(a => a.t === 'buy') && <div className="relative"><NextSteps g={g} one /><button className="phone-hint-x" aria-label="Hide the hint" onClick={() => setHintOff(true)}>✕</button></div>}
       </main>
       {sheet === 'town' && <Sheet title="Town" onClose={close}>{L ? <LocationPanel g={g} /> : <p className="text-parchment">On the road.</p>}</Sheet>}
       {sheet === 'time' && <Sheet title="Time" onClose={close}><TimeSheet g={g} onTown={() => setSheet('town')} /></Sheet>}

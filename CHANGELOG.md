@@ -7,6 +7,7 @@ and the Long Chronicle.
 ## Unreleased
 - Settings: Sound effects and Music switch on and off separately (one volume for both).
 - A new app icon by Sorcerer (a gold septim ring around Red Mountain) for the Android app and the Windows .exe and installer.
+- Phone: the top strip no longer clips with the Classic font (short date, short goal); notices fold to one line (tap to read); the Market hint can be closed and goes after the first purchase.
 - Phone: pop-up messages and the Undo bar go away sooner; tapping the date shows the time (and the date in the game) instead of the town.
 
 ## 0.10.5 (beta): Android test app and more music
