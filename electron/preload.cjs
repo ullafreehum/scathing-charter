@@ -17,4 +17,6 @@ contextBridge.exposeInMainWorld('desktop', {
   onFullScreenChange: cb => listen('desktop:fullscreen', cb),
   /** cb(+1 | -1 | 0) on Ctrl+Plus / Ctrl+Minus / Ctrl+0: step the "Text and UI size" setting (0 = reset to 100%). */
   onScaleStep: cb => listen('desktop:scale-step', cb),
+  /** Close the game (the Exit button on the title screen). */
+  quit: () => ipcRenderer.send('desktop:quit'),
 });

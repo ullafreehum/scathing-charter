@@ -8,6 +8,23 @@ import { coinBurst, coinsFor } from './fx';
 
 const toInt = (v: string) => Math.max(1, Math.floor(Number(v) || 1));
 
+// Hover tips for the strongboxes: the rate, what the balance earns a day, and the interest earned so far.
+const sept = (v: number) => (v > 0 && v < 1 ? 'under 1' : Math.round(v).toLocaleString('en-US'));
+const pct = (r: number) => `${(r * 100).toFixed(2)}% a day`;
+export function boxTip(g: GameState, b: string): string {
+  const name = C.locs[b].name, amt = g.deposits[b] ?? 0, got = g.stats.interest?.[b] ?? 0;
+  if (g.world.branches[b] !== 'open') return `${name}: this strongbox is closed and pays no interest.${got ? `\nInterest earned here: ${sept(got)} septims.` : ''}`;
+  const r = depositRate(b);
+  return `${name}: ${pct(r)}.\nOn ${sept(amt)} septims that is about ${sept(amt * r)} a day (${sept(amt * r * 30)} in 30 days).\nInterest earned here so far: ${sept(got)} septims.`;
+}
+export function bankTip(g: GameState): string {
+  const open = strongboxCities(C.branches).filter(b => g.world.branches[b] === 'open');
+  const daily = open.reduce((t, b) => t + (g.deposits[b] ?? 0) * depositRate(b), 0);
+  const got = Object.values(g.stats.interest ?? {}).reduce((t, v) => t + v, 0);
+  const boxes = open.filter(b => (g.deposits[b] ?? 0) >= 1).map(b => `${C.locs[b].name} (${pct(depositRate(b))}): about ${sept((g.deposits[b] ?? 0) * depositRate(b))} a day`);
+  return [`All deposits in banks (frozen ones at their expected payout).`, `Interest: about ${sept(daily)} septims a day.`, ...boxes, `Interest earned so far: ${sept(got)} septims.`].join('\n');
+}
+
 function CharterSection({ g }: { g: GameState }) {
   const act = useGame(s => s.act);
   const ch = g.charter; const loc = g.player.location;
@@ -141,7 +158,7 @@ export function Bank({ g }: { g: GameState }) {
       <Section title="Strongboxes">
         <ul className="text-sm space-y-1">{strongboxCities(C.branches).map(b => {
           const open = g.world.branches[b] === 'open'; const amtB = Math.floor(g.deposits[b] ?? 0);
-          return <li key={b} className="flex items-center gap-2"><span className={open ? 'text-bone' : 'text-ash-400 line-through'}>{C.locs[b].name}</span>{b === loc && <span className="text-xs text-gold">(here)</span>}<span className="ml-auto"><Money v={amtB} /></span></li>;
+          return <li key={b} className="flex items-center gap-2" title={boxTip(g, b)}><span className={open ? 'text-bone' : 'text-ash-400 line-through'}>{C.locs[b].name}</span>{b === loc && <span className="text-xs text-gold">(here)</span>}<span className="ml-auto"><Money v={amtB} /></span></li>;
         })}</ul>
         {boxHere ? (
           <div className="mt-3">

@@ -6,6 +6,7 @@ import { formatDate } from '../engine';
 import { C } from '../data';
 import logo from '../assets/scathing-charter-logo.jpg';
 import { Credits } from './Credits';
+import { desktop } from './desktop';
 
 export function Title() {
   const { setScreen, continueAuto, load, meta, openSettings } = useGame();
@@ -32,6 +33,8 @@ export function Title() {
         }} />
         <button className="btn btn-ghost" onClick={() => setCredits(true)}>Credits &amp; sources</button>
         <button className="btn btn-ghost" onClick={openSettings}><span aria-hidden="true">⚙</span>Settings</button>
+        {/* Only the desktop app can close itself; a browser tab is closed by the player. */}
+        {desktop() && <button className="btn btn-ghost" onClick={() => desktop()?.quit()}>Exit</button>}
         {msg && <div className="text-danger text-sm">{msg}</div>}
         {meta.achievements.length > 0 && <div className="text-xs text-ash-400 mt-1">Achievements earned in all games: {meta.achievements.length}/{C.achievements.length}{meta.chronicleUnlocked && ' · Long Chronicle unlocked'}</div>}
       </motion.div>

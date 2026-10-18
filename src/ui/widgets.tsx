@@ -11,26 +11,15 @@ export function Money({ v, className = '' }: { v: number; className?: string }) 
 }
 
 // Lore-status badges are shown in the Codex only.
-/** A value that glides to its target instead of jumping (0.5 s, eased). */
-function useRolling(value: number, on: boolean): number {
-  const [shown, setShown] = useState(value);
-  const cur = useRef(value);
-  useEffect(() => {
-    if (!on || Math.abs(value - cur.current) < 1) { cur.current = value; setShown(value); return; }
-    const ctl = animate(cur.current, value, { duration: 0.5, ease: [0.22, 1, 0.36, 1], onUpdate: v => { cur.current = v; setShown(v); } });
-    return () => ctl.stop();
-  }, [value, on]);
-  return shown;
-}
-/** Money that rolls to its new value with a small springy bump (top-bar counters). */
+/** Money with a small springy bump when it changes (top-bar counters). */
 export function RollingMoney({ v, className = '' }: { v: number; className?: string }) {
+  // The number jumps straight to its new value: a rolling count re-laid out the page every frame and made trading feel laggy.
   const on = useAnimationsOn();
-  const shown = useRolling(v, on);
   const [bump, setBump] = useState(0); const last = useRef(Math.round(v));
   useEffect(() => { if (Math.round(v) !== last.current) { last.current = Math.round(v); setBump(b => b + 1); } }, [v]);
   return (
     <motion.span key={bump} className="inline-block origin-center" initial={bump && on ? { scale: 1.12 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 520, damping: 16 }}>
-      <Money v={shown} className={className} />
+      <Money v={v} className={className} />
     </motion.span>
   );
 }

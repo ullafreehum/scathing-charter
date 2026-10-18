@@ -83,7 +83,7 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
     transition: transform .18s cubic-bezier(.34,1.56,.64,1), border-color .15s, background .15s, box-shadow .2s;
   }
   .btn:hover:not(:disabled) { border-color: var(--c-accent); background: linear-gradient(180deg, color-mix(in oklab, var(--c-btn-top) 86%, var(--c-accent)), var(--c-btn-bottom));
-    transform: translateY(-1px); box-shadow: 0 6px 14px -8px var(--shadow-strong); }
+    box-shadow: 0 6px 14px -8px var(--shadow-strong); } /* no lift on hover: a moving button flickers when the cursor sits on its edge */
   .btn:active:not(:disabled) { transform: translateY(1px) scale(.97); transition-duration: .05s; box-shadow: inset 0 2px 5px rgba(0,0,0,.28); }
   /* primary buttons: a soft light sweeps across on hover */
   .btn-ember::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
@@ -127,19 +127,20 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
   mask-image: var(--fade-x), var(--fade-y); mask-composite: intersect;
   filter: drop-shadow(0 12px 28px var(--shadow-strong));
 }
-/* a traded market row glows briefly (two names so the animation restarts on every trade) */
-@keyframes row-glow-a { from { background: color-mix(in oklab, var(--c-accent) 24%, transparent); } }
-@keyframes row-glow-b { from { background: color-mix(in oklab, var(--c-accent) 24%, transparent); } }
-.row-glow-a { animation: row-glow-a .9s ease-out; }
-.row-glow-b { animation: row-glow-b .9s ease-out; }
+/* hover tips (Tooltip.tsx) */
+.tip { border-radius: 6px; box-shadow: 0 6px 18px var(--shadow-strong); line-height: 1.45; }
+/* a traded market row glows briefly: an overlay that fades out (opacity only, so the page isn't repainted every frame) */
+@keyframes row-glow { from { opacity: 1; } to { opacity: 0; } }
+.row-glow { position: absolute; inset: 0; pointer-events: none; opacity: 0; will-change: opacity;
+  background: color-mix(in oklab, var(--c-accent) 24%, transparent); animation: row-glow .9s ease-out; }
 /* Animations off (setting) or reduced motion (system): no decorative motion */
 :root[data-anim="off"] .btn, :root[data-anim="off"] .btn::after { transition: none; }
 :root[data-anim="off"] .btn:hover:not(:disabled), :root[data-anim="off"] .btn:active:not(:disabled) { transform: none; }
-:root[data-anim="off"] .row-glow-a, :root[data-anim="off"] .row-glow-b { animation: none; }
+:root[data-anim="off"] .row-glow { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .btn, .btn::after { transition: none; }
   .btn:hover:not(:disabled), .btn:active:not(:disabled) { transform: none; }
-  .row-glow-a, .row-glow-b { animation: none; }
+  .row-glow { display: none; }
 }
 @keyframes flash-up { from { color: var(--c-good); } to { color: inherit; } }
 @keyframes flash-down { from { color: var(--c-bad); } to { color: inherit; } }

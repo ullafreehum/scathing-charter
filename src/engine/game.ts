@@ -117,7 +117,10 @@ export function tickDay(s: GameState, rng: Rng): void {
   checkMark(s);
   if (s.over) return;
   milestones(s);
-  for (const k of Object.keys(s.deposits)) if (s.world.branches[k] === 'open') s.deposits[k] *= 1 + depositRate(k);
+  for (const k of Object.keys(s.deposits)) if (s.world.branches[k] === 'open') {
+    const before = s.deposits[k]; s.deposits[k] *= 1 + depositRate(k);
+    const earned = (s.stats.interest ??= {}); earned[k] = (earned[k] ?? 0) + s.deposits[k] - before;
+  }
   // wages
   const hold = s.player.conveyance === 'chartered-hold' ? 10 : 0;
   const wages = s.player.porters * WAGES.porter.day + s.player.sellswords * WAGES.sellsword.day + hold;

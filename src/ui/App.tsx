@@ -5,6 +5,7 @@ import { useGame } from '../store/game';
 import { ERUPTION_DAY } from '../data/history';
 import { C } from '../data';
 import { AshLayer } from './AshLayer';
+import { TooltipLayer } from './Tooltip';
 import { Title } from './Title';
 import { NewGame } from './NewGame';
 import { GameScreen } from './Game';
@@ -68,6 +69,7 @@ export function App() {
       {screen === 'game' && <NightDip />}
       <FxLayer />
       <ConfirmDialog />
+      <TooltipLayer />
       <AnimatePresence>
         {error && <motion.div key={errorTick} role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] panel px-4 py-2 text-danger shake" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>{error}</motion.div>}
       </AnimatePresence>

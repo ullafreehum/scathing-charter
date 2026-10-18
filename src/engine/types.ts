@@ -232,6 +232,8 @@ export interface Stats {
   fightsWon: number; smuggled: number; visited: string[]; reliefDelivered: number; contractsDone: number;
   /** [day, net worth] sampled weekly, for the fortune chart */
   worth?: [number, number][];
+  /** Strongbox interest earned so far, by city (tracked since 0.10.1) */
+  interest?: Record<string, number>;
 }
 
 export interface GameState {
