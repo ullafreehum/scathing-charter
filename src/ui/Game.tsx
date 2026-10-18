@@ -112,7 +112,7 @@ function NextSteps({ g, one = false }: { g: GameState; one?: boolean }) {
         <div key={i} className="flex items-center gap-2">
           <span className={h.warn ? 'text-danger' : 'text-gold'} aria-hidden="true">{h.warn ? '⚠' : '→'}</span>
           <span className={h.warn ? 'text-bone' : 'text-parchment'}>{h.text}</span>
-          {h.tab && <button className="btn btn-ghost ml-auto py-0.5" onClick={() => setTab(h.tab!)}>{TABS.find(t => t.id === h.tab)?.label}</button>}
+          {h.tab && !(one && h.tab === useGame.getState().tab) && <button className="btn btn-ghost ml-auto py-0.5" onClick={() => setTab(h.tab!)}>{TABS.find(t => t.id === h.tab)?.label}</button>}
         </div>
       ))}
     </div>
@@ -262,6 +262,7 @@ function PhoneGame() {
         ))}
       </nav>
       <main className={`phone-main ${tab === 'map' && !road ? 'phone-main-map' : ''}`}>
+        <div className="phone-scroll">
         {road ? <div className="panel p-4 fell text-lg text-parchment">On the road{g.pending ? ` to ${C.locs[g.pending.dest]?.name ?? '…'}` : ''}. Something blocks the way: make your choice to continue.</div> : <>
           {tab === 'market' && <Market g={g} />}
           {tab === 'map' && <MapView g={g} />}
@@ -270,7 +271,8 @@ function PhoneGame() {
           {tab === 'outfitter' && <Outfitter g={g} />}
           {tab === 'ledger' && <Ledger g={g} />}
         </>}
-        {hints && tab === 'market' && !road && <div className="sticky bottom-0 mt-2"><NextSteps g={g} one /></div>}
+        </div>
+        {hints && tab === 'market' && !road && <NextSteps g={g} one />}
       </main>
       {sheet === 'town' && <Sheet title="Town" onClose={close}>{L ? <LocationPanel g={g} /> : <p className="text-parchment">On the road.</p>}</Sheet>}
       {sheet === 'wallet' && <Sheet title="Your money" onClose={close}>

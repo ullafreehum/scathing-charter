@@ -55,7 +55,7 @@ export function NewGame() {
             <input type="radio" disabled={!meta.chronicleUnlocked} checked={mode === 'long-chronicle'} onChange={() => setMode('long-chronicle')} />The Long Chronicle (4E 7 → Titus Mede I’s coronation){!meta.chronicleUnlocked && ' 🔒'}</label>
         </div>
       </div>
-      <div className="flex gap-3 mt-6">
+      <div className="newgame-actions flex gap-3 mt-6">
         <button className="btn btn-ghost" onClick={() => setScreen('title')}>Back</button>
         <button className="btn btn-ember px-6 py-2" disabled={!name.trim()} onClick={() => start({ seed: seed || randSeed(), backgroundId: bg, name: name.trim(), difficulty: diff, mode })}>Start game</button>
       </div>
