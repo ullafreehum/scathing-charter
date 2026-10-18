@@ -57,10 +57,10 @@ export function Market({ g }: { g: GameState }) {
   const gain = (q: Quote) => (q.buy === null ? -Infinity : (bestSeenSell(g, q.good, loc)?.price ?? -Infinity) - q.buy) / C.goods[q.good].weight;
   if (sort === 'gain') rows = [...rows].sort((a, b) => gain(b) - gain(a));
   const chip = (on: boolean) => `btn px-2 py-0.5 ${on ? 'btn-ember' : 'btn-ghost'}`;
-  // Phone: the Show, Sort and Keep fare choices live in a sheet, and each trade shows an Undo bar for 5 seconds.
+  // Phone: the Show, Sort and Keep fare choices live in a sheet, and each trade shows an Undo bar for 3 seconds.
   const [filters, setFilters] = useState(false);
   const [done, setDone] = useState<{ text: string; n: number } | null>(null);
-  useEffect(() => { if (!done) return; const t = setTimeout(() => setDone(null), 5000); return () => clearTimeout(t); }, [done]);
+  useEffect(() => { if (!done) return; const t = setTimeout(() => setDone(null), 3000); return () => clearTimeout(t); }, [done]);
   const tell = (text: string) => { if (PHONE) setDone(d => ({ text, n: (d?.n ?? 0) + 1 })); };
   const showSort = <>
     <div className="flex flex-wrap items-center gap-1" role="radiogroup" aria-label="Show">

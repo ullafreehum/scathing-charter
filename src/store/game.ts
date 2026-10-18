@@ -4,6 +4,7 @@ import { C } from '../data';
 import { newGame, step, netWorth, type Action, type GameState, type NewGameConfig } from '../engine';
 import { DEFAULT_SETTINGS, loadGame, loadMeta, normalizeSettings, saveGame, saveMeta, type Meta, type Settings, type Slot } from '../save/storage';
 import { sfx, setMusic, setSound, setVolume } from '../audio/sfx';
+import { PHONE } from '../ui/phone';
 
 export type Screen = 'title' | 'new' | 'game' | 'duel';
 export type Tab = 'market' | 'map' | 'bank' | 'tavern' | 'outfitter' | 'ledger';
@@ -76,7 +77,7 @@ export const useGame = create<Store>()((set, get) => {
       saveGame(n); recordMeta(get, set, n);
       // Arriving somewhere new opens the Market: that is nearly always the next step.
       const arrived = n.player.location !== g.player.location && n.player.location !== 'road';
-      for (const t of fresh) setTimeout(() => get().dismissToast(t.id), t.text.length > 120 ? 11000 : 7000);
+      for (const t of fresh) setTimeout(() => get().dismissToast(t.id), PHONE ? (t.text.length > 120 ? 5000 : 3000) : t.text.length > 120 ? 11000 : 7000); // shorter on the phone, where they cover the screen
       const trip = arrived && C.locs[g.player.location] ? { id: n.actions.length, from: g.player.location === 'road' ? (g.pending?.routeId.split('~').find(x => x !== n.player.location) ?? '') : g.player.location, to: n.player.location, days: n.day - g.day } : null;
       const tick = n.day > g.day ? { id: n.actions.length, days: n.day - g.day } : null;
       // Trades can be undone until anything else happens (travel, waiting, the bank...).

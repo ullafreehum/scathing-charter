@@ -230,6 +230,20 @@ export function Sheet({ title, onClose, children, side = 'right' }: { title: Rea
   );
 }
 
+/** Phone: the real time (the phone's own clock is hidden while the game fills the screen), then the date in the game. */
+function TimeSheet({ g, onTown }: { g: GameState; onTown: () => void }) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => { const t = setInterval(() => setNow(new Date()), 15000); return () => clearInterval(t); }, []);
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="h-display text-4xl text-bone num">{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+      <div><div className="text-xs text-ash-400 mb-1">In the game</div><DateWidget g={g} /></div>
+      <TimeRibbon g={g} />
+      <button className="btn" onClick={onTown}>Town info</button>
+    </div>
+  );
+}
+
 /** The phone shell: a status strip on top, the tabs as a left rail, and the tab's content filling the rest. */
 function PhoneGame() {
   const g = useGame(s => s.game)!;
@@ -244,7 +258,7 @@ function PhoneGame() {
   return (
     <div className="phone-shell">
       <header className="phone-strip panel">
-        <button className="btn btn-ghost" onClick={() => setSheet('town')} title="Town: laws, merchants, news"><span className="num">{formatDate(g.day, false)}</span> · <span className="text-bone">{L?.name ?? 'On the road'}</span></button>
+        <button className="btn btn-ghost" onClick={() => setSheet('time')} title="The time, and the date in the game"><span className="num">{formatDate(g.day, false)}</span> · <span className="text-bone">{L?.name ?? 'On the road'}</span></button>
         <button className="btn btn-ghost gap-3" onClick={() => setSheet('wallet')} title="Your money: cash, debt, bank and net worth">
           <span id="cash-counter">Cash <RollingMoney v={g.player.cash} className="text-bone" /></span>
           <span>Debt {g.note.cleared ? <span className="text-moss">cleared</span> : <span id="debt-counter"><RollingMoney v={g.note.balance} className={pr >= 2 ? 'text-danger' : 'text-ember'} /></span>}{pr > 0 && !g.note.cleared && <span className="text-danger ml-0.5">{'⚠'.repeat(pr)}</span>}</span>
@@ -275,6 +289,7 @@ function PhoneGame() {
         {hints && tab === 'market' && !road && <NextSteps g={g} one />}
       </main>
       {sheet === 'town' && <Sheet title="Town" onClose={close}>{L ? <LocationPanel g={g} /> : <p className="text-parchment">On the road.</p>}</Sheet>}
+      {sheet === 'time' && <Sheet title="Time" onClose={close}><TimeSheet g={g} onTown={() => setSheet('town')} /></Sheet>}
       {sheet === 'wallet' && <Sheet title="Your money" onClose={close}>
         <dl className="phone-dl">
           <dt>Cash</dt><dd><Money v={g.player.cash} /></dd>

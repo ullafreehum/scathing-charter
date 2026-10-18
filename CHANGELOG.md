@@ -4,6 +4,10 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## Unreleased
+- Settings: Sound effects and Music switch on and off separately (one volume for both).
+- Phone: pop-up messages and the Undo bar go away sooner; tapping the date shows the time (and the date in the game) instead of the town.
+
 ## 0.10.5 (beta): Android test app and more music
 - Three more songs by Sorcerer: Salt & Silt, Red Mountain Procession and Ghostgate Vigil. With Music on, the game moves to another of the four songs every five minutes, keeping the mood (calm, after Baar Dau, duel).
 - Android app (debug APK for the Galaxy A26, landscape): a phone layout with a left tab rail, a status strip and sheets for the town, your money and the menu; a touch Market (labelled Buy/Sell buttons, tap a row for details, an Undo bar) and a full-screen touch map (pinch, double tap, a town sheet, Places and Layers). The Back button closes sheets, steps back through tabs, then asks to quit. Music pauses when the app goes to the background. No card duel on the phone: fines and seized goods stand, with no hearing. Desktop and web are unchanged.

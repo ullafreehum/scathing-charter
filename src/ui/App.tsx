@@ -18,7 +18,7 @@ import { TravelBanner } from './TravelBanner';
 import { FxLayer, NightDip } from './fx';
 import { applyAppearance, themeById } from './themes';
 import { pauseAudio, setMusicMood, startWind, stopWind } from '../audio/sfx';
-import { back, exitApp, onBackButton, onPause, usePhone } from './phone';
+import { PHONE, back, exitApp, onBackButton, onPause, usePhone } from './phone';
 
 function ashIntensity(day: number, region: string | undefined): number {
   let i = day < ERUPTION_DAY ? 0.12 + 0.75 * (day / ERUPTION_DAY) ** 2 : Math.max(0.55, 1.4 - (day - ERUPTION_DAY) / 400);
@@ -58,7 +58,7 @@ export function App() {
     });
   }), []);
   useEffect(() => onPause(pauseAudio), []);
-  useEffect(() => { if (!error) return; const t = setTimeout(clearError, 3500); return () => clearTimeout(t); }, [error, errorTick, clearError]);
+  useEffect(() => { if (!error) return; const t = setTimeout(clearError, PHONE ? 2500 : 3500); return () => clearTimeout(t); }, [error, errorTick, clearError]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;

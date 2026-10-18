@@ -54,5 +54,5 @@ export const buzz = () => { try { navigator.vibrate?.(10); } catch { /* not allo
 export const noContest = (t: string) => PHONE ? t.replace(/ ?You can contest[^]*?\(Market tab\)\./g, '').replace(/ \(you can contest it\)/g, '') : t;
 
 /** Which right-hand sheet is open on the phone (one at a time). */
-export type PhoneSheet = 'menu' | 'wallet' | 'town' | null;
+export type PhoneSheet = 'menu' | 'wallet' | 'town' | 'time' | null;
 export const usePhone = create<{ sheet: PhoneSheet; setSheet(s: PhoneSheet): void; tabs: string[] }>()(set => ({ sheet: null, setSheet: sheet => set({ sheet }), tabs: [] }));
