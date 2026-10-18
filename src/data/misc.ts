@@ -16,7 +16,7 @@ export const FACTIONS: Faction[] = [
 export const GEAR: Gear[] = [
   { id: 'pack-guar', kind: 'conveyance', name: 'Pack guar', price: 0, power: 0, capacity: 60, canon: 'canon', sources: [IL_GUAR()], text: 'A placid, two-legged Dunmer beast of burden. Carries 60 stone.' },
   { id: 'guar-cart', kind: 'conveyance', name: 'Guar cart', price: 2400, power: 0, capacity: 140, canon: 'invented', sources: [], text: 'Carries 140 stone.' },
-  { id: 'chartered-hold', kind: 'conveyance', name: 'Chartered hold', price: 14000, power: 0, capacity: 320, canon: 'invented', sources: [], text: 'A standing charter of ship space: 320 stone, sea legs a day shorter, 10 septims a day upkeep.' },
+  { id: 'chartered-hold', kind: 'conveyance', name: 'Chartered hold', price: 8000, power: 0, capacity: 320, canon: 'invented', sources: [], text: 'A standing charter of ship space: 320 stone, sea legs a day shorter, 10 septims a day upkeep.' },
   { id: 'chitin-dagger', kind: 'weapon', name: 'Chitin dagger', price: 0, power: 1, canon: 'unverified', sources: [], text: 'Insect-shell blade of the poor Dunmer.' },
   { id: 'iron-longsword', kind: 'weapon', name: 'Iron longsword', price: 180, power: 3, canon: 'unverified', sources: [], text: 'Plain Imperial iron.' },
   { id: 'steel-axe', kind: 'weapon', name: 'Steel war axe', price: 450, power: 5, canon: 'unverified', sources: [], text: 'Nord steel, honestly forged.' },
@@ -60,7 +60,6 @@ export const ACHIEVEMENTS: { id: string; name: string; text: string }[] = [
   { id: 'hedged', name: 'The Prudent Ledger', text: 'Hold 1,000+ in deposits on 3 Sun’s Dawn 4E 5 and lose none of it.' },
   { id: 'five-provinces', name: 'Five Provinces', text: 'Trade in Morrowind, Skyrim, Cyrodiil, Black Marsh and Elsweyr.' },
   { id: 'licensed', name: 'Ojel with Papers', text: 'Buy an An-Xileel trade licence.' },
-  { id: 'bookworm', name: 'Bookworm', text: 'Own all three books.' },
   { id: 'lorekeeper', name: 'Lorekeeper', text: 'Unlock 60 codex entries.' },
   { id: 'loremaster', name: 'Loremaster', text: 'Unlock 140 codex entries.' },
   { id: 'frostmoth', name: 'Last Mess at Frostmoth', text: 'Visit Fort Frostmoth before it falls.' },

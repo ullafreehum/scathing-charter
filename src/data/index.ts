@@ -16,6 +16,9 @@ import { JOBS } from './jobs';
 
 const byId = <T extends { id: string }>(xs: readonly T[]) => Object.fromEntries(xs.map(x => [x.id, x])) as Record<string, T>;
 
+/** A tavern tale's codex title: its first few words. */
+const taleTitle = (t: string) => { const w = t.split(' '); return w.length > 6 ? `${w.slice(0, 6).join(' ').replace(/[,.;:!?]$/, '')}…` : t; };
+
 function buildCodex(): Record<string, CodexEntry> {
   const out: CodexEntry[] = [
     ...LOCATIONS.map(l => ({ id: `loc:${l.id}`, category: 'place' as const, title: l.name, body: `${l.blurb}\n\nLaw: ${l.laws}`, canon: l.canon, sources: l.sources })),
@@ -23,6 +26,7 @@ function buildCodex(): Record<string, CodexEntry> {
     ...FACTIONS.map(f => ({ id: `faction:${f.id}`, category: 'faction' as const, title: f.name, body: f.text, canon: f.canon, sources: f.sources })),
     ...HISTORY.map(h => ({ id: `event:${h.id}`, category: 'event' as const, title: h.title, body: h.text + (h.dateNote ? `\n\nDating: ${h.dateNote}` : ''), canon: h.canon, sources: h.sources })),
     ...HOLIDAYS.map(h => ({ id: `holiday:${h.id}`, category: 'calendar' as const, title: h.name, body: h.text, canon: h.canon, sources: h.sources })),
+    ...RUMORS.filter(r => r.kind === 'lore').map(r => ({ id: `rumor:${r.id}`, category: 'lore' as const, title: taleTitle(r.text), body: `${r.voice ? `${r.voice}: ` : ''}“${r.text}”`, canon: r.canon, sources: r.sources })),
     ...BOOKS.map(b => ({ id: `book:${b.id}`, category: 'book' as const, title: b.title, body: `By ${b.author}. ${b.summary}${b.quote ? `\n\n${b.quote}` : ''}`, canon: b.canon, sources: b.sources })),
     ...GEAR.filter(g => g.sources.length).map(g => ({ id: `gear:${g.id}`, category: 'travel' as const, title: g.name, body: g.text, canon: g.canon, sources: g.sources })),
     ...ENCOUNTERS.map(e => ({ id: `encounter:${e.id}`, category: 'travel' as const, title: e.title, body: e.text, canon: e.canon, sources: e.sources })),

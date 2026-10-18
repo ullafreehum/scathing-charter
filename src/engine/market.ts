@@ -3,18 +3,18 @@ import { C } from '../data';
 import type { GameState, GoodCategory, Holiday, Legality, LocStatus, Merchant } from './types';
 import { dateOf } from './calendar';
 
-export const DEPTH: Record<GoodCategory, number> = { food: 260, drink: 160, material: 140, luxury: 36, narcotic: 60, magic: 70, medicine: 110 };
+export const DEPTH: Record<GoodCategory, number> = { food: 260, drink: 160, material: 140, luxury: 60, narcotic: 60, magic: 100, medicine: 120 };
 export const SELL_FACTOR = 0.9;
 
 const STATUS_MULT: Partial<Record<LocStatus, Partial<Record<GoodCategory, number>>>> = {
   uneasy: { food: 1.08, medicine: 1.1 },
-  ruined: { food: 2.2, medicine: 2.4, material: 1.9, drink: 1.4, luxury: 0.6, magic: 0.8 },
-  rebuilding: { food: 1.5, medicine: 1.5, material: 1.8, drink: 1.2 },
+  ruined: { food: 1.9, medicine: 2.0, material: 1.6, drink: 1.4, luxury: 0.6, magic: 0.8 },
+  rebuilding: { food: 1.5, medicine: 1.5, material: 1.5, drink: 1.2 },
   'refugee-swollen': { food: 1.45, medicine: 1.5, drink: 1.2, luxury: 0.85 },
   besieged: { food: 1.9, medicine: 2.1, material: 1.3, luxury: 0.6 },
   sacked: { food: 2.0, medicine: 2.2, luxury: 0.45, magic: 0.6 },
   occupied: { food: 1.6, medicine: 1.7, luxury: 0.5 },
-  camp: { food: 2.0, medicine: 2.2, material: 1.6, drink: 1.3, luxury: 0.7, magic: 0.85 },
+  camp: { food: 1.8, medicine: 1.9, material: 1.4, drink: 1.3, luxury: 0.7, magic: 0.85 },
 };
 
 /** What buying `qty` at a unit price costs: each extra unit in one purchase pushes the price up a little.

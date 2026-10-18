@@ -13,6 +13,19 @@ export function warehouseValue(s: GameState): number {
   let v = 0; for (const [g, lot] of Object.entries(s.warehouse)) v += lot.qty * fairValue(s, g);
   return v;
 }
+/** Council favour from relief given at cost: 0.3% off each charter tier per point, at most 1.5%. */
+export const FAVOUR_DISCOUNT = 0.004, FAVOUR_MAX = 5;
+/** Price of the next charter tier for this player, after favour. */
+export function charterPrice(s: GameState, tier: 1 | 2 | 3): number {
+  const base = C.charter.tiers[tier - 1].price;
+  return Math.round(base * (1 - FAVOUR_DISCOUNT * Math.min(FAVOUR_MAX, s.charter.favour ?? 0)));
+}
+/** First day the council will sell the next tier: the current tier must be held C.charter.holdDays first. */
+export function charterReadyDay(s: GameState): number {
+  const next = C.charter.tiers[s.charter.tier];
+  if (!next || s.charter.boughtDay === undefined) return 0;
+  return s.charter.boughtDay + C.charter.holdDays[next.tier - 1];
+}
 /** What the charter rights would fetch: a share of the price paid. */
 export function charterValue(s: GameState): number { return s.charter.paid * C.charter.bookValue; }
 export function netWorth(s: GameState): number {
@@ -50,7 +63,6 @@ export function checkAchievements(s: GameState): void {
     unbowed: () => s.note.cleared && !s.world.fired.includes('red-year-eruption'),
     'five-provinces': () => provinces.size >= 5,
     licensed: () => s.player.licence && s.player.backgroundId !== 'lukiul',
-    bookworm: () => C.books.every(b => s.player.books.includes(b.id)),
     lorekeeper: () => s.codex.length >= 60,
     loremaster: () => s.codex.length >= 140,
     frostmoth: () => s.stats.visited.includes('fort-frostmoth'),

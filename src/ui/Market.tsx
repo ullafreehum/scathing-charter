@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { C } from '../data';
-import { DEPTH, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight, fairValue, maxBuyQty, quotes, routeOptions, FREIGHT, holidayAt, marketOpen, satRecoveryDays, type GameState, type Quote } from '../engine';
+import { DEPTH, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight, fairValue, maxBuyQty, quotes, routeOptions, FREIGHT, holidayAt, marketOpen, satRecoveryDays, canContest, courtCost, formatDate, type GameState, type Quote } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
@@ -33,7 +33,7 @@ export function Market({ g }: { g: GameState }) {
   const legs = routeOptions(g);
   const fareWith = (extra: number) => legs.length ? Math.min(...legs.map(o => o.fare + Math.ceil(FREIGHT[o.mode] * extra))) : 0;
   const [keepFare, setKeepFare] = useState(true);
-  const tend = g.player.books.includes('pocket-guide');
+  const tend = true; // the Pocket Guide's perk, always on since 0.10
   const cargoGoods = Object.keys(g.player.cargo).filter(id => !qs.find(q => q.good === id));
   const ratio = (q: Quote) => q.mid / fairValue(g, q.good);
   const deliverable = g.contracts.filter(c => c.destination === loc && (g.player.cargo[c.good]?.qty ?? 0) >= c.qty);
@@ -57,9 +57,10 @@ export function Market({ g }: { g: GameState }) {
       )}
       {hol && !hol.marketClosed && <div className="panel p-3 text-sm"><span className="text-gold h-display">{hol.name}.</span> {hol.text}</div>}
       {(loc === 'lilmoth' || loc === 'stormhold') && !g.player.licence && <div className="panel p-3 text-sm text-ember">Foreigners need a trade licence here. Buy one at the Lilmoth gate (Shop & Temple tab) or from the Argonian agent in Leyawiin.</div>}
-      {g.appeal?.loc === loc && (
+      {canContest(g) && g.appeal && (
         <div className="panel p-3 flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-gold h-display">Seized goods.</span> <span>Contest the seizure before the magistrate: win the hearing and you get your goods and fine back; lose and the fine doubles.</span>
+          <span className="text-gold h-display">{Object.keys(g.appeal.goods).length ? 'Seized goods.' : 'A fine to contest.'}</span>
+          <span>You may take it before the magistrate, a card hearing. Win and you get back {Object.keys(g.appeal.goods).length ? 'your goods' : ''}{Object.keys(g.appeal.goods).length && g.appeal.fine ? ' and ' : ''}{g.appeal.fine ? <>the <Money v={g.appeal.fine} /> fine</> : ''}; lose and you pay <Money v={courtCost(g.appeal)} /> more. You can contest it until {formatDate(g.appeal.until ?? g.day)}, in the town where it happened or at the courts of Vivec, Ebonheart, Narsis and Mournhold.</span>
           <button className="btn btn-ember ml-auto" onClick={() => act({ t: 'appeal' })}>Contest</button>
         </div>
       )}
@@ -69,7 +70,7 @@ export function Market({ g }: { g: GameState }) {
           <button className="btn btn-ember ml-auto" onClick={() => act({ t: 'deliver', id: c.id })}>Deliver</button>
         </div>
       ); })}
-      <Section title="Goods" right={<span className="text-xs text-ash-400">Cash <Money v={g.player.cash} className="text-gold" /> · cheapest trip <Money v={fareWith(0)} /> · space left {free}</span>}>
+      <Section title="Goods" right={<span className="text-xs text-ash-400">Cash <Money v={g.player.cash} className="text-gold" /> · <span title="The fare grows with your cargo: the second figure is the fare with your hold full">cheapest trip <Money v={fareWith(0)} /> (full load <Money v={fareWith(free)} />)</span> · space left {free}</span>}>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2 text-sm">
           <div className="flex items-center gap-1" role="radiogroup" aria-label="Trade amount">
             <span className="text-ash-400 mr-1">Amount</span>
@@ -142,7 +143,7 @@ export function Market({ g }: { g: GameState }) {
                     <td className="text-right pl-3 whitespace-nowrap">{best ? <span title={`Seen in ${C.locs[best.loc].name} ${ago(best.age)}. Prices move, so older figures are less reliable.`}><Money v={best.price} />{edge !== null && edge > 0 && <span className="text-moss text-xs"> (+{Math.round(edge)})</span>}<span className="block text-xs text-ash-400">{C.locs[best.loc].name}, {ago(best.age)}</span></span> : <span className="text-ash-400 text-xs">not seen yet</span>}</td>
                     <td className="whitespace-nowrap pl-3 text-right space-x-1">
                       <button className="btn" disabled={nBuy < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'buy', good: q.good, qty: nBuy })) { coinBurst('cash', el, coinsFor(nBuy * (q.buy ?? 0))); traded(q.good); } }} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} for ${bulkBuyTotal(q.buy!, nBuy, DEPTH[G.category]).toLocaleString('en-US')} septims (the most you can afford and carry: ${maxBuy}). Buying many at once raises the price a little.`}>Buy {nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</button>
-                      <button className="btn" disabled={nSell < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'sell', good: q.good, qty: nSell })) { coinBurst(el, 'cash', coinsFor(nSell * (q.sell ?? 0))); traded(q.good); } }} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>Sell {nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</button>
+                      <button className="btn" disabled={nSell < 1} onClick={async e => { const el = e.currentTarget; if (margin !== null && margin < 0 && !(await useGame.getState().confirm({ title: `Sell at a loss?`, text: `${nSell} ${G.name} at ${-margin} below what you paid each: ${-margin * nSell} septims lost in all.`, yes: 'Sell anyway' }))) return; if (act({ t: 'sell', good: q.good, qty: nSell })) { coinBurst(el, 'cash', coinsFor(nSell * (q.sell ?? 0))); traded(q.good); } }} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>Sell {nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</button>
                       {(nBuy > 0 || nSell > 0) && <div className="text-xs text-ash-400 mt-0.5">{nBuy > 0 && <span title="Total cost, and cargo space left after buying">−<span className="num">{buyTotal.toLocaleString('en-US')}</span> · {free - nBuy * G.weight} space left</span>}{nBuy > 0 && nSell > 0 && ' | '}{nSell > 0 && <span title="What this sale brings in">+<span className="num">{sellTotal.toLocaleString('en-US')}</span></span>}</div>}
                     </td>
                   </motion.tr>,

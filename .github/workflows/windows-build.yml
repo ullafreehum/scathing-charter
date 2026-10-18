@@ -1,0 +1,30 @@
+# Builds the Windows app (Setup + Portable .exe, unsigned) without publishing a release, so the build can be
+# checked and the .exe tried before a version is released. It runs by hand (Actions tab, Run workflow) and on a
+# push that changes the packaging; the two .exe files are attached to the run as an artifact for 14 days.
+name: Windows build
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths: ['electron/**', 'electron-builder.yml', 'package.json', 'package-lock.json', '.github/workflows/windows-build.yml']
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build the Windows app (unsigned)
+        run: npm run package:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scathing-charter-windows
+          retention-days: 14
+          path: |
+            release/electron/ScathingCharter-Setup-*.exe
+            release/electron/ScathingCharter-Portable-*.exe

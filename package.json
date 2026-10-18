@@ -1,9 +1,10 @@
 {
   "name": "ashfall-ledger",
   "private": true,
-  "version": "0.9.5",
+  "version": "0.10.0",
   "description": "The Scathing Charter — a lore-dense Elder Scrolls trading game at the dawn of the Fourth Era (unofficial fan game).",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "start": "vite --open",
     "dev": "vite",
@@ -11,13 +12,18 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint src scripts tests",
+    "check": "node scripts/check.mjs",
+    "check:release": "node scripts/check.mjs --release",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:desktop": "npm run build && playwright test -c playwright.desktop.config.ts",
     "sim": "tsx scripts/sim.ts",
     "diagnose": "tsx scripts/diagnose.ts",
     "balance": "tsx scripts/balance.ts",
-    "package:offline": "npm run build && node scripts/package-offline.mjs"
+    "balance:focus": "tsx scripts/focus-balance.ts",
+    "desktop": "npm run build && electron .",
+    "package:win": "npm run build && electron-builder --win --publish never"
   },
   "license": "GPL-3.0-only",
   "dependencies": {
@@ -26,6 +32,7 @@
     "@fontsource/eb-garamond": "^5.3.0",
     "@fontsource/im-fell-english": "^5.3.0",
     "framer-motion": "^14.3.0",
+    "pixi.js": "7.4.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "zustand": "^5.0.15"
@@ -38,6 +45,8 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "electron": "44.9.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^10.13.0",
     "globals": "^17.13.0",
     "tailwindcss": "^4.3.3",

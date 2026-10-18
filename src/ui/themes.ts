@@ -91,7 +91,7 @@ export function applyAppearance(themeId: string, fontId: string, scale: number) 
   for (const [k, v] of Object.entries(t.p)) root.style.setProperty(VAR[k as keyof Palette], v);
   root.style.setProperty('--vignette', String(t.vignette));
   root.style.setProperty('--f-display', f.display); root.style.setProperty('--f-body', f.body); root.style.setProperty('--f-flavor', f.flavor);
-  root.style.fontSize = `${Math.round(scale * 100)}%`;
+  root.style.setProperty('--ui-scale', String(scale));
   root.dataset.theme = t.id; root.dataset.kind = t.kind; root.dataset.caps = f.caps ? 'on' : 'off';
 }
 

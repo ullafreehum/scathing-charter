@@ -5,10 +5,13 @@ import { newGame, step, netWorth, type Action, type GameState, type NewGameConfi
 import { DEFAULT_SETTINGS, loadGame, loadMeta, normalizeSettings, saveGame, saveMeta, type Meta, type Settings, type Slot } from '../save/storage';
 import { sfx, setSound, setVolume } from '../audio/sfx';
 
-export type Screen = 'title' | 'new' | 'game';
+export type Screen = 'title' | 'new' | 'game' | 'duel';
 export type Tab = 'market' | 'map' | 'bank' | 'tavern' | 'outfitter' | 'ledger';
 export type TradeQty = number | 'max';
 export interface Toast { id: number; title: string; text: string; star?: boolean }
+/** A yes/no question in the game's own dialog (instead of the browser's confirm box). */
+export interface Ask { title: string; text: string; yes: string; no?: string }
+let answerAsk: ((yes: boolean) => void) | null = null;
 
 let toastId = 0;
 /** Minor inbox items (rumours, achievements, settlements) become toasts instead of blocking cards. */
@@ -36,12 +39,13 @@ interface Store {
   /** States before each buy or sell since the last other action, newest last: Undo steps back through them. */
   undo: GameState[]; undoTrade(): void;
   openCodex(id?: string | null): void; closeCodex(): void;
+  ask: Ask | null; confirm(q: Ask): Promise<boolean>; answer(yes: boolean): void;
   setSettings(p: Partial<Settings>): void; resetSettings(): void; openSettings(): void; closeSettings(): void; clearError(): void;
 }
 
 function recordMeta(get: () => Store, set: (p: Partial<Store>) => void, g: GameState) {
   const m = get().meta;
-  const unlocked = m.chronicleUnlocked || (g.over?.reason === 'calendar' && g.mode === 'red-year' && netWorth(g) > 0);
+  const unlocked = m.chronicleUnlocked || ((g.over?.reason === 'calendar' || g.over?.reason === 'won') && g.mode === 'red-year' && netWorth(g) > 0);
   const achievements = Array.from(new Set([...m.achievements, ...g.achievements]));
   const best = Math.max(m.bestNetWorth, g.over ? netWorth(g) : 0);
   if (unlocked !== m.chronicleUnlocked || achievements.length !== m.achievements.length || best !== m.bestNetWorth) {
@@ -54,7 +58,7 @@ export const useGame = create<Store>()((set, get) => {
   const meta = loadMeta();
   setSound(meta.settings.sound); setVolume(meta.settings.volume);
   return {
-    screen: 'title', game: null, error: null, errorTick: 0, tab: 'market', codex: undefined, meta, settingsOpen: false, undo: [], toasts: [], tradeQty: 1, plan: null, trip: null, tick: null,
+    screen: 'title', game: null, error: null, errorTick: 0, tab: 'market', codex: undefined, meta, settingsOpen: false, undo: [], toasts: [], tradeQty: 1, plan: null, trip: null, tick: null, ask: null,
     setScreen: screen => set({ screen }),
     setTab: tab => { sfx.page(); set({ tab }); },
     start: cfg => { const g = newGame(cfg); saveGame(g); set({ game: g, screen: 'game', tab: 'market', error: null, toasts: [], plan: null, undo: [] }); },
@@ -100,5 +104,7 @@ export const useGame = create<Store>()((set, get) => {
     setPlan: plan => set({ plan }),
     clearTrip: () => set({ trip: null }),
     clearTick: () => set({ tick: null }),
+    confirm: q => new Promise<boolean>(res => { answerAsk?.(false); answerAsk = res; set({ ask: q }); }),
+    answer: yes => { const r = answerAsk; answerAsk = null; set({ ask: null }); r?.(yes); },
   };
 });

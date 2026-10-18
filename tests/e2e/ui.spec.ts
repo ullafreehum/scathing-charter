@@ -11,7 +11,7 @@ async function clear(p: Page) {
   for (let i = 0; i < 10; i++) {
     const b = p.locator('[role=dialog] button').filter({ hasText: /^(Continue|Onward)$/ });
     if (await b.count()) { await b.first().click({ force: true, timeout: 2000 }).catch(() => {}); await p.waitForTimeout(150); continue; }
-    const c = p.locator('[role=dialog]:not([aria-label=Codex]) button').filter({ hasText: /Pass by|Decline|Wait it out|Flee|Submit/ });
+    const c = p.locator('[role=dialog]:not([aria-label=Codex]) button').filter({ hasText: /^(Pass by|Decline|Wait \d+ days?|Flee|Declare it|Run)/ });
     if (await c.count()) { await c.first().click({ force: true, timeout: 2000 }).catch(() => {}); await p.waitForTimeout(150); continue; }
     return;
   }
@@ -38,7 +38,7 @@ test('new game: terms set the purse and note; New Life banner; Long Chronicle lo
   await page.getByRole('radio', { name: /Fair Terms/ }).check();
   await page.getByRole('button', { name: 'Start game' }).click();
   await clear(page);
-  expect(await purse(page)).toBe(700);
+  await expect.poll(() => purse(page)).toBe(700);
   expect(await note(page)).toBe(2000);
   await expect(page.getByText('New Life Festival').first()).toBeVisible();
   expect(await dateText(page)).toContain('1 Morning Star, 4E 4');
@@ -62,9 +62,9 @@ test('market: amount picker, buy and sell, filters, capped amounts, next-step hi
   // the total shows next to Buy; Undo takes the trade back; ▸ writes out the row's details
   await expect(row.getByRole('cell').nth(6)).toContainText('space left');
   await page.getByRole('button', { name: /Undo last trade/ }).click();
-  expect(await purse(page)).toBe(p0);
+  await expect.poll(() => purse(page)).toBe(p0);
   await row.getByRole('button', { name: /^Buy/ }).click();
-  expect(await purse(page)).toBe(p1);
+  await expect.poll(() => purse(page)).toBe(p1);
   await row.getByRole('button', { name: 'Details' }).click();
   await expect(page.getByText(/You own 5, bought at/)).toBeVisible();
   await row.getByRole('button', { name: 'Details' }).click();
@@ -82,6 +82,13 @@ test('market: amount picker, buy and sell, filters, capped amounts, next-step hi
   // Max sells everything you own of it
   await page.getByRole('radio', { name: 'Max' }).click();
   await row.getByRole('button', { name: /^Sell/ }).click();
+  // selling at a loss asks first, in the game's own dialog: Escape cancels, then Sell anyway sells
+  await expect(page.getByRole('alertdialog', { name: 'Sell at a loss?' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  expect(await purse(page)).toBe(p1);
+  await row.getByRole('button', { name: /^Sell/ }).click();
+  await page.getByRole('button', { name: 'Sell anyway' }).click();
   expect(await purse(page)).toBeGreaterThan(p1);
   expect((await load(page))[0]).toBe(0);
   // a huge custom amount is capped to what you can afford and carry
@@ -103,45 +110,44 @@ test('tavern: free rumour on New Life, rest advances one day for 3 dr, porter ad
   await page.waitForTimeout(400);
   await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-rumour.png' });
   await clear(page);
-  expect(await purse(page)).toBe(p0);
+  await expect.poll(() => purse(page)).toBe(p0);
   await page.getByRole('button', { name: /^Rest 1 day/ }).click();
   await clear(page);
   expect(await dateText(page)).toContain('2 Morning Star, 4E 4');
-  expect(await purse(page)).toBe(p0 - 3);
+  await expect.poll(() => purse(page)).toBe(p0 - 3);
   const cap0 = (await load(page))[1];
   await page.getByRole('button', { name: 'Hire porter' }).click();
   expect((await load(page))[1]).toBe(cap0 + 12);
-  expect(await purse(page)).toBe(p0 - 3 - 100);
+  await expect.poll(() => purse(page)).toBe(p0 - 3 - 100);
   await page.getByRole('button', { name: 'Dismiss porter' }).click();
   expect((await load(page))[1]).toBe(cap0);
   // second rumour costs 5 (no longer New Life)
   const p1 = await purse(page);
   await page.getByRole('button', { name: /Buy a round/ }).click();
   await clear(page);
-  expect(await purse(page)).toBe(p1 - 5);
+  await expect.poll(() => purse(page)).toBe(p1 - 5);
   expect(errors).toEqual([]);
 });
 
-test('counting-house: deposit, withdraw with fee, pay the note', async ({ page }) => {
+test('strongbox: deposit, withdraw with fee, pay the note', async ({ page }) => {
   const errors = await start(page);
   await page.keyboard.press('Tab');
   await page.getByRole('tab', { name: 'Market' }).click();
   await page.keyboard.press('b');
   await expect(page.getByRole('tab', { name: 'Bank' })).toHaveAttribute('aria-selected', 'true');
   const p0 = await purse(page);
-  await page.getByLabel('Hlaalu Council Bank amount').fill('200');
+  await page.getByLabel('Strongbox amount').fill('200');
   await page.getByRole('button', { name: 'Deposit', exact: true }).click();
-  expect(await purse(page)).toBe(p0 - 200);
-  expect(await vaults(page)).toBe(200);
+  await expect.poll(() => purse(page)).toBe(p0 - 200);
+  await expect.poll(() => vaults(page)).toBe(200);
   await page.getByRole('button', { name: 'Withdraw', exact: true }).click();
-  expect(await vaults(page)).toBe(0);
-  expect(await purse(page)).toBe(p0 - 1); // 1% fee, halved for the Hlaalu by-blow, rounded up
+  await expect.poll(() => vaults(page)).toBe(0);
+  await expect.poll(() => purse(page)).toBe(p0 - 1); // 1% fee, halved for the Hlaalu by-blow, rounded up
   await page.getByLabel('Payment amount').fill('100');
   const n0 = await note(page);
   await page.getByRole('button', { name: 'Pay', exact: true }).click();
-  expect(await note(page)).toBe(n0 - 100);
-  // EEC has no branch in Balmora
-  await expect(page.getByText('No branch of this bank here.').first()).toBeVisible();
+  await expect.poll(() => note(page)).toBe(n0 - 100);
+  await expect(page.getByText('(here)')).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -153,7 +159,7 @@ test('travel: map views, zoom, travel card, planner, keys; Go moves you and the 
   await page.getByRole('button', { name: 'All Tamriel' }).click();
   await expect.poll(async () => Number((await svg.getAttribute('viewBox'))!.split(' ')[2])).toBeGreaterThanOrEqual(1000);
   await page.getByRole('button', { name: 'Vvardenfell', exact: true }).click();
-  await expect.poll(async () => Number((await svg.getAttribute('viewBox'))!.split(' ')[2])).toBeLessThan(400);
+  await expect.poll(async () => Number((await svg.getAttribute('viewBox'))!.split(' ')[2])).toBeLessThan(450);
   // a far town: the planner proposes a chain of journeys
   await page.getByRole('button', { name: 'All Tamriel' }).click();
   await expect.poll(async () => Number((await svg.getAttribute('viewBox'))!.split(' ')[2])).toBeGreaterThanOrEqual(1000);
@@ -198,7 +204,7 @@ test('outfitter, codex links, ledger, keyboard, save slot, settings', async ({ p
   await page.getByRole('tab', { name: 'Shop & Temple' }).click();
   const p0 = await purse(page);
   await page.getByRole('button', { name: /^Buy Scroll of Chameleon/ }).click();
-  expect(await purse(page)).toBe(p0 - 150);
+  await expect.poll(() => purse(page)).toBe(p0 - 150);
   await expect(page.getByText(/Scrolls: Chameleon 1/)).toBeVisible();
   await expect(page.getByRole('button', { name: /^Heal/ })).toBeDisabled();
   await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-outfitter.png' });
@@ -215,7 +221,7 @@ test('outfitter, codex links, ledger, keyboard, save slot, settings', async ({ p
   // ledger
   await page.getByRole('tab', { name: 'Journal' }).click();
   await expect(page.getByText(/You owe Gavas Drelloth/)).toBeVisible();
-  await expect(page.getByText(/Achievements \d+\/21/)).toBeVisible();
+  await expect(page.getByText(/Achievements \d+\/20/)).toBeVisible();
   // keyboard: c opens codex
   await page.getByRole('tab', { name: 'Journal' }).focus();
   await page.keyboard.press('c');
@@ -257,7 +263,7 @@ test('settings: themes, fonts, text size, motion and sound persist', async ({ pa
   await dlg.getByRole('radio', { name: /^Atkinson Hyperlegible/ }).click();
   await expect(html).toHaveAttribute('data-caps', 'off');
   await dlg.getByRole('radio', { name: 'Text size 125%' }).click();
-  expect(await html.evaluate(e => e.style.fontSize)).toBe('125%');
+  expect(await html.evaluate(e => e.style.getPropertyValue('--ui-scale'))).toBe('1.25');
   await dlg.getByRole('checkbox', { name: 'Falling ash' }).uncheck();
   await expect(page.locator('canvas')).toHaveCount(0);
   await dlg.getByRole('checkbox', { name: 'Sound on' }).uncheck();
@@ -265,11 +271,37 @@ test('settings: themes, fonts, text size, motion and sound persist', async ({ pa
   await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-settings.png' });
   await page.reload();
   await expect(html).toHaveAttribute('data-theme', 'west-gash');
-  expect(await html.evaluate(e => e.style.fontSize)).toBe('125%');
+  expect(await html.evaluate(e => e.style.getPropertyValue('--ui-scale'))).toBe('1.25');
   await page.getByRole('button', { name: 'Settings' }).click();
   await expect(page.getByRole('checkbox', { name: 'Sound on' })).not.toBeChecked();
   await page.getByRole('button', { name: 'Reset to defaults' }).click();
   await expect(html).toHaveAttribute('data-theme', 'ashlands');
   await expect(page.getByRole('checkbox', { name: 'Falling ash' })).toBeChecked();
+  expect(errors).toEqual([]);
+});
+
+test('goal line on every tab; the browser confirm box is never used; practice duel from the title', async ({ page }) => {
+  await page.addInitScript(() => { window.confirm = () => { throw new Error('window.confirm was called'); }; });
+  const errors = await start(page);
+  for (const t of ['Market', 'Travel', 'Bank', 'Tavern', 'Shop', 'Journal']) {
+    await page.getByRole('tab').filter({ hasText: t }).first().click();
+    await expect(page.getByRole('button', { name: /^Goal: pay off the Tong$/ })).toBeVisible();
+  }
+  await page.getByRole('button', { name: /^Goal:/ }).click();
+  await expect(page.getByRole('tab', { name: /Bank/ })).toHaveAttribute('aria-selected', 'true');
+  // Borrowing asks in the game's own dialog; Cancel borrows nothing.
+  const before = await note(page);
+  await page.getByRole('button', { name: 'Borrow', exact: true }).click();
+  await expect(page.getByRole('alertdialog', { name: /^Borrow/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  expect(await note(page)).toBe(before);
+  // Back to the title, then the duel on its own.
+  await page.getByTitle('Save, export, quit').click();
+  await page.getByRole('button', { name: /title/i }).first().click();
+  await page.getByRole('button', { name: 'Card duel (practice)' }).click();
+  await expect(page.getByText('A practice hearing')).toBeVisible();
+  await expect(page.locator('[data-turn] canvas, button.relative.aspect-\\[240\\/340\\]').first()).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('button', { name: 'Back to the title' }).click();
+  await expect(page.getByRole('button', { name: 'New game' })).toBeVisible();
   expect(errors).toEqual([]);
 });

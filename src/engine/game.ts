@@ -1,35 +1,38 @@
 // The game reducer: newGame() and step(). Pure: never mutates its input.
 import { C } from '../data';
-import type { Action, CharterState, Contract, GameState, Job, LogEntry, MarketCell, NewGameConfig, ScrollId } from './types';
+import type { Action, CharterState, Contract, GameState, Job, MarketCell, NewGameConfig, ScrollId } from './types';
 import { Rng, hashSeed } from './rng';
 import { D, shortDate } from './calendar';
-import { DEPTH, SAT_RECOVERY, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight, fairValue, holidayAt, legalityAt, marketOpen, midPrice, quotes } from './market';
+import { DEPTH, SAT_RECOVERY, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight, holidayAt, legalityAt, marketOpen, midPrice, quotes } from './market';
 import { MAX_LEG_DAYS, routeOptions, routeOptionsFrom, type RouteOption } from './travel';
 import { applyHistory, branchKey, catchUpHistory, clampRep, houseName } from './history';
-import { HEAT, addHeat, buildPending, contrabandValue, heatMult, rollEncounter, resolve } from './encounters';
-import { checkAchievements, netWorth } from './score';
+import { APPEAL_DAYS, HEAT, addHeat, buildPending, canContest, cardOptions, contrabandValue, courtCost, heatMult, restCollectorChance, rollEncounter, resolve } from './encounters';
+import { charterPrice, charterReadyDay, checkAchievements, netWorth } from './score';
 import { duelTurn, newDuel } from './duel';
 import { SCHEMA_VERSION } from './save';
+import { here, log, unlock } from './util';
+import { bankAction, depositRate } from './bank';
+import { contractAction, makeOffers } from './contracts';
+import { findBooks } from './books';
+import { checkMark, endingAction, milestones, timeUp, win } from './endings';
 
 export const RED_YEAR_END = D(6, 12, 31);
 /** Titus Mede I takes the Imperial City: c. 4E 22 (D-10); day chosen as Emperor's Day (extrapolation). */
 export const CORONATION_DAY = D(22, 10, 30);
+/** How far a price spike lifts a good (a multiplier range); dips go to 0.3–0.5. */
+export const SPIKE_UP = [1.6, 2.6] as const;
+/** Black-market sale: chance per unit of enforcement that an informer stings you, and the share of the sale fined. */
+export const STING_CHANCE = 0.1;
+export const STING_FINE = 0.6;
 export const DIFFICULTY = {
   fair: { cash: 700, debt: 2000, rate: 0.002 },
-  tong: { cash: 550, debt: 3000, rate: 0.003 },
+  tong: { cash: 550, debt: 4000, rate: 0.003 },
   blood: { cash: 250, debt: 4500, rate: 0.006 },
 } as const;
 export const WAGES = { porter: { hire: 100, day: 4, max: 4 }, sellsword: { hire: 150, day: 10, max: 3 } } as const;
 export const LICENCE_PRICE = 300;
 export const RUMOR_PRICE = 5;
 export const BOARD_PER_DAY = 3;
-/** Endless play after the crossroads: the calendar runs on for a century. */
-export const ENDLESS_DAYS = 36500;
-/** Debt at this multiple of the original note turns into indenture instead of more killers. */
-export const INDENTURE_RATIO = 6;
-export const TONG_CUT = 0.3;
-/** Daily interest on deposits: Hlaalu pays more, the Imperial (EEC) house is steadier. */
-export const DEPOSIT_RATE = { hlaalu: 0.0008, eec: 0.0004 } as const;
 
 export interface StepResult { state: GameState; error?: string }
 
@@ -72,23 +75,27 @@ export function newGame(cfg: NewGameConfig): GameState {
     actions: [], over: null,
   };
   if (cfg.mode === 'long-chronicle') { startChronicle(s, true); catchUpHistory(s, rng); s.stats.visited = ['narsis']; }
-  for (const id of ['loc:balmora', 'faction:tong', 'topic:the-note', 'topic:calendar', 'holiday:new-life', 'topic:writ-of-coin', `background:${bg.id}`]) unlock(s, id);
+  for (const id of ['loc:balmora', 'faction:tong', 'topic:the-note', 'topic:calendar', 'holiday:new-life', 'topic:writ-of-coin', 'topic:red-mountain', `background:${bg.id}`]) unlock(s, id);
   applyHistory(s, rng);
   makeOffers(s, rng, s.player.location);
   recordPrices(s);
-  s.log.push({ day: 0, text: `${shortDate(0)}. New Life Festival in Balmora. You owe Gavas Drelloth ${diff.debt} septims.`, tone: 'neutral' });
-  s.inbox.push({ kind: 'result', title: 'Your debt', text: `It is the New Life Festival, 4E 4, in Balmora. You owe Gavas Drelloth of the Camonna Tong ${diff.debt} septims, at ${(diff.rate * 100).toFixed(1)}% interest a day. You have ${diff.cash} septims and a pack guar. Pay him back at the Bank tab in Balmora. The Tong will wait about two months before sending collectors.` });
+  s.log.push({ day: 0, text: `New Life Festival in Balmora. You owe Gavas Drelloth ${diff.debt} septims.`, tone: 'neutral' });
+  s.inbox.push({ kind: 'result', title: 'Your debt', text: `It is the New Life Festival, 4E 4, in Balmora. You owe Gavas Drelloth of the Camonna Tong ${diff.debt} septims, at ${(diff.rate * 100).toFixed(1)}% interest a day. You have ${diff.cash} septims and a pack guar. Pay him back at the Bank tab in Balmora. The Tong will wait about two months before sending collectors. First pay off the Tong. Then buy your way into the Scathing Charter before the end of 4E 6: that is how you win.` });
   s.rng = rng.state();
+  findBooks(s);
   return s;
 }
 
-function unlock(s: GameState, id: string) { if (C.codex[id] && !s.codex.includes(id)) s.codex.push(id); }
-function log(s: GameState, text: string, tone: LogEntry['tone'] = 'neutral') { s.log.push({ day: s.day, text, tone }); if (s.log.length > 400) s.log.splice(0, s.log.length - 400); }
 
 function startChronicle(s: GameState, fresh: boolean) {
   s.mode = 'long-chronicle'; s.timeScale = 7; s.endDay = CORONATION_DAY; s.over = null;
   s.note.rate = s.note.rate / 7;
   if (fresh) { s.day = D(7, 1, 1); s.player.location = 'narsis'; }
+}
+
+/** The jobs open in a place today (some only exist after the eruption). */
+export function jobsAt(s: GameState, loc: string): readonly Job[] {
+  return (C.jobs[loc] ?? []).filter(j => !j.after || s.world.fired.includes(j.after));
 }
 
 /** One day's wage for a job: twice the cheapest fare out of town (at least 30), times the job's multiplier;
@@ -100,31 +107,17 @@ export function jobPay(s: GameState, loc: string, job: Job): number {
   return Math.round(base * job.mult * (hard ? 1.25 : 1));
 }
 
-/** Milestones open early retirement ("retire now or carry on"). */
-function milestones(s: GameState) {
-  const got = (s.milestones ??= []);
-  const add = (id: string, title: string, text: string) => {
-    if (got.includes(id)) return;
-    got.push(id);
-    s.inbox.push({ kind: 'result', title, text: `${text} You can retire now (Bank tab) with your fortune as it stands, or carry on.` });
-  };
-  if (s.note.cleared && !s.indentured) add('debt', 'Free of debt', 'The Tong has no claim on you.');
-  if (s.charter.tier >= 3) add('charter', 'Charter-Holder', 'You hold a share of the Scathing Charter.');
-  if (s.player.mercy >= 60) add('mercy', 'A name for mercy', 'Refugees across Morrowind know your name.');
-}
 
 // ---------------------------------------------------------------- daily tick
 export function tickDay(s: GameState, rng: Rng): void {
   s.day++;
+  if (s.appeal && (s.appeal.until ?? s.day - 1) < s.day) s.appeal = null; // seizures and fines can be contested for APPEAL_DAYS
   if (s.day % 7 === 0) (s.stats.worth ??= []).push([s.day, netWorth(s)]);
-  if (!s.note.cleared && !s.indentured) s.note.balance = s.note.balance * (1 + s.note.rate);
-  if (!s.note.cleared && !s.indentured && s.note.balance > s.note.original * INDENTURE_RATIO) {
-    s.indentured = true;
-    s.inbox.push({ kind: 'result', title: 'Indentured to the Tong', text: 'Drelloth’s men find you. You will not be killed: you will work. The interest stops and the collectors stand down, but the Tong takes 30% of every sale until the note is paid.' });
-    log(s, 'You are indentured to the Camonna Tong.', 'bad');
-  }
+  if (!s.note.cleared) s.note.balance = s.note.balance * (1 + s.note.rate);
+  checkMark(s);
+  if (s.over) return;
   milestones(s);
-  for (const k of Object.keys(s.deposits)) if (s.world.branches[k] === 'open') s.deposits[k] *= 1 + DEPOSIT_RATE[k.startsWith('hlaalu:') ? 'hlaalu' : 'eec'];
+  for (const k of Object.keys(s.deposits)) if (s.world.branches[k] === 'open') s.deposits[k] *= 1 + depositRate(k);
   // wages
   const hold = s.player.conveyance === 'chartered-hold' ? 10 : 0;
   const wages = s.player.porters * WAGES.porter.day + s.player.sellswords * WAGES.sellsword.day + hold;
@@ -154,7 +147,7 @@ export function tickDay(s: GameState, rng: Rng): void {
       c.stock = tend <= 0.9 ? camp === 1 || rng.chance(camp) : rng.chance((tend >= 1.25 ? 0.4 : 0.75) * camp);
       if (rng.chance(0.011)) {
         const up = rng.chance(0.55);
-        c.shock = up ? rng.range(2, 3.4) : rng.range(0.3, 0.5);
+        c.shock = up ? rng.range(SPIKE_UP[0], SPIKE_UP[1]) : rng.range(0.3, 0.5);
         if (up) c.stock = true;
         const line = rng.pick(up ? g.spikes : g.crashes);
         s.world.news.push({ day: s.day, loc: L.id, text: `${L.name}: ${line}`, up });
@@ -180,7 +173,7 @@ export function tickDay(s: GameState, rng: Rng): void {
     }
     if (ch.renewDue !== null && s.day > ch.renewDue) {
       const lost = C.charter.tiers[ch.tier - 1];
-      ch.tier = (ch.tier - 1) as CharterState['tier']; ch.renewDue = null; ch.renewed = true; ch.paid -= lost.price;
+      ch.tier = (ch.tier - 1) as CharterState['tier']; ch.renewDue = null; ch.renewed = true; ch.paid = Math.max(0, ch.paid - lost.price); // a favour discount may have paid less than the list price
       log(s, `You missed the charter renewal and lost the ${lost.name}.`, 'bad');
       s.inbox.push({ kind: 'result', title: 'Charter tier lost', text: `The council revokes your ${lost.name}.` });
     }
@@ -205,43 +198,30 @@ export function tickDay(s: GameState, rng: Rng): void {
   if (s.player.health < 100 && s.player.health > 0) s.player.health++;
   applyHistory(s, rng);
   if (s.player.health <= 0) { s.over = { reason: 'death', day: s.day }; return; }
-  if (s.day >= s.endDay) s.over = { reason: 'calendar', day: s.day };
+  if (s.day >= s.endDay) timeUp(s);
 }
 
 function tickDays(s: GameState, rng: Rng, n: number) { for (let i = 0; i < n && !s.over; i++) tickDay(s, rng); }
 
 // ---------------------------------------------------------------- contracts
-function makeOffers(s: GameState, rng: Rng, loc: string) {
-  s.offers = s.offers.filter(o => o.origin !== loc);
-  const cands = C.contracts.filter(t => t.origins.includes(loc) && (t.from === undefined || s.day >= t.from) && (t.to === undefined || s.day < t.to) && (!t.flag || s.world.flags[t.flag]));
-  const licensed = s.charter.tier >= 1;
-  for (let i = 0; i < (licensed ? 3 : 2) && cands.length; i++) {
-    const t = licensed ? rng.weighted(cands, x => (x.mercy > 0 ? 3 : 1))! : rng.pick(cands);
-    const dests = t.destinations.filter(d => d !== loc && s.world.status[d] !== 'closed');
-    if (!dests.length) continue;
-    const good = rng.pick(t.goods); const destination = rng.pick(dests);
-    const qty = rng.int(t.qty[0], t.qty[1]);
-    const reward = Math.round(qty * fairValue(s, good) * t.payMult * (licensed && t.mercy > 0 ? C.charter.reliefPayBonus : 1));
-    s.offers.push({ id: `${t.id}-${s.day}-${i}-${rng.int(0, 9999)}`, templateId: t.id, good, qty, destination, deadline: s.day + t.deadline * (s.timeScale > 1 ? 4 : 1), reward, origin: loc });
-  }
-}
 
 // ---------------------------------------------------------------- arrival
-function arrive(s: GameState, rng: Rng, dest: string) {
+function arrive(s: GameState, rng: Rng, dest: string, afterCard = false) {
   let to = dest; let guard = 0;
   while (s.world.status[to] === 'closed' && guard++ < 5) to = C.locs[to].refuge;
   if (to !== dest) s.inbox.push({ kind: 'result', title: `${C.locs[dest].name} is gone`, text: `Where ${C.locs[dest].name} stood there is only ash and steam. The boatmen put you ashore at ${C.locs[to].name}.` });
   s.player.location = to;
   if (!s.stats.visited.includes(to)) s.stats.visited.push(to);
   unlock(s, `loc:${to}`);
+  findBooks(s);
   for (const u of C.locs[to].codex ?? []) unlock(s, u);
   unlock(s, `faction:${C.locs[to].faction.toLowerCase().includes('hlaalu') ? 'hlaalu' : 'none'}`);
   makeOffers(s, rng, to);
   // customs
-  const cv = contrabandValue(s, to);
+  const cv = afterCard ? 0 : contrabandValue(s, to);
   if (cv > 0) {
     const bg = C.backgrounds[s.player.backgroundId];
-    const p = Math.min(0.9, C.locs[to].enforcement * 0.07 * bg.customsMod * (s.player.books.includes('moon-sugar-report') ? 0.7 : 1) * heatMult(s.player.heat));
+    const p = Math.min(0.9, C.locs[to].enforcement * 0.07 * bg.customsMod * 0.7 /* Moon-Sugar: A Report, always on since 0.10 */ * heatMult(s.player.heat));
     if (rng.chance(p)) {
       const def = C.encounters.find(e => e.kind === 'customs' && (e.regions === 'any' || e.regions.includes(C.locs[to].region))) ?? C.encounters.find(e => e.kind === 'customs')!;
       s.pending = buildPending(s, def, '', to, 0, true);
@@ -253,7 +233,7 @@ function arrive(s: GameState, rng: Rng, dest: string) {
 
 // ---------------------------------------------------------------- step
 export function step(state: GameState, action: Action): StepResult {
-  if (state.over && action.t !== 'ack' && action.t !== 'chronicle' && action.t !== 'crossroads') return { state, error: 'The game is over.' };
+  if (state.over && action.t !== 'ack' && action.t !== 'chronicle') return { state, error: 'The game is over.' };
   if (state.duel && !state.duel.winner && action.t !== 'duel' && action.t !== 'ack') return { state, error: 'Finish the hearing first.' };
   if (state.pending && action.t !== 'choose' && action.t !== 'ack') return { state, error: 'Deal with what is happening on the road first.' };
   const s = structuredClone(state);
@@ -268,7 +248,6 @@ export function step(state: GameState, action: Action): StepResult {
   return { state: s };
 }
 
-function here(s: GameState) { return C.locs[s.player.location]; }
 
 /** Note today's prices where the player stands (their price book). Closed markets leave the old entry. */
 function recordPrices(s: GameState) {
@@ -287,7 +266,6 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
     case 'charter': case 'renew': return charter(s, a.t);
     case 'stash': case 'unstash': return warehouse(s, a.t, a.good, a.qty);
     case 'travel': {
-      s.appeal = null;
       const opt = routeOptions(s).find(o => o.route.id === a.route && o.modeIndex === a.mode);
       if (!opt) return 'That route is not open.';
       s.stats.journeys++;
@@ -308,13 +286,19 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       if (s.player.cash >= cost) s.player.cash -= cost;
       else { s.player.health = Math.max(1, s.player.health - 2 * a.days); log(s, 'You cannot pay for a bed, so you sleep rough in the ash.', 'bad'); }
       tickDays(s, rng, a.days * s.timeScale);
-      if (!s.over) makeOffers(s, rng, s.player.location);
+      if (s.over) return;
+      makeOffers(s, rng, s.player.location);
+      // Resting with the note unpaid: the Tong's collectors may find you in town.
+      if (!s.pending && rng.chance(restCollectorChance(s, a.days))) {
+        const def = C.encounters.find(e => e.kind === 'enforcer')!;
+        s.pending = buildPending(s, def, '', loc, 0);
+      }
       return;
     }
     case 'labour': {
       // The broke can always hire on. A day's wage covers about two trips to the nearest town.
       if (![1, 3, 7].includes(a.days)) return 'Work 1, 3 or 7 days.';
-      const job = (C.jobs[loc] ?? []).find(j => j.id === a.job);
+      const job = jobsAt(s, loc).find(j => j.id === a.job);
       if (!job) return 'No such work here.';
       const pay = jobPay(s, loc, job) * a.days * s.timeScale;
       s.player.health = Math.max(1, s.player.health - job.hurt * a.days);
@@ -324,71 +308,10 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       if (!s.over) makeOffers(s, rng, s.player.location);
       return;
     }
-    case 'deposit': case 'withdraw': {
-      const key = branchKey(a.house, loc);
-      if (s.world.branches[key] !== 'open') return 'There is no open branch here.';
-      const amt = Math.floor(a.amount); if (amt <= 0) return 'Enter an amount.';
-      if (a.t === 'deposit') {
-        if (s.player.cash < amt) return 'Not enough cash.';
-        s.player.cash -= amt; s.deposits[key] = (s.deposits[key] ?? 0) + amt; unlock(s, `topic:house-${a.house}`);
-      } else {
-        const fee = Math.ceil(amt * (a.house === 'hlaalu' ? 0.01 : 0.02) * C.backgrounds[s.player.backgroundId].feeMult * (s.world.flags.hlaaluFees && a.house === 'hlaalu' ? 2 : 1));
-        if ((s.deposits[key] ?? 0) < amt) return 'Not that much on deposit here.';
-        s.deposits[key] -= amt; s.player.cash += amt - fee;
-      }
-      return;
-    }
-    case 'writ': {
-      const to = branchKey(a.house, loc), from = branchKey(a.house, a.from);
-      if (s.world.branches[to] !== 'open') return 'No open branch of that house here.';
-      if (s.world.branches[from] !== 'open') return 'That branch no longer honours writs.';
-      const amt = Math.floor(a.amount);
-      if (amt <= 0 || (s.deposits[from] ?? 0) < amt) return 'Not that much on deposit there.';
-      const fee = Math.ceil(amt * (a.house === 'hlaalu' ? 0.03 : 0.04) * C.backgrounds[s.player.backgroundId].feeMult * (s.world.flags.hlaaluFees && a.house === 'hlaalu' ? 2 : 1));
-      s.deposits[from] -= amt; s.deposits[to] = (s.deposits[to] ?? 0) + amt - fee;
-      log(s, `A writ of coin moves ${amt} septims from ${C.locs[a.from].name} (fee ${fee}).`);
-      return;
-    }
-    case 'pay': {
-      if (s.note.cleared) return 'Your note is cleared.';
-      if (loc !== s.note.seat && !s.note.agents.includes(loc)) return 'No Tong collector here.';
-      const amt = Math.min(Math.floor(a.amount), Math.ceil(s.note.balance), s.player.cash);
-      if (amt <= 0) return 'Enter an amount.';
-      s.player.cash -= amt; s.note.balance -= amt; s.note.lastPaymentDay = s.day;
-      if (s.note.balance < 1) { s.note.balance = 0; s.note.cleared = true; log(s, 'You paid off the Camonna Tong. You owe no one.', 'good'); s.inbox.push({ kind: 'result', title: 'Debt paid off', text: 'Gavas Drelloth counts the coin twice, then tears up your note. "Pleasure, outlander." You are free of the Tong.' }); }
-      return;
-    }
-    case 'borrow': {
-      // The Tong always lends; every advance raises the rate, and a bigger debt brings harder collectors (pressure()).
-      if (loc !== s.note.seat && !s.note.agents.includes(loc)) return 'No Tong agent here.';
-      const amt = Math.floor(a.amount);
-      if (amt <= 0) return 'Enter an amount.';
-      if (s.note.cleared) { s.note.cleared = false; s.note.balance = 0; s.note.lastPaymentDay = s.day; }
-      s.note.rate = Math.min(0.02 / s.timeScale, s.note.rate + 0.0015 * amt / s.note.original / s.timeScale);
-      s.note.extended += amt; s.note.balance += amt; s.player.cash += amt;
-      log(s, `You borrow ${amt} more from the Tong.`, 'bad');
-      return;
-    }
+    case 'deposit': case 'withdraw': case 'pay': case 'borrow': return bankAction(s, a, loc);
+    case 'accept': case 'deliver': return contractAction(s, a, loc);
+    case 'retire': return endingAction(s, a);
     case 'rumor': return rumor(s, rng);
-    case 'accept': {
-      const o = s.offers.find(x => x.id === a.id); if (!o) return 'That offer is gone.';
-      if (s.contracts.length >= 4) return 'You already carry four contracts.';
-      s.offers = s.offers.filter(x => x.id !== a.id); s.contracts.push(o); unlock(s, `faction:${C.contracts.find(t => t.id === o.templateId)!.faction}`);
-      return;
-    }
-    case 'deliver': {
-      const c = s.contracts.find(x => x.id === a.id); if (!c) return 'No such contract.';
-      if (c.destination !== loc) return `Deliver to ${C.locs[c.destination].name}.`;
-      const lot = s.player.cargo[c.good]; if (!lot || lot.qty < c.qty) return `You need ${c.qty} ${C.goods[c.good].name}.`;
-      lot.qty -= c.qty; if (lot.qty <= 0) delete s.player.cargo[c.good];
-      const t = C.contracts.find(x => x.id === c.templateId)!;
-      s.player.cash += c.reward; s.player.rep[t.faction] = clampRep(s.player.rep[t.faction] + t.rep); s.player.mercy += t.mercy;
-      if (t.mercy > 0) s.stats.reliefDelivered++;
-      s.stats.contractsDone++;
-      s.contracts = s.contracts.filter(x => x.id !== c.id);
-      log(s, `Delivered ${c.qty} ${C.goods[c.good].name} for ${t.issuer}: ${c.reward} septims.`, 'good');
-      return;
-    }
     case 'gear': {
       const g = C.gear[a.id]; if (!g) return 'Unknown item.';
       if (!here(s).outfitter || s.world.status[loc] === 'closed') return 'No outfitter here.';
@@ -428,55 +351,27 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       if (s.player.cash < cost) return `Healing costs ${cost}.`;
       s.player.cash -= cost; s.player.health = 100; return;
     }
-    case 'book': {
-      const b = C.books.find(x => x.id === a.id); if (!b) return 'No such book.';
-      if (!here(s).books) return 'No bookseller here.';
-      if (s.player.books.includes(b.id)) return 'You own it.';
-      if (b.from !== undefined && s.day < b.from) return 'Not yet written.';
-      if (s.player.cash < b.price) return `It costs ${b.price}.`;
-      s.player.cash -= b.price; s.player.books.push(b.id);
-      unlock(s, `book:${b.id}`); for (const u of b.unlocks) unlock(s, u);
-      return;
-    }
     case 'choose': {
       if (!s.pending) return 'Nothing to choose.';
       if (!s.pending.choices.includes(a.choice)) return 'Not an option.';
+      const blocked = cardOptions(s).find(o => o.id === a.choice)?.disabled;
+      if (blocked) return blocked;
       const res = resolve(s, rng, a.choice);
       if (res.fail) return res.fail;
       const p = s.pending; s.pending = null;
       s.inbox.push({ kind: 'result', title: p.title, text: res.text });
       log(s, `${p.title}: ${res.text}`, res.good ? 'good' : 'bad');
       if (s.player.health <= 0) { s.over = { reason: 'death', day: s.day }; return; }
-      if (res.teleport) { arrive(s, rng, res.teleport); return; }
+      // One card per journey: after a road card, arrival brings no customs search.
+      if (res.teleport) { arrive(s, rng, res.teleport, true); return; }
       tickDays(s, rng, ((res.delay ?? 0) + p.remainingDays) * s.timeScale);
       if (s.over) { s.player.location = p.dest; return; }
-      if (p.customs) return;
-      arrive(s, rng, p.dest);
-      return;
-    }
-    case 'crossroads': {
-      // The last day: retire for good, or choose a way to play on without an end date (score frozen now).
-      if (s.over?.reason !== 'calendar' || s.ending) return 'Not now.';
-      if (a.choice === 'charter' && s.charter.tier < 2) return 'You need a charter tier of 2 or more.';
-      s.ending = { kind: a.choice, day: s.day, worth: netWorth(s) };
-      if (a.choice === 'retire') { log(s, 'You put away the ledger for good.', 'history'); return; }
-      s.over = null; s.endDay = s.day + ENDLESS_DAYS;
-      if (a.choice === 'tong') {
-        s.note.cleared = true; s.note.balance = 0; s.indentured = false;
-        s.player.rep.tong = clampRep(s.player.rep.tong + 30); addHeat(s, 30);
-        log(s, 'You take the Tong’s mark. Your debt is gone; now you carry what they tell you to.', 'history');
-      } else log(s, a.choice === 'charter' ? 'You take your seat among the Charter-Holders and keep trading.' : 'The ledger stays open. You keep trading.', 'history');
-      return;
-    }
-    case 'retire': {
-      if (!s.milestones?.length) return 'You have nothing to retire on yet.';
-      if (s.indentured) return 'The Tong does not let its runners retire.';
-      s.ending = { kind: 'retire', day: s.day, worth: netWorth(s) };
-      s.over = { reason: 'retired', day: s.day };
+      if ((p.customs || !p.routeId) && s.player.location !== 'road') return; // a search at the gate or a visit in town: already there (a road patrol is not)
+      arrive(s, rng, p.dest, true);
       return;
     }
     case 'appeal': {
-      if (!s.appeal || s.appeal.loc !== loc) return 'There is nothing to contest here.';
+      if (!canContest(s)) return s.appeal ? 'Contest it where it happened, or at a court: Vivec, Ebonheart, Narsis or Mournhold.' : 'There is nothing to contest.';
       s.duel = newDuel(rng);
       log(s, 'You contest the seizure. The magistrate’s advocate sets out his case.');
       return;
@@ -493,14 +388,15 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
           s.player.cash += ap.fine;
           s.inbox.push({ kind: 'result', title: 'Case won', text: `The magistrate rules for you: your goods and your ${ap.fine}-septim fine are returned.` });
         } else {
-          const more = Math.min(s.player.cash, ap.fine); s.player.cash -= more;
-          s.inbox.push({ kind: 'result', title: 'Case lost', text: `The magistrate rules against you and doubles the fine: ${more} septims more.` });
+          const more = Math.min(s.player.cash, courtCost(ap)); s.player.cash -= more;
+          s.inbox.push({ kind: 'result', title: 'Case lost', text: ap.fine > 0 ? `The magistrate rules against you and doubles the fine: ${more} septims more.` : `The magistrate rules against you. The seizure stands, and you pay ${more} septims in court costs.` });
         }
       }
       return;
     }
     case 'chronicle': {
-      if (s.over?.reason !== 'calendar' || s.mode !== 'red-year') return 'The Long Chronicle opens only after the Red Year ends.';
+      if ((s.over?.reason !== 'calendar' && s.over?.reason !== 'won') || s.mode !== 'red-year') return 'The Long Chronicle opens only after the Red Year ends or is won.';
+      delete s.ending;
       startChronicle(s, false);
       log(s, 'The Long Chronicle begins. Each day on the road is now a week of history.', 'history');
       return;
@@ -549,17 +445,20 @@ function charter(s: GameState, kind: 'charter' | 'renew'): string | void {
     return;
   }
   if (!s.world.flags.relief) return 'No charters are on offer yet.';
-  if (!s.note.cleared) return 'The council will not charter a trader who still owes the Camonna Tong.';
   if (ch.renewDue !== null) return 'Renew your charter first.';
   const next = C.charter.tiers[ch.tier];
   if (!next) return 'You already hold the full charter.';
-  if (s.player.cash < next.price) return `The ${next.name} costs ${next.price} septims.`;
-  s.player.cash -= next.price; ch.paid += next.price; ch.tier = next.tier;
+  if (next.tier === 3 && !s.note.cleared) return 'The council will not sell the Scathing Charter to a trader who still owes the Camonna Tong.';
+  if (s.day < charterReadyDay(s)) return `The council wants you to hold your ${C.charter.tiers[ch.tier - 1].name} until ${shortDate(charterReadyDay(s))} first.`;
+  const price = charterPrice(s, next.tier);
+  if (s.player.cash < price) return `The ${next.name} costs ${price} septims.`;
+  s.player.cash -= price; ch.paid += price; ch.tier = next.tier; ch.boughtDay = s.day;
   if (s.world.flags.charterRenewal) ch.renewed = true; // granted by the new council itself
   if (next.tier === 3) ch.nextDividend = s.day + C.charter.dividendEvery;
   unlock(s, 'topic:scathing-charter');
-  log(s, `You buy the ${next.name} for ${next.price} septims.`, 'good');
+  log(s, `You buy the ${next.name} for ${price} septims.`, 'good');
   s.inbox.push({ kind: 'result', title: next.name, text: next.text });
+  if (next.tier === 3 && s.mode === 'red-year') win(s);
 }
 
 function warehouse(s: GameState, kind: 'stash' | 'unstash', good: string, qtyIn: number): string | void {
@@ -602,20 +501,16 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
     let total = bulkSellTotal(q.sell, qty, depth);
     const profit = total - Math.round(lot.cost * qty);
     if (q.legality === 'restricted' && q.sellNote?.startsWith('black')) {
-      if (rng.chance(here(s).enforcement * 0.06 * C.backgrounds[s.player.backgroundId].customsMod * heatMult(s.player.heat))) {
-        const fine = Math.round(total * 0.4); total -= fine;
+      if (rng.chance(here(s).enforcement * STING_CHANCE * C.backgrounds[s.player.backgroundId].customsMod * heatMult(s.player.heat))) {
+        const fine = Math.round(total * STING_FINE); total -= fine;
+        s.appeal = { loc, goods: {}, fine, until: s.day + APPEAL_DAYS };
         log(s, `An EEC informer was watching. Fine: ${fine} septims.`, 'bad');
-        s.inbox.push({ kind: 'result', title: 'An informer', text: `The East Empire Company does not forgive unlicensed ${g.name}. You are fined ${fine} septims.` });
+        s.inbox.push({ kind: 'result', title: 'An informer', text: `The East Empire Company does not forgive unlicensed ${g.name}. You are fined ${fine} septims. You can contest the fine before a magistrate, here or in a court town, within ${APPEAL_DAYS} days (Market tab).` });
       }
     }
     if (q.legality === 'contraband') { s.stats.smuggled += qty; addHeat(s, Math.min(15, 2 + total / 250)); }
     else if (q.legality === 'restricted' && q.sellNote?.startsWith('black')) addHeat(s, Math.min(8, 1 + total / 600));
     if (['food', 'medicine'].includes(g.category) && ['ruined', 'sacked', 'besieged', 'refugee-swollen'].includes(s.world.status[loc]) && profit > 0) s.player.profiteering += profit;
-    if (s.indentured && !s.note.cleared) {
-      const cut = Math.min(Math.ceil(s.note.balance), Math.round(total * TONG_CUT));
-      total -= cut; s.note.balance -= cut; s.note.lastPaymentDay = s.day;
-      if (s.note.balance < 1) { s.note.balance = 0; s.note.cleared = true; s.indentured = false; s.inbox.push({ kind: 'result', title: 'Free of the Tong', text: 'Your last cut pays off the note. Drelloth lets you go.' }); }
-    }
     s.player.cash += total;
     lot.qty -= qty; if (lot.qty <= 0) delete s.player.cargo[good];
     cell.sat = Math.max(0.45, cell.sat * (1 - qty / depth));
@@ -665,14 +560,21 @@ function rumor(s: GameState, rng: Rng): string | void {
   // Every round buys one true, useful tip with real numbers, then the talk of the tavern.
   const tip = tradeTip(s);
   if (tip) { s.inbox.push({ kind: 'result', notice: true, title: 'Rumour (trade tip)', text: tip }); log(s, `Trade tip: ${tip}`); }
+  // A warning about what is coming, if there is one not yet heard.
   const unheard = pool.filter(r => !s.heard.includes(r.id));
-  const fresh = unheard.filter(r => r.kind === 'foreshadow');
-  const r = (fresh.length && rng.chance(s.player.books.includes('progress-of-truth') ? 0.9 : 0.7) ? rng.pick(fresh) : unheard.length ? rng.pick(unheard) : pool.length ? rng.pick(pool) : undefined);
-  if (!r) { s.inbox.push({ kind: 'result', notice: true, title: 'Rumour', text: 'Nobody has anything new tonight.' }); return; }
-  if (!s.heard.includes(r.id)) s.heard.push(r.id);
-  if (r.dispute) unlock(s, `dispute:${r.dispute}`);
-  unlock(s, `rumor:${r.id}`);
-  s.inbox.push({ kind: 'result', notice: true, title: r.kind === 'dispute' ? 'Rumour (historians disagree)' : r.kind === 'foreshadow' ? 'Rumour (a warning)' : 'Rumour', text: `${r.voice ? r.voice + ': ' : ''}“${r.text}”` });
+  const warn = unheard.filter(r => r.kind === 'foreshadow');
+  if (warn.length) {
+    const w = rng.pick(warn); s.heard.push(w.id);
+    s.inbox.push({ kind: 'result', notice: true, title: 'Rumour (a warning)', text: `${w.voice ? w.voice + ': ' : ''}“${w.text}”` });
+  }
+  // And one tale or historians' quarrel, which goes quietly into the Codex.
+  const tales = unheard.filter(r => r.kind === 'lore' || r.kind === 'dispute');
+  if (tales.length) {
+    const t = rng.pick(tales); s.heard.push(t.id);
+    unlock(s, t.dispute ? `dispute:${t.dispute}` : `rumor:${t.id}`);
+    log(s, t.dispute ? 'You hear historians’ quarrels over your drink. They are in your Codex.' : 'You hear an old tale over your drink. It is in your Codex.');
+  }
+  if (!tip && !warn.length && !tales.length) s.inbox.push({ kind: 'result', notice: true, title: 'Rumour', text: 'Nobody has anything new tonight.' });
 }
 
 /** Rebuild a game from its seed, config and action log; must equal the live state. */

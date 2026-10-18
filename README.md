@@ -4,77 +4,46 @@
 
 *A trading game set in the world of The Elder Scrolls, at the dawn of the Fourth Era.*
 
-It is **1 Morning Star 4E 4** in Balmora. You owe the Camonna Tong 3,000 septims, you own one pack guar,
-and you have three years. Buy low, sell high, and keep ahead of the debt through the last calm year, the
-**Red Year**, and the war that follows. Every place, good and event is drawn from Elder Scrolls lore,
-with sources you can click.
+It is **1 Morning Star 4E 4** in Balmora. You owe the Camonna Tong 4,000 septims, you own one pack guar,
+and you have three years. Buy low, sell high, pay off the debt and buy your way into the **Scathing Charter**,
+through the last calm year, the **Red Year**, and the war that follows. Every place, good and event is drawn
+from Elder Scrolls lore, with sources you can click.
 
-> **Just want to play?** Download the offline edition from
-> [Releases](https://github.com/ullafreehum/scathing-charter/releases) (or take
-> [`download/AshGame-offline-v0.9.4.zip`](download/AshGame-offline-v0.9.4.zip) from this repository), extract it into `C:\Games` and double-click
-> `Play The Scathing Charter.cmd` (needs Node.js and Google Chrome).
+## ▶ Play now
+
+Welcome, outlander. There are two ways in, and both are free:
+
+- **In your browser:** **[play The Scathing Charter online](https://ullafreehum.github.io/scathing-charter/)**.
+  Nothing to install. It works on any computer with a modern browser, and your saves stay in that browser.
+- **On Windows:** download the game from the **[v0.10.0 release](https://github.com/ullafreehum/scathing-charter/releases/tag/v0.10.0)**.
+  Take **`ScathingCharter-Setup-0.10.0.exe`** to install it, or **`ScathingCharter-Portable-0.10.0.exe`** to run it
+  from anywhere with no install. The game isn't signed, so Windows may say *"Windows protected your PC"*: click
+  **More info**, then **Run anyway**.
+
+New here? Pick **Easy (Fair Terms)** for your first game, and read [Your first five minutes](#-your-first-five-minutes)
+below. Want a taste first? **Card duel (practice)** on the title screen plays the magistrate's card hearing on its own.
 
 > Unofficial, non-commercial fan game. *The Elder Scrolls* is a trademark of ZeniMax Media / Bethesda
 > Softworks. This project is not affiliated with or endorsed by them.
 
 ---
 
-## 🕯️ First launch on Windows: step by step
+## 🕯️ Install on Windows
 
-You only do Steps 1–2 once. Allow about 10 minutes, mostly waiting for downloads.
+1. Open the **[latest release](https://github.com/ullafreehum/scathing-charter/releases/tag/v0.10.0)** (or [all releases](https://github.com/ullafreehum/scathing-charter/releases)) and download the newest
+   **`ScathingCharter-Setup-<version>.exe`**. (Prefer no install? Take **`ScathingCharter-Portable-<version>.exe`**:
+   one file that runs from anywhere, such as a USB stick.)
+2. Run it. The game isn't signed, so the first time Windows may say *"Windows protected your PC"*: click
+   **More info**, then **Run anyway**. You only see this once per download.
+3. The installer puts **The Scathing Charter** in the Start menu and on the desktop. The game is fully
+   self-contained: it doesn't need Node.js, Chrome or the internet.
 
-### Step 1: Install Node.js (the engine the game runs on)
+The game opens **full screen**. **F11** or **Alt+Enter** switches between full screen and a window, **Esc**
+leaves full screen when no in-game window is open, and **Ctrl+Plus / Ctrl+Minus / Ctrl+0** change the size
+of the interface. It fits any screen from 1024×600 to 4K and ultrawide. Updating is the same: download the
+new Setup and run it; your saves stay.
 
-1. Go to **https://nodejs.org**.
-2. Click the big button that says **LTS** (the recommended version). Any version 20 or newer works.
-3. Open the downloaded file (`node-v…-x64.msi`) and click **Next** through the installer, keeping all
-   the defaults. If it offers *"Automatically install the necessary tools"*, you can leave that
-   **unticked**.
-4. When it says *Finished*, you're done. You never need to open Node.js yourself.
-
-> Already have Node.js? Check the version: open **PowerShell** (press the Windows key, type
-> `powershell`, press Enter), type `node -v` and press Enter. You need `v20` or higher.
-
-### Step 2: Download the game files
-
-1. Open the project page on GitHub: **https://github.com/ullafreehum/scathing-charter**
-2. Click the green **`<> Code`** button, then **Download ZIP**.
-3. Find the ZIP in your **Downloads** folder. Right-click it, choose **Extract All…**, then
-   **Extract**.
-4. Optional but tidy: move the extracted folder (`scathing-charter-main`) somewhere easy, such as
-   `Documents\The Scathing Charter`.
-
-> Prefer Git? `git clone https://github.com/ullafreehum/scathing-charter.git` works too.
-
-### Step 3: Start the game
-
-1. Open the extracted folder. You should see files such as `README.md`, `package.json` and **`PLAY.cmd`**.
-2. **Double-click `PLAY.cmd`.**
-   - If Windows shows *"Windows protected your PC"*, click **More info**, then **Run anyway**. It's a
-     plain text script; you can right-click → *Edit* to read it first.
-3. A black window opens.
-   - **The first time**, it downloads the game's parts. This takes 1–3 minutes, and yellow `warn`
-     lines are normal.
-   - Then it says **"Starting the game"** and your web browser opens on the title screen.
-   - If the browser doesn't open by itself, open it and go to **http://localhost:5173**.
-4. **Keep the black window open while you play.** It *is* the game's engine. Close it when you're done.
-
-That's it. 🎉
-
-<details>
-<summary>Prefer typing commands instead of double-clicking?</summary>
-
-1. Open the game folder in File Explorer.
-2. Click the address bar, type `powershell`, and press Enter. A PowerShell window opens *in that folder*.
-3. Type these two commands, pressing Enter after each:
-   ```powershell
-   npm install
-   npm start
-   ```
-4. To stop the game, click in the PowerShell window and press **Ctrl + C**.
-</details>
-
-### Step 4: Your first five minutes
+## 🎲 Your first five minutes
 
 1. On the title screen, click **New game**.
 2. **Pick a character card.** Each has a perk (+) and a drawback (−). *Hlaalu Factor's By-Blow* is a
@@ -86,7 +55,7 @@ That's it. 🎉
 
 You're now in **Balmora**. The screen has three parts:
 - **Top bar:** the date (with the two moons), your **Cash**, your **Debt** (it grows every day),
-  **Bank** (deposits), **Cargo** (weight / capacity), health ♥ and **Net worth** (your score), plus the
+  **Bank** (deposits), **Cargo** (weight / capacity), health ♥, **Net worth** (your score) and your **Goal**, plus the
   **Codex** and **⚙ Settings** buttons.
 - **Left panel:** where you are: its story, its laws, and the merchants here. Underlined words open the
   **Codex** (the in-game encyclopaedia).
@@ -115,55 +84,35 @@ A good first loop:
 
 ---
 
-## 📦 Offline edition (no install, opens in Chrome)
-
-A ready-to-run copy needs only Node.js and Google Chrome, not `npm install` or the internet. It opens in
-its own Chrome window even when another browser is your default.
-
-To make it yourself: run `npm run package:offline`. It creates `release/AshGame-offline-v<version>.zip`.
-1. Extract the ZIP into `C:\Games`; you get `C:\Games\AshGame`.
-2. Double-click **`Play The Scathing Charter.cmd`**.
-
-Saves are kept in `AshGame\chrome-profile`. More details are in `README-OFFLINE.txt` inside the ZIP.
-
 ## ▶️ Playing again later
 
-Double-click **`PLAY.cmd`** again. It skips the install and opens the game straight away. On the title
-screen, click **Continue** to pick up where you left off.
+Start **The Scathing Charter** from the Start menu or the desktop. On the title screen, click **Continue**
+to pick up where you left off.
 
 ## 💾 Your saves
 
-- The game **saves automatically** after every action, inside your web browser.
+- The game **saves automatically** after every action, on your computer (in `%APPDATA%\The Scathing Charter`).
 - **☰ menu → Save to slot 1/2/3** keeps extra copies; they appear on the title screen.
 - **☰ menu → Export save file** downloads a `scathing-charter-….json` file (older `.ashfall.json` backups still import). Keep it as a backup, or move your game to
   another computer with **Import save file…** on the title screen.
-- ⚠️ Saves live in *this browser* on *this computer*. Clearing your browser's history or site data, or
-  using a private window, removes them, so export a backup now and then.
+- Saves from playing in a web browser (versions before 0.10) don't move over by themselves: in the browser,
+  use **Export save file**, then **Import save file…** in the desktop game.
 
 ## 🛠️ If something goes wrong
 
 | What you see | What to do |
 |---|---|
-| `'node' is not recognized` or `npm is not recognized` | Node.js isn't installed, or the window was open before you installed it. Do **Step 1**, then **restart your computer** and try again. |
-| `npm.ps1 cannot be loaded because running scripts is disabled` | This only happens in PowerShell. Use **`PLAY.cmd`** instead (it avoids the problem). Or type `npm.cmd install` and `npm.cmd start`. |
-| The black window flashes and closes immediately | Right-click inside the folder → *Open in Terminal*, type `.\PLAY.cmd` and press Enter. Now you can read the message. |
-| `npm install` fails with network errors | Check your internet connection (and any VPN or company firewall), then double-click `PLAY.cmd` again. |
-| `Port 5173 is in use` | The game is probably already running in another window. Use that one, or close it and start again. |
-| The browser shows *"This site can't be reached"* | The black window must stay open. Start `PLAY.cmd` again and wait for **"Local: http://localhost:5173"**. |
-| A blank or dark page | Press **Ctrl + F5** to reload. If it stays blank, close the black window, delete the `node_modules` folder inside the game folder, and run `PLAY.cmd` again. |
-| My **Continue** button disappeared | Browser data was cleared. Use **Import save file…** with an exported backup. |
-| Text is hard to read, too small, or the falling ash is distracting | Open **⚙ Settings** (top bar or title screen): 5 colour themes, 4 fonts, text size up to 140%, ash and animations on/off, sound and volume. |
-
-Still stuck? Copy the last lines of the black window and ask for help. The message usually says exactly
-what's wrong.
+| *"Windows protected your PC"* | The game isn't signed. Click **More info**, then **Run anyway**. |
+| The game is stuck in a window, or stuck full screen | Press **F11** (or **Alt+Enter**), or use **⚙ Settings → Full screen**. |
+| Everything is too big or too small | **Ctrl+Plus / Ctrl+Minus**, or **⚙ Settings → Text and UI size**. **Ctrl+0** resets it. |
+| My **Continue** button disappeared | Use **Import save file…** with an exported backup. |
+| Text is hard to read, or the falling ash is distracting | Open **⚙ Settings** (top bar or title screen): 5 colour themes, 4 fonts, text and UI size, ash and animations on/off, sound and volume. |
 
 ## 🍎 Mac or 🐧 Linux
 
-1. Install Node.js 20+ from https://nodejs.org (or your package manager).
-2. Download and unzip the game (Step 2 above).
-3. Open **Terminal** in the game folder and run `./play.sh`.
-   - If you get "permission denied", run `chmod +x play.sh` once first.
-   - Or simply run `npm install`, then `npm start`.
+There is no desktop build for these yet. You can run the game from its source: install Node.js 20+ from
+https://nodejs.org, download this repository (green **`<> Code`** button → **Download ZIP**), then in a
+terminal in that folder run `npm install` and `npm start`.
 
 ---
 
@@ -185,20 +134,23 @@ what's wrong.
   - **Markers** (toggle under the map): contract destinations (C), where you can pay the debt (D), banks
     (B), healing (+), and towns where your cargo sells higher (↑ +amount). If you're
   broke, you can **work your passage** instead: free, but slower.
-- **Bank:** money is deposited in a *particular town's branch* and can only be used there. A
-  *transfer* (writ of coin) moves it between branches of the same bank. Branches can be destroyed by history.
+- **Goal:** pay off the Camonna Tong, then buy the Scathing Charter before the end of 4E 6 to win. If your
+  debt passes six times the note, the Tong puts its mark on you and the game ends. Otherwise, at the end you
+  retire, ranked by net worth. The Bank tab shows your progress.
+- **Bank:** each bank city has a strongbox. Money left there stays in that city, earns a little interest and
+  is safe from robbers, but history can destroy a vault.
 - **Timeline:** the thin bar under the top bar is the whole campaign: how far you are, what has happened (gold),
   and what the rumours say is coming (hollow). Hover it for details.
 - **Markets remember you:** selling a lot of one good floods that town's market for a few weeks
   (the Market shows *Flooded · 12d*). Spread your trade around.
-- **Heat:** smuggling draws the Legion's attention (shown in the top bar). *Watched* (30+) means more
-  searches; *wanted* (60+) means road patrols and double fines. It falls by 1 a day; lie low or bribe.
+- **Smuggling** draws the Legion's attention: the more you smuggle, the more often customs search you.
+  Lying low or bribing customs helps.
 - **The Scathing Charter:** after the Red Year, once your debt is paid, buy trade rights to rebuild the
   Vivec region in Mournhold, Narsis or Balmora (Bank tab): a relief licence, a warehouse at Narsis, then the
-  full charter, which pays a share every 30 days. Renew it when the council changes hands.
+  full charter, which wins the game (in the Long Chronicle it pays a share every 30 days). Renew it when the council changes hands.
 - **Road events:** each choice shows its real chance of success.
 - **Tavern:** rumours (tips, omens, and historians arguing), contracts, hired porters (+12 stone) and
-  sellswords, books, and rest.
+  sellswords, day labour, and rest. Each round also adds an old tale to your Codex.
 - **Shop & Temple:** bigger carts and holds, weapons and armour, scrolls (Chameleon, Almsivi and
   Divine Intervention), and healing.
 - **Score:** your **Net worth** = cash + deposits + cargo value − debt. At the end you earn a
@@ -211,7 +163,7 @@ what's wrong.
   - `c` opens the Codex; `Esc` closes it (and Settings).
 - **Settings (⚙):** five readable colour themes named after Vvardenfell regions (Ashlands, Bitter Coast,
   Azura's Coast, Ascadian Isles, West Gash), four fonts, text size, falling ash, animations, sound and
-  volume. Saved in your browser.
+  volume. Saved on your computer.
 - **Lore badges** (in the Codex): *Unverified*, *Historians disagree*, *Extrapolation* and *Invented for
   this game* tell you how sure the lore is. **Codex → Historians disagree** has the arguments, with
   sources.
@@ -221,6 +173,8 @@ what's wrong.
 | Command | What it does |
 |---|---|
 | `npm start` / `npm run dev` | Dev server (`start` also opens the browser) |
+| `npm run desktop` | Build and open the desktop app (Electron) |
+| `npm run package:win` | Build the Windows installer and portable .exe into `release/electron/` (run on Windows; CI does this for releases) |
 | `npm test` | Unit tests: engine, determinism/replay, calendar, saves, data integrity |
 | `npm run test:e2e` | Browser tests: smoke, UI behaviour, critical-moment scenarios, random-click crash test. Run `npx playwright install chromium` once first. |
 | `npm run diagnose -- 4` | Engine stress test: random play across all backgrounds and difficulties with invariant checks |

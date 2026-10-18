@@ -6,3 +6,4 @@ playwright-report
 release
 AshGame
 *.tsbuildinfo
+tests/e2e/__screenshots__/fit-*.png

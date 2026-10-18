@@ -2,7 +2,8 @@
 // built on canon trades of each town. Pay is set in the engine from the cheapest fare out of town × `mult`.
 import type { Job } from '../engine/types';
 
-const j = (id: string, name: string, text: string, mult: number, hurt: number): Job => ({ id, name, text, mult, hurt, canon: 'invented', sources: [] });
+const j = (id: string, name: string, text: string, mult: number, hurt: number, after?: string): Job => ({ id, name, text, mult, hurt, canon: 'invented', sources: [], ...(after ? { after } : {}) });
+const AFTER_ERUPTION = 'red-year-eruption';
 
 export const JOBS: Readonly<Record<string, readonly Job[]>> = {
   balmora: [
@@ -13,7 +14,7 @@ export const JOBS: Readonly<Record<string, readonly Job[]>> = {
   vivec: [
     j('canton-porter', 'Canton porter', 'Carry goods up and down the canton stairs.', 1, 1),
     j('gondolier-hand', 'Gondolier’s hand', 'Pole a gondola through the waterways.', 0.9, 0),
-    j('crater-salvage', 'Crater salvager', 'Dig through the ruins by Scathing Bay for anything worth selling.', 1.4, 2),
+    j('crater-salvage', 'Crater salvager', 'Dig through the ruins by Scathing Bay for anything worth selling.', 1.4, 2, AFTER_ERUPTION),
   ],
   aldruhn: [
     j('shell-scraper', 'Shell scraper', 'Scrape and patch the great emperor-crab shells of the town.', 1, 1),
@@ -28,7 +29,7 @@ export const JOBS: Readonly<Record<string, readonly Job[]>> = {
   ebonheart: [
     j('eec-tally', 'EEC tally clerk', 'Count crates on the East Empire Company docks.', 0.9, 0),
     j('ebonheart-docks', 'Dockhand', 'Haul cargo between ship and warehouse.', 1.05, 1),
-    j('ruin-clearer', 'Ruin clearer', 'Shift rubble and scorched timber for the Company.', 1.35, 2),
+    j('ruin-clearer', 'Ruin clearer', 'Shift rubble and scorched timber for the Company.', 1.35, 2, AFTER_ERUPTION),
   ],
   mournhold: [
     j('plaza-porter', 'Plaza porter', 'Carry purchases for shoppers in the Great Bazaar.', 1, 1),
@@ -63,7 +64,7 @@ export const JOBS: Readonly<Record<string, readonly Job[]>> = {
   'fort-frostmoth': [
     j('legion-quartermaster', 'Quartermaster’s hand', 'Count stores for the Legion garrison.', 0.9, 0),
     j('woodcutter', 'Woodcutter', 'Fell pines for the fort’s fires.', 1.15, 1),
-    j('rubble-crew', 'Rubble crew', 'Clear the collapsed walls of the fort.', 1.3, 2),
+    j('rubble-crew', 'Rubble crew', 'Clear the collapsed walls of the fort.', 1.3, 2, AFTER_ERUPTION),
   ],
   windhelm: [
     j('windhelm-docks', 'Dockhand', 'Load ships at the Windhelm docks in the cold.', 1, 1),

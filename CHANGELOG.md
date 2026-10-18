@@ -4,6 +4,56 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.10.0 (beta): the focus release
+One goal, one choice per trip, and a Red Year you can see on the map. Now a Windows app.
+
+- One strongbox per bank city instead of two houses, 1% to take money out, no transfers between cities. Old saves add up each city's balances. Interest is the eruption gamble: 0.12% a day in Vivec, Ebonheart and Balmora, 0.08% in Mournhold, 0.03% in the safe cities.
+- A clear goal: pay off the Tong, then buy the Scathing Charter before the end of 4E 6. Buying it with no debt wins the game at once; only this last tier needs the debt cleared. The Bank tab shows the goal as three steps.
+- If your debt passes six times the note, the Tong puts its mark on you and the game ends (with warnings at four and five times). The Tong lends up to five times the note. Indenture is gone.
+- At the end date you retire automatically, ranked by net worth; the end-of-game crossroads is gone. Winning or retiring at the end still opens the Long Chronicle.
+- Heat is no longer shown: it still decides how often customs search you, and the customs card shows the odds.
+- Books are no longer bought: you find them in towns with bookshops, they go into the Codex, and their perks are always on.
+- A round at the tavern gives a trade tip, any new warning, and one old tale or historians' quarrel, which goes into the Codex (new Tavern tales section).
+- The Red Year shows on the map: an ash haze over Vvardenfell that thickens toward the eruption, a red glow on Red Mountain once the omens start, ash-grey towns with a cracked ring afterwards, closed lines drawn as dotted red crosses, tents at the camps, refugee columns on the roads to Narsis and Mournhold, war fronts hatched around besieged and occupied towns, and a banner over occupied ones.
+- The game fits any screen from 1024×600 to 4K and ultrawide: the whole interface grows with the window (designed at 1280×720), stays centred on very wide screens, the map fills the free height, and the hearing shows all eight cards in one row. The Text size setting is now "Text and UI size" and scales on top of that.
+- Road events are now crossing cards, at most one per journey: every choice prints its stakes in septims and percentages before you pick. Customs lets you declare and pay 25% duty; a refugee column lets you sell at cost for Mercy and Charter favour (which lowers charter prices); an ash storm lets you wait, hire a guide or push through; Tong collectors can be paid, put off or outrun, and the road stays watched for a month.
+- Tavern contracts work as before; they become road scenes in a later version.
+- The magistrate's hearing is now an animated card duel (Sorcerer's "Oblivion Wager" design): towers rise and crack, Daedra rise from a summoning circle, every change floats up as a label, and cards you can't afford say what you still need. Plain words throughout: Tower, Wall, Stone, Troops, Magic, and "Deal 6 damage". Speed Normal, Fast or Skip (click the board to hurry a turn); with Animations off or reduced motion it plays instantly. Keyboard and screen readers play the same cards through buttons. Painted card art (from The Battle for Wesnoth), new frames and towers, and a Red Mountain backdrop. If WebGL is missing, the old plain board is used.
+- Eight duel cards renamed (Archer, Ordinator, Guar Rider, Legion Cohort, Redoran Charge, Morag Tong, Dark Brotherhood, Dwemer Centurion) with new pictures. The eruption, the relief of the Redoran and the Argonian invasion have pictures on their chronicle cards, and a new Codex entry for Red Mountain has a banner.
+- All credits are in one Credits section, which now also opens from Settings. Every art file's source and licence is in CREDITS.md.
+- The game is now a Windows app: download `ScathingCharter-Setup-<version>.exe` (or the Portable .exe) from Releases. It is fully self-contained (no Node.js, Chrome or internet), opens full screen (F11 or Alt+Enter to switch, Ctrl+Plus/Minus for size), and remembers its window. It isn't signed, so Windows asks once: More info, then Run anyway. PLAY.cmd and the offline ZIP are gone; browser saves move over with Export and Import.
+- Economy fixes from the economy designer (approved by Sinan, A1–A16; the bigger price-depth change waits for a balance run):
+  - The start pays: Ald'ruhn buys sujamma, Vivec buys kwama eggs and Balmora buys healing draughts at better prices, so the first strider hops between them make money. The Tong note on Tong Terms is 4,000 (was 3,000).
+  - Crossing cards come once per journey and more often on short hops (about 1 in 9 on a 1-day strider trip, was 1 in 50).
+  - Customs: the bribe is 12% of the contraband (was 35%); if it fails they keep it and charge the duty too, instead of seizing everything.
+  - Tong collectors keep 60 of the 300 as a fee; asking for time adds 0.05% a day (0.1% before, and far too much in the Long Chronicle).
+  - Pushing through a storm can also cost a share of your other cargo (35% chance); a guide charges 40 or 6% of the cargo's value.
+  - Charter favour takes 0.3% off per point (at most 1.5%). Each charter tier must be held a while before the next: 30 days, then 60.
+  - The Chartered hold costs 8,000 (was 14,000).
+  - Borrowing raises the rate less (0.08% per note borrowed), and the Borrow question says how many days until your debt passes six times the note.
+  - Only a payment of at least 30 days' interest keeps the collectors away.
+  - Final values (round 2): charter tiers cost 15,000, 40,000 and 80,000; customs duty is 40% and Chameleon works 85% of the time at a gate; Tong collectors catch a runner 35% of the time; luxuries, magic goods and medicine sell in bigger amounts before the price drops; ruined towns and camps pay less of a premium; price spikes are smaller.
+  - Black-market sales are riskier: informers sting more often and the fine is 60% of the sale.
+  - Seizures after declaring (or a failed bribe) can now be contested at a hearing; animals no longer take bribes or carry coin.
+- More ways into the magistrate's card hearing, always your choice: any seizure (declaring without the duty, a failed bribe, being caught running) and any black-market informer's fine can be contested for 30 days, in the town where it happened or at the courts of Vivec, Ebonheart, Narsis and Mournhold. Win and you get it all back; lose and you pay the fine again, or court costs.
+- The card duel can be played on its own from the title screen (Card duel (practice)).
+- Caught running from customs: only the contraband is seized, with no fine. Running is a little likelier to work.
+- The Tong's collectors can find you while you rest 3 or 7 days with the note overdue.
+- Your goal is always in the top bar; it opens the Bank tab, where the steps are.
+- Selling at a loss, borrowing and retiring ask in the game's own dialog (Escape cancels, Enter confirms).
+- Borrow is greyed out once Drelloth stops lending (five times the note), with the reason.
+- The Bitter Coast cove deal is smaller (2 to 6 units at 70% of fair value); helping refugees at cost earns a slightly bigger Charter discount.
+- Lore: no stalhrim at Ebonheart in 4E 4; Ashlanders only on the Balmora to Ald'ruhn strider route; smugglers' coves only on sea routes; no relief council before the Red Year.
+- Faster in the browser: the falling ash draws at 30 frames a second and at most 1600 pixels across.
+- Saves from 0.9.x load and carry on (save format v7).
+
+## 0.9.6 (beta): fixes from a playtest
+- Crater salvage in Vivec, ruin clearing in Ebonheart and the rubble crew at Fort Frostmoth only appear after the eruption.
+- Borrowing from the Tong has its own amount box and asks before lending.
+- Selling at a loss asks first.
+- The market shows the cheapest trip now and with a full hold, since fares grow with cargo.
+- Encounter and hearing pop-ups are named for screen readers.
+
 ## 0.9.5 (beta)
 - No more weight limits on travel: Guild Guides take any load, so a full pack never strands you.
 - Running out of money no longer ends a run: every place has three day-labour jobs at the tavern (1, 3 or 7 days). A day's wage pays for about two trips to the nearest town, more in towns the Red Year hit; heavier jobs cost health.

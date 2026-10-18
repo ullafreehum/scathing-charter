@@ -58,7 +58,7 @@ export interface Location extends Sourced {
 }
 
 /** A day-labour job in one place (data/jobs.ts). `mult` scales the local wage; `hurt` is health lost per day. */
-export interface Job extends Sourced { id: string; name: string; text: string; mult: number; hurt: number }
+export interface Job extends Sourced { id: string; name: string; text: string; mult: number; hurt: number; /** only after this history event has happened */ after?: string }
 
 export interface RouteMode { mode: TravelMode; days: number; fare: number; risk: number }
 export interface Route { id: string; a: string; b: string; modes: readonly RouteMode[]; closed?: boolean; note?: string }
@@ -91,12 +91,16 @@ export type EncounterKind = 'hostile' | 'enforcer' | 'customs' | 'mercy' | 'haza
 export interface EncounterDef extends Sourced {
   id: string; kind: EncounterKind; title: string; text: string;
   regions: readonly Region[] | 'any'; modes?: readonly TravelMode[];
+  /** only on these routes (ids like `balmora~aldruhn`) */
+  routes?: readonly string[];
   from?: number; to?: number; flag?: string;
   weight: number; threat: number; faction?: FactionId;
   /** fraction of cargo lost on a bad outcome */
   loss: number; delay?: number;
   /** goods offered/involved for opportunity/mercy encounters */
   goods?: readonly string[];
+  /** an animal or monster: no bribe, no coin to loot */
+  creature?: boolean;
 }
 
 export type RumorKind = 'lore' | 'foreshadow' | 'dispute' | 'tip';
@@ -118,7 +122,7 @@ export interface Contract {
 }
 
 export interface CodexEntry extends Sourced {
-  id: string; category: 'place' | 'good' | 'faction' | 'person' | 'event' | 'calendar' | 'travel' | 'dispute' | 'book' | 'invented';
+  id: string; category: 'place' | 'good' | 'faction' | 'person' | 'event' | 'calendar' | 'travel' | 'dispute' | 'book' | 'lore' | 'invented';
   title: string; body: string; related?: readonly string[];
   claims?: readonly { voice: string; text: string; source: string }[];
   defaultReading?: string;
@@ -154,6 +158,17 @@ export interface Lot { qty: number; cost: number }
 export interface MarketCell { drift: number; shock: number; sat: number; stock: boolean }
 export interface PriceMod { goods: readonly string[] | 'all'; locs: readonly string[]; mult: number; start: number; end: number }
 export interface Frozen { amount: number; ratio: number; settleDay: number; settleAt: string; house: House }
+
+/** One choice on a crossing card, with its stakes spelled out before the player picks (see cardOptions). */
+export interface CardOption {
+  id: string; label: string;
+  /** what this choice costs or risks, in septims and percentages */
+  stake: string;
+  /** chance it works out, exactly as resolve() rolls it; absent when nothing is rolled */
+  odds?: number;
+  /** why it cannot be picked right now */
+  disabled?: string;
+}
 
 export interface PendingEncounter {
   defId: string; kind: EncounterKind; title: string; text: string;
@@ -191,6 +206,10 @@ export interface CharterState {
   /** day by which the new council's renewal fee must be paid, or null */
   renewDue: number | null; renewed: boolean;
   nextDividend: number | null; dividends: number;
+  /** day the highest tier was bought; the next tier needs it held C.charter.holdDays (absent in older saves: held long enough) */
+  boughtDay?: number;
+  /** goodwill with the council from relief given at cost on the road; each point takes 0.3% off the next tier (max 1.5%) */
+  favour?: number;
 }
 
 export interface NoteState { original: number; balance: number; rate: number; lastPaymentDay: number; seat: string; agents: string[]; extended: number; cleared: boolean }
@@ -236,33 +255,32 @@ export interface GameState {
   achievements: string[];
   stats: Stats;
   actions: Action[];
-  over: null | { reason: 'calendar' | 'death' | 'ruin' | 'retired'; day: number };
+  over: null | { reason: 'calendar' | 'death' | 'ruin' | 'retired' | 'won' | 'marked'; day: number };
   /** what the player chose at the end of the calendar (or when retiring); endless play continues after some */
   ending?: { kind: Ending; day: number; worth: number };
   /** milestones that open early retirement: 'debt', 'charter', 'mercy' */
   milestones?: string[];
-  /** Tong indenture: interest stops, collectors stand down, 30% of every sale goes to the note until it is paid */
-  indentured?: boolean;
+  /** Highest debt warning already sent (4 or 5 times the note) */
+  markWarned?: number;
   /** goods seized by customs that can still be contested before the magistrate in this town */
-  appeal?: { loc: string; goods: Record<string, Lot>; fine: number } | null;
+  /** Something taken that can be contested at a hearing: in the town it happened, or at any court town, until `until`. */
+  appeal?: { loc: string; goods: Record<string, Lot>; fine: number; until?: number } | null;
   duel?: DuelState | null;
 }
 
-export type Ending = 'retire' | 'tong' | 'charter' | 'trade';
+export type Ending = 'win' | 'mark' | 'retire';
 
 export type Action =
   | { t: 'buy'; good: string; qty: number }
   | { t: 'sell'; good: string; qty: number }
   | { t: 'travel'; route: string; mode: number }
   | { t: 'wait'; days: number }
-  | { t: 'crossroads'; choice: Ending }
   | { t: 'retire' }
   | { t: 'appeal' }
   | { t: 'duel'; card: number; discard?: boolean }
   | { t: 'labour'; job: string; days: number }
-  | { t: 'deposit'; house: House; amount: number }
-  | { t: 'withdraw'; house: House; amount: number }
-  | { t: 'writ'; house: House; from: string; amount: number }
+  | { t: 'deposit'; amount: number }
+  | { t: 'withdraw'; amount: number }
   | { t: 'pay'; amount: number }
   | { t: 'borrow'; amount: number }
   | { t: 'rumor' }
@@ -272,7 +290,6 @@ export type Action =
   | { t: 'hire'; who: 'porter' | 'sellsword'; delta: 1 | -1 }
   | { t: 'licence' }
   | { t: 'heal' }
-  | { t: 'book'; id: string }
   | { t: 'choose'; choice: string }
   | { t: 'ack'; n?: number }
   | { t: 'charter' }

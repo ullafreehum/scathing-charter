@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProp
 import { createPortal } from 'react-dom';
 import { animate, motion } from 'framer-motion';
 import { C } from '../data';
-import { branchKey, routeOptions, MODE_LABEL, type GameState, type RouteOption, type TravelMode } from '../engine';
+import { routeOptions, MODE_LABEL, type GameState, type RouteOption, type TravelMode } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section, StatusPill } from './widgets';
 import { themeById } from './themes';
@@ -16,7 +16,12 @@ const DASH: Record<TravelMode, string | undefined> = { strider: '2 4', boat: '6 
 const ROUTE_DARK: Record<TravelMode, string> = { strider: '#f0b06a', boat: '#8cc0da', 'inner-sea': '#8cc0da', 'sea-of-ghosts': '#c4e0ee', coastal: '#7fb2cc', caravan: '#c99e6c', road: '#dccaa2', barge: '#97bbb2', guide: '#c4aae6' };
 const ROUTE_LIGHT: Record<TravelMode, string> = { strider: '#94520f', boat: '#23628a', 'inner-sea': '#23628a', 'sea-of-ghosts': '#36678a', coastal: '#2a6684', caravan: '#7a5430', road: '#5f4f33', barge: '#335f56', guide: '#5e3e94' };
 const modeStyle = (m: TravelMode, light: boolean): Stroke => ({ stroke: (light ? ROUTE_LIGHT : ROUTE_DARK)[m], dash: DASH[m] });
-const STATUS_FILL: Record<string, string> = { thriving: 'var(--c-good)', uneasy: 'var(--c-gold)', ruined: 'var(--c-accent)', rebuilding: 'var(--c-gold)', besieged: 'var(--c-bad)', sacked: 'var(--c-bad)', occupied: 'var(--c-dispute)', 'refugee-swollen': 'var(--c-info)', closed: 'var(--c-line)' };
+const STATUS_FILL: Record<string, string> = { thriving: 'var(--c-good)', uneasy: 'var(--c-gold)', ruined: 'var(--c-accent)', rebuilding: 'var(--c-gold)', besieged: 'var(--c-bad)', sacked: 'var(--c-bad)', occupied: 'var(--c-dispute)', 'refugee-swollen': 'var(--c-info)', camp: 'var(--c-muted)', closed: 'var(--c-line)' };
+/** Towns the eruption left ash-grey (drawn with a cracked ring). */
+const ASHEN = new Set(['ruined', 'camp']);
+const ERUPTION = C.history.find(h => h.id === 'red-year-eruption');
+/** Refugee columns walk these roads for a year after the eruption. */
+const REFUGEE_GOALS = ['narsis', 'mournhold'];
 
 // Labels sit to the right of the dot unless that would collide with a neighbour.
 const LEFT = new Set(['ebonheart', 'fort-frostmoth', 'blacklight', 'cheydinhal', 'stormhold']);
@@ -85,6 +90,11 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
     .sort((a, b) => a.options[0].days - b.options[0].days || C.locs[a.id].name.localeCompare(C.locs[b.id].name));
   const reach = new Set(byDest.keys());
   const erupted = !!g.world.flags.erupted; const war = (g.world.flags.war ?? 0) > 0;
+  // The Red Year on the map: ash haze thickening toward the eruption, a glow once the omens start.
+  const eDay = ERUPTION?.day ?? 0;
+  const haze = erupted ? 0 : Math.max(0, Math.min(0.45, 0.06 + 0.39 * g.day / Math.max(1, eDay)));
+  const omens = !erupted && !!ERUPTION?.foreshadow && g.day >= eDay - ERUPTION.foreshadow.lead * g.timeScale;
+  const refugees = erupted && g.day < eDay + 365 ? C.routeList.filter(r => REFUGEE_GOALS.includes(r.a) !== REFUGEE_GOALS.includes(r.b) && !(g.world.routes[r.id]?.closed ?? r.closed)) : [];
   const travel = (o: RouteOption) => act({ t: 'travel', route: o.route.id, mode: o.modeIndex });
 
   // ---- size of the map box and the camera
@@ -183,7 +193,7 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
     const L = C.locs[id]; const out: typeof MARKERS = [];
     if (markers.has('contracts') && g.contracts.some(k => k.destination === id)) out.push(MARKERS[0]);
     if (markers.has('debt') && !g.note.cleared && (g.note.seat === id || g.note.agents.includes(id))) out.push(MARKERS[1]);
-    if (markers.has('banks') && (['hlaalu', 'eec'] as const).some(h => g.world.branches[branchKey(h, id)] === 'open')) out.push(MARKERS[2]);
+    if (markers.has('banks') && g.world.branches[id] === 'open') out.push(MARKERS[2]);
     if (markers.has('heal') && (L.temple || L.shrine) && g.world.status[id] !== 'closed') out.push(MARKERS[3]);
     return out;
   };
@@ -222,7 +232,7 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
           </> : <div className="text-xs text-danger">No way through right now. <button className="linkish" onClick={() => setPlan(null)}>Cancel plan</button></div>}
         </div>
       )}
-      <div className="max-h-[560px] overflow-auto scroll-thin pr-1">
+      <div className="max-h-[35rem] overflow-auto scroll-thin pr-1">
         {dests.map((d, i) => {
           const best = d.options[0];
           const warn = travelWarnings(g, d.id, best.days).length;
@@ -257,7 +267,7 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
             <button className="btn btn-ghost px-2 py-0.5" aria-label="Zoom in" onClick={() => zoomAt(1 / 1.35)}>+</button>
           </div>
         </div>
-        <div ref={box} className="relative w-full h-[min(66vh,680px)] min-h-[340px] overflow-hidden rounded-md touch-none select-none cursor-grab active:cursor-grabbing"
+        <div ref={box} className="relative w-full h-[max(20rem,calc(100dvh-22rem))] overflow-hidden rounded-md touch-none select-none cursor-grab active:cursor-grabbing"
           onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}>
           <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} className="absolute inset-0 w-full h-full" role="img" aria-label="Map of eastern Tamriel">
             <defs>
@@ -294,7 +304,18 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
               <text x="240" y="60">Sea of Ghosts</text><text x="548" y="347">Inner Sea</text><text x="362" y="712">Topal Bay</text><text x="830" y="420">Padomaic Ocean</text><text x="524" y="178" style={{ fill: 'var(--c-map-label)' }}>Vvardenfell</text><text x="562" y="30" style={{ fill: 'var(--c-map-label)' }}>Solstheim</text>
             </g>
             {erupted && <circle cx={RED_MOUNTAIN.x} cy={RED_MOUNTAIN.y} r="140" fill="url(#plume)"><animate attributeName="r" values="130;150;130" dur="6s" repeatCount="indefinite" /></circle>}
+            {haze > 0 && <path d={VVARDENFELL} style={{ fill: 'var(--c-muted)' }} fillOpacity={haze} className="pointer-events-none" />}
+            {omens && <circle cx={RED_MOUNTAIN.x} cy={RED_MOUNTAIN.y} r="34" fill="url(#plume)" className="pointer-events-none" />}
             {war && <ellipse cx="610" cy="470" rx="150" ry="70" fill="url(#hatch)" />}
+            {C.locList.filter(L => g.world.status[L.id] === 'besieged' || g.world.status[L.id] === 'occupied').map(L => <circle key={`front-${L.id}`} cx={L.x} cy={L.y} r={34} fill="url(#hatch)" className="pointer-events-none" />)}
+            {C.routeList.filter(r => g.world.routes[r.id]?.closed && !r.closed).map(r => {
+              // Lines the Red Year closed: dotted red with a cross, until they reopen.
+              const A = C.locs[r.a], B = C.locs[r.b]; const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2; const k = 5 * u;
+              return <g key={`shut-${r.id}`} style={{ stroke: 'var(--c-bad)' }} strokeWidth={1.6 * u} strokeOpacity={0.75} className="pointer-events-none">
+                <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} strokeDasharray={`${2 * u} ${5 * u}`} strokeLinecap="round" />
+                <path d={`M${mx - k},${my - k} L${mx + k},${my + k} M${mx + k},${my - k} L${mx - k},${my + k}`} strokeWidth={2.2 * u} />
+              </g>;
+            })}
             {C.routeList.map(r => {
               const ov = g.world.routes[r.id] ?? {};
               if ((ov.closed ?? r.closed) || g.world.status[r.a] === 'closed' || g.world.status[r.b] === 'closed') return null;
@@ -302,6 +323,10 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
               const mine = r.a === here || r.b === here;
               const w = hot.has(r.id) ? 4.2 : mine ? 2.6 : 1.3;
               return <line key={r.id} x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={st.stroke} strokeDasharray={st.dash?.split(' ').map(n => Number(n) * u).join(' ')} strokeWidth={w * u} strokeOpacity={mine ? 1 : 0.38} strokeLinecap="round" />;
+            })}
+            {refugees.map(r => {
+              const goal = REFUGEE_GOALS.includes(r.b) ? r.b : r.a; const A = C.locs[goal === r.b ? r.a : r.b], B = C.locs[goal];
+              return [0, 1, 2].map(j => <circle key={`ref-${r.id}-${j}`} cx={A.x + (B.x - A.x) * (j + 1) / 4} cy={A.y + (B.y - A.y) * (j + 1) / 4} r={2.2 * u} style={{ fill: 'var(--c-info)' }} className="pointer-events-none" />);
             })}
             {planned && <polyline points={pathLine(planned)} fill="none" style={{ stroke: 'var(--c-accent)' }} strokeWidth={4 * u} strokeOpacity={0.9} strokeDasharray={`${9 * u} ${6 * u}`} strokeLinecap="round" />}
             {preview && preview !== planned && <polyline points={pathLine(preview)} fill="none" style={{ stroke: 'var(--c-text)' }} strokeWidth={3 * u} strokeOpacity={0.75} strokeDasharray={`${6 * u} ${6 * u}`} strokeLinecap="round" />}
@@ -324,6 +349,9 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
                   {focus && !isHere && <circle r={r + 5 * u} fill="none" style={{ stroke: 'var(--c-text)' }} strokeWidth={2 * u} />}
                   <circle r={closed ? 4.5 * u : r} style={{ fill: STATUS_FILL[st], stroke: can ? 'var(--c-accent)' : 'var(--c-map-halo)' }} strokeWidth={(can ? 2.4 : 1.2) * u} />
                   {closed && <text x={-4 * u} y={4 * u} fontSize={10 * u} style={{ fill: 'var(--c-muted)' }}>✕</text>}
+                  {ASHEN.has(st) && <circle r={r + 3 * u} fill="none" style={{ stroke: 'var(--c-muted)' }} strokeWidth={1.5 * u} strokeDasharray={`${5 * u} ${2 * u} ${2 * u} ${3 * u}`} aria-hidden="true" />}
+                  {st === 'camp' && <path d={`M${-5 * u},${r + 9 * u} L0,${r + 2 * u} L${5 * u},${r + 9 * u} Z`} style={{ fill: 'var(--c-muted)', stroke: 'var(--c-map-halo)' }} strokeWidth={0.8 * u} aria-hidden="true" />}
+                  {st === 'occupied' && <path d={`M${r * 0.6},${-r * 0.6} l0,${-12 * u} l${8 * u},${3 * u} l${-8 * u},${3 * u}`} style={{ fill: 'var(--c-text)', stroke: 'var(--c-text)' }} strokeWidth={1.2 * u} aria-hidden="true" />}
                   <text x={(left ? -1 : 1) * (r + 6 * u)} y={5 * u} textAnchor={left ? 'end' : 'start'} fontSize={(isHere || can ? 15.5 : 13.5) * u} fontWeight={isHere ? 700 : 400}
                     style={{ fill: closed ? 'var(--c-muted)' : 'var(--c-map-label)', stroke: 'var(--c-map-halo)' }} strokeWidth={3.5 * u} paintOrder="stroke" className="h-display">{L.name}</text>
                   {bs.map((b, i) => (

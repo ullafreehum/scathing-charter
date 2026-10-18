@@ -4,11 +4,15 @@ import { C } from '../data';
 import type { CodexEntry } from '../engine';
 import { useGame } from '../store/game';
 import { Badge, Sources } from './widgets';
+import redMountain from '../assets/places/red-mountain.jpg';
+
+/** Pictures shown as a 2:1 banner at the top of a codex entry. */
+const BANNER: Record<string, string> = { 'topic:red-mountain': redMountain };
 
 const CATS: { id: CodexEntry['category']; label: string }[] = [
   { id: 'place', label: 'Places' }, { id: 'good', label: 'Goods' }, { id: 'faction', label: 'Factions' }, { id: 'person', label: 'People' },
   { id: 'event', label: 'Events' }, { id: 'calendar', label: 'Calendar & holidays' }, { id: 'travel', label: 'Travel, magic & perils' },
-  { id: 'dispute', label: 'Historians disagree' }, { id: 'book', label: 'Books' }, { id: 'invented', label: 'Invented for this game' },
+  { id: 'dispute', label: 'Historians disagree' }, { id: 'book', label: 'Books' }, { id: 'lore', label: 'Tavern tales' }, { id: 'invented', label: 'Invented for this game' },
 ];
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -36,7 +40,7 @@ export function Codex() {
     <motion.div className="fixed inset-0 z-50 scrim flex items-center justify-center p-2 sm:p-6" onClick={closeCodex}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }}>
       <motion.div role="dialog" aria-label="Codex" onClick={e => e.stopPropagation()}
-        className="panel-solid w-full max-w-6xl h-[88vh] grid grid-cols-1 md:grid-cols-[220px_260px_1fr] overflow-hidden"
+        className="panel-solid w-full max-w-6xl h-[88dvh] grid grid-cols-1 md:grid-cols-[13.75rem_16.25rem_1fr] overflow-hidden"
         initial={{ opacity: 0, y: 18, scale: 0.975 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.98 }} transition={{ duration: 0.26, ease: EASE }}>
         <nav className="border-r border-ash-700 p-3 overflow-auto scroll-thin">
           <div className="h-display text-ember mb-2">Codex</div>
@@ -54,6 +58,7 @@ export function Codex() {
             <motion.div key={entry?.id ?? 'none'} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16, ease: EASE }}>
               {entry ? (
                 <>
+                  {BANNER[entry.id] && <img src={BANNER[entry.id]} alt="" className="w-full aspect-[2/1] object-cover rounded mb-3" />}
                   <h2 className="h-display text-2xl text-bone">{entry.title}</h2>
                   <div className="my-2"><Badge canon={entry.canon} /></div>
                   {entry.body.split('\n\n').map((p, i) => <p key={i} className="mb-3 text-[1.02rem] text-parchment">{p}</p>)}

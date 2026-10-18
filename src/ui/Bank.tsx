@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { C } from '../data';
-import { DEPOSIT_RATE, branchKey, houseName, pressure, shortDate, type GameState, type House } from '../engine';
+import { LEND_RATIO, MARK_RATIO, borrowRate, charterPrice, charterReadyDay, daysUntil, depositRate, WITHDRAW_FEE, houseName, pressure, shortDate, strongboxCities, type GameState } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
@@ -20,7 +20,8 @@ function CharterSection({ g }: { g: GameState }) {
   const carried = Object.entries(g.player.cargo);
   if (!g.world.flags.relief && ch.tier === 0) return null;
   const fee = Math.round(ch.paid * C.charter.renewalFee);
-  const why = !g.note.cleared ? 'Pay off the Camonna Tong first.' : !atOffice ? `Sold in ${offices}.` : next && g.player.cash < next.price ? `You need ${Math.ceil(next.price - g.player.cash).toLocaleString('en-US')} more.` : '';
+  const ready = charterReadyDay(g);
+  const why = next?.tier === 3 && !g.note.cleared ? 'Pay off the Camonna Tong first.' : g.day < ready ? `The council sells the next tier from ${shortDate(ready)}, once you have held this one a while.` : !atOffice ? `Sold in ${offices}.` : next && g.player.cash < charterPrice(g, next.tier) ? `You need ${Math.ceil(charterPrice(g, next.tier) - g.player.cash).toLocaleString('en-US')} more.` : '';
   return (
     <Section title="The Scathing Charter" className="xl:col-span-2">
       <p className="text-sm text-parchment">Rights to supply and rebuild the ruined Vivec region, sold by the Grand Council in {offices}. <CodexLink id="topic:scathing-charter">More</CodexLink></p>
@@ -28,7 +29,7 @@ function CharterSection({ g }: { g: GameState }) {
         {C.charter.tiers.map(t => { const owned = ch.tier >= t.tier; return (
           <li key={t.tier} className="text-sm flex items-start gap-2">
             <span className={`num w-4 ${owned ? 'text-moss' : 'text-ash-400'}`} aria-hidden="true">{owned ? '✓' : t.tier}</span>
-            <div className="flex-1"><span className={owned ? 'text-moss' : 'text-bone'}>{t.name}</span> <span className="text-ash-400">· <Money v={t.price} />{owned ? ' · yours' : ''}</span><div className="text-xs text-ash-400">{t.text}</div></div>
+            <div className="flex-1"><span className={owned ? 'text-moss' : 'text-bone'}>{t.name}</span> <span className="text-ash-400">· <Money v={owned ? t.price : charterPrice(g, t.tier)} />{owned ? ' · yours' : ''}</span><div className="text-xs text-ash-400">{t.text}</div></div>
           </li>
         ); })}
       </ol>
@@ -40,7 +41,7 @@ function CharterSection({ g }: { g: GameState }) {
       )}
       {next ? (
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-          <button className="btn btn-ember" disabled={!!why || ch.renewDue !== null || !g.world.flags.relief} onClick={() => act({ t: 'charter' })}>Buy {next.name} (<Money v={next.price} />)</button>
+          <button className="btn btn-ember" disabled={!!why || ch.renewDue !== null || !g.world.flags.relief} onClick={() => act({ t: 'charter' })}>Buy {next.name} (<Money v={charterPrice(g, next.tier)} />)</button>
           {why && <span className="text-xs text-ash-400">{why}</span>}
         </div>
       ) : <p className="mt-3 text-sm text-moss">You hold the full charter. Dividends so far: <Money v={ch.dividends} />{ch.nextDividend !== null && <>; next on {shortDate(ch.nextDividend)}</>}.</p>}
@@ -69,69 +70,94 @@ function CharterSection({ g }: { g: GameState }) {
   );
 }
 
+/** The spine of the game: clear the Tong debt, then buy the Scathing Charter before the end date. */
+function GoalTrack({ g }: { g: GameState }) {
+  const tier = g.charter.tier; const top = C.charter.tiers[2];
+  const steps = [
+    { done: g.note.cleared, text: 'Pay off the Camonna Tong' },
+    { done: tier >= 2, text: `Climb the Charter: ${C.charter.tiers[0].name}, then ${C.charter.tiers[1].name} (optional)` },
+    { done: tier >= 3, text: <>Buy {top.name} (<Money v={charterPrice(g, 3)} />) before {shortDate(g.endDay)}</> },
+  ];
+  return (
+    <Section title="Your goal" className="xl:col-span-2">
+      <ol className="flex flex-wrap gap-x-6 gap-y-1 text-sm">{steps.map((st, i) => (
+        <li key={i} className="flex items-center gap-2"><span className={`num w-4 ${st.done ? 'text-moss' : 'text-ash-400'}`} aria-hidden="true">{st.done ? '✓' : i + 1}</span><span className={st.done ? 'text-moss' : 'text-bone'}>{st.text}</span></li>
+      ))}</ol>
+      <p className="text-xs text-ash-400 mt-1">Win by holding the Scathing Charter with no Tong debt. Otherwise, at the end you retire and are ranked by net worth.</p>
+    </Section>
+  );
+}
+
 export function Bank({ g }: { g: GameState }) {
   const act = useGame(s => s.act);
   const [pay, setPay] = useState(100);
-  const [amt, setAmt] = useState<Record<string, number>>({ hlaalu: 100, eec: 100 });
+  const [loan, setLoan] = useState(500);
+  const borrow = () => {
+    if (loan <= 0) return;
+    // What the loan does to the clock: days until the debt passes the Tong's mark if nothing is paid.
+    const n = g.note, rate = borrowRate(g, loan), bal = (n.cleared ? 0 : n.balance) + loan;
+    const days = daysUntil(bal, rate, n.original * MARK_RATIO, g.timeScale);
+    const clock = days === null ? '' : ` At ${(rate * 100).toFixed(2)}% a day, your debt passes ${MARK_RATIO} times the note in ${days} days if you pay nothing.`;
+    void useGame.getState().confirm({ title: `Borrow ${loan} septims?`, text: `Every loan raises your interest rate.${clock}`, yes: 'Borrow' }).then(ok => { if (ok) act({ t: 'borrow', amount: loan }); });
+  };
+  const [box, setBox] = useState(100);
   const loc = g.player.location;
+  const boxHere = g.world.branches[loc] === 'open';
+  const held = Math.floor(g.deposits[loc] ?? 0);
   const n = g.note;
   const atTong = loc === n.seat || n.agents.includes(loc);
+  const lendRoom = Math.floor(n.original * LEND_RATIO - (n.cleared ? 0 : n.balance));
   const pr = pressure(g);
   const places = [n.seat, ...n.agents].map(a => C.locs[a].name).join(' or ');
   const payAll = Math.min(g.player.cash, Math.ceil(n.balance));
   return (
     <div className="grid xl:grid-cols-2 gap-3">
+      <GoalTrack g={g} />
       <Section title="Your debt (Camonna Tong)">
         {n.cleared ? <><p className="text-moss">Paid off. You owe the Camonna Tong nothing.</p>
-          {atTong && <div className="flex flex-wrap gap-2 mt-3 items-center"><input className="input w-28 num" type="number" min={1} value={pay} onChange={e => setPay(toInt(e.target.value))} aria-label="Loan amount" /><button className="btn btn-ghost" onClick={() => act({ t: 'borrow', amount: pay })}>Borrow again</button></div>}</> : (
+          {atTong && <div className="flex flex-wrap gap-2 mt-3 items-center"><input className="input w-28 num" type="number" min={1} value={loan} onChange={e => setLoan(toInt(e.target.value))} aria-label="Loan amount" /><button className="btn btn-ghost" onClick={borrow}>Borrow again</button></div>}</> : (
           <>
-            <p className="text-sm text-parchment">You owe <b>Gavas Drelloth</b> <Money v={n.balance} className="text-ember" />. Interest is {(n.rate * 100).toFixed(2)}% a day: about <Money v={n.balance * n.rate} /> a day right now. Last payment: {shortDate(n.lastPaymentDay)}.</p>
+            <p className="text-sm text-parchment">You owe <b>Gavas Drelloth</b> <Money v={n.balance} className="text-ember" />. Interest is {(n.rate * 100).toFixed(2)}% a day: about <Money v={n.balance * n.rate} /> a day right now.</p>
+            <p className="text-sm mt-1">Only a payment of at least 30 days’ interest (<Money v={Math.ceil(n.balance * n.rate * 30 * g.timeScale)} />) keeps the collectors away. Last one: {shortDate(n.lastPaymentDay)}.</p>
             <p className="text-sm mt-1">{pr === 0 ? 'The Tong is patient, for now.' : pr === 1 ? 'Drelloth is getting impatient. Pay something soon.' : pr === 2 ? 'Debt collectors are looking for you on the roads.' : 'The Tong has sent killers after you. Pay now.'}</p>
-            {atTong ? (
+            {atTong ? (<>
               <div className="flex flex-wrap gap-2 mt-3 items-center">
                 <input className="input w-28 num" type="number" min={1} value={pay} onChange={e => setPay(toInt(e.target.value))} aria-label="Payment amount" />
                 <button className="btn btn-ember" onClick={() => { if (act({ t: 'pay', amount: pay })) coinBurst('cash', 'debt', coinsFor(pay)); }}>Pay</button>
                 <button className="btn" disabled={payAll < 1} onClick={() => { if (act({ t: 'pay', amount: payAll })) coinBurst('cash', 'debt', coinsFor(payAll)); }}>Pay all you can (<Money v={payAll} />)</button>
-                <button className="btn btn-ghost" onClick={() => act({ t: 'borrow', amount: pay })} title="Borrow the amount in the box. Every loan raises your interest rate, and a bigger debt sends harder collectors.">Borrow</button>
               </div>
-            ) : <p className="text-sm text-ash-400 mt-2">You can’t pay here. Pay in {places}.</p>}
+              <div className="flex flex-wrap gap-2 mt-2 items-center">
+                <input className="input w-28 num" type="number" min={1} value={loan} onChange={e => setLoan(toInt(e.target.value))} aria-label="Loan amount" />
+                <button className="btn btn-ghost" onClick={borrow} disabled={lendRoom < 1} title={lendRoom < 1 ? 'Drelloth will not lend you more: he stops at five times the note. Pay something first.' : `Borrow the amount in this box (at most ${lendRoom} more). Every loan raises your interest rate, and a bigger debt sends harder collectors.`}>Borrow</button>
+                {lendRoom < 1 && <span className="text-xs text-ash-400">Drelloth lends up to five times the note. Pay something first.</span>}
+              </div>
+            </>) : <p className="text-sm text-ash-400 mt-2">You can’t pay here. Pay in {places}.</p>}
           </>
         )}
-        {g.indentured && <p className="text-sm text-danger mt-2">You are indentured: no interest and no collectors, but the Tong takes 30% of every sale until the note is paid.</p>}
-        {!!g.milestones?.length && !g.indentured && <div className="mt-3 text-sm"><button className="btn btn-ember" onClick={() => { if (confirm('Retire now? The game ends here with your fortune as it stands.')) act({ t: 'retire' }); }}>Retire</button> <span className="text-ash-400 text-xs">End the game now and read your epilogue.</span></div>}
+        {!n.cleared && <p className="text-xs text-ash-400 mt-2">If the debt passes {MARK_RATIO} times the note (<Money v={n.original * MARK_RATIO} />), the Tong puts its mark on you and the game ends.</p>}
+        {!!g.milestones?.length && <div className="mt-3 text-sm"><button className="btn btn-ember" onClick={() => { void useGame.getState().confirm({ title: 'Retire now?', text: 'The game ends here, with your fortune as it stands.', yes: 'Retire' }).then(ok => { if (ok) act({ t: 'retire' }); }); }}>Retire</button> <span className="text-ash-400 text-xs">End the game now and read your epilogue.</span></div>}
         <p className="text-xs text-ash-400 mt-3"><CodexLink id="faction:tong">About the Camonna Tong</CodexLink></p>
       </Section>
-      {(['hlaalu', 'eec'] as House[]).map(h => {
-        const name = houseName(h);
-        const key = branchKey(h, loc);
-        const here = g.world.branches[key] === 'open';
-        const held = Math.floor(g.deposits[key] ?? 0);
-        const a = amt[h] ?? 100;
-        return (
-          <Section key={h} title={name}>
-            <ul className="text-sm space-y-1">{C.branches[h].map(b => {
-              const k = branchKey(h, b); const open = g.world.branches[k] === 'open'; const amtB = Math.floor(g.deposits[k] ?? 0);
-              return <li key={b} className="flex items-center gap-2"><span className={open ? 'text-bone' : 'text-ash-400 line-through'}>{C.locs[b].name}</span>{b === loc && <span className="text-xs text-gold">(here)</span>}<span className="ml-auto"><Money v={amtB} /></span>
-                {here && open && b !== loc && amtB > 0 && <button className="btn btn-ghost" onClick={() => act({ t: 'writ', house: h, from: b, amount: amtB })} title={`Move all of it to the branch here (${h === 'hlaalu' ? 3 : 4}% fee)`}>Transfer here</button>}
-              </li>;
-            })}</ul>
-            {here ? (
-              <div className="mt-3">
-                <div className="flex flex-wrap gap-2 items-center">
-                  <input className="input w-28 num" type="number" min={1} value={a} onChange={e => setAmt({ ...amt, [h]: toInt(e.target.value) })} aria-label={`${name} amount`} />
-                  <button className="btn" onClick={e => { const el = e.currentTarget; if (act({ t: 'deposit', house: h, amount: a })) coinBurst('cash', el, coinsFor(a)); }}>Deposit</button>
-                  <button className="btn btn-ghost" disabled={held < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'withdraw', house: h, amount: Math.min(a, held) })) coinBurst(el, 'cash', coinsFor(Math.min(a, held))); }}>Withdraw</button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <button className="btn" disabled={g.player.cash < 1} onClick={e => { const el = e.currentTarget; const v = g.player.cash; if (act({ t: 'deposit', house: h, amount: v })) coinBurst('cash', el, coinsFor(v)); }}>Deposit all cash</button>
-                  <button className="btn btn-ghost" disabled={held < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'withdraw', house: h, amount: held })) coinBurst(el, 'cash', coinsFor(held)); }}>Withdraw all (<Money v={held} />)</button>
-                </div>
-              </div>
-            ) : <p className="text-xs text-ash-400 mt-2">No branch of this bank here. You can only use money at the branch where you deposited it.</p>}
-            <p className="text-xs text-ash-400 mt-2">Pays {(DEPOSIT_RATE[h] * 100).toFixed(2)}% interest a day; money in the bank is safe from robbers. {h === 'hlaalu' ? '1% fee to withdraw. Branches in Vvardenfell and southern Morrowind; they can be frozen in a crisis.' : 'Lower interest but steadier. 2% fee to withdraw. Branches in Imperial ports.'} A <CodexLink id="topic:writ-of-coin">transfer</CodexLink> moves money between branches of the same bank.</p>
-          </Section>
-        );
-      })}
+      <Section title="Strongboxes">
+        <ul className="text-sm space-y-1">{strongboxCities(C.branches).map(b => {
+          const open = g.world.branches[b] === 'open'; const amtB = Math.floor(g.deposits[b] ?? 0);
+          return <li key={b} className="flex items-center gap-2"><span className={open ? 'text-bone' : 'text-ash-400 line-through'}>{C.locs[b].name}</span>{b === loc && <span className="text-xs text-gold">(here)</span>}<span className="ml-auto"><Money v={amtB} /></span></li>;
+        })}</ul>
+        {boxHere ? (
+          <div className="mt-3">
+            <div className="flex flex-wrap gap-2 items-center">
+              <input className="input w-28 num" type="number" min={1} value={box} onChange={e => setBox(toInt(e.target.value))} aria-label="Strongbox amount" />
+              <button className="btn" onClick={e => { const el = e.currentTarget; if (act({ t: 'deposit', amount: box })) coinBurst('cash', el, coinsFor(box)); }}>Deposit</button>
+              <button className="btn btn-ghost" disabled={held < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'withdraw', amount: Math.min(box, held) })) coinBurst(el, 'cash', coinsFor(Math.min(box, held))); }}>Withdraw</button>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <button className="btn" disabled={g.player.cash < 1} onClick={e => { const el = e.currentTarget; const v = g.player.cash; if (act({ t: 'deposit', amount: v })) coinBurst('cash', el, coinsFor(v)); }}>Deposit all cash</button>
+              <button className="btn btn-ghost" disabled={held < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'withdraw', amount: held })) coinBurst(el, 'cash', coinsFor(held)); }}>Withdraw all (<Money v={held} />)</button>
+            </div>
+          </div>
+        ) : <p className="text-xs text-ash-400 mt-2">No strongbox here. Money stays in the city where you left it.</p>}
+        <p className="text-xs text-ash-400 mt-2">{boxHere ? `This strongbox pays ${(depositRate(loc) * 100).toFixed(2)}% a day; rates differ by city. ` : 'Rates differ by city. '}Strongboxes keep your money safe from robbers and charge {Math.round(WITHDRAW_FEE * 100)}% to take it out. A vault can be lost if its city falls.</p>
+      </Section>
       <CharterSection g={g} />
       {g.frozen.length > 0 && (
         <Section title="Frozen accounts">

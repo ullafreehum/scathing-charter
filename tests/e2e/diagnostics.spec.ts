@@ -6,7 +6,9 @@ import { C } from '../../src/data';
 const shot = (page: Page, name: string) => page.screenshot({ path: `tests/e2e/__screenshots__/diag-${name}.png` });
 function act(s: GameState, a: Action): GameState { const r = step(s, a); if (r.error) throw new Error(`${a.t}: ${r.error}`); return r.state; }
 function drain(s: GameState) { while (s.inbox.length) s = act(s, { t: 'ack' }); return s; }
-function until(s: GameState, day: number) { while (s.day < day - 7) s = drain(act(drain(s), { t: 'wait', days: 7 })); while (s.day < day) s = drain(act(drain(s), { t: 'wait', days: 1 })); return s; }
+// Collectors can visit while resting: run from them, so fast-forwarding never stalls on a card.
+const rest = (s: GameState, days: number) => { s = drain(act(drain(s), { t: 'wait', days })); return s.pending ? drain(act(s, { t: 'choose', choice: s.pending.choices.includes('flee') ? 'flee' : s.pending.choices[0] })) : s; };
+function until(s: GameState, day: number) { while (s.day < day - 7) s = rest(s, 7); while (s.day < day) s = rest(s, 1); return s; }
 const base = () => drain(newGame({ seed: 'DIAG', backgroundId: 'hlaalu-bastard', name: 'Diagnostic Dren', difficulty: 'tong' }));
 
 async function boot(page: Page, s: GameState, errors: string[]) {
@@ -24,7 +26,7 @@ test('the Red Year strikes: chronicle card, disaster, ruined Balmora, wiped vaul
   let s = base(); s.player.cash = 5000;
   s = act(s, { t: 'travel', route: 'balmora~vivec', mode: 0 }); s = drain(s);
   if (s.pending) s = drain(act(s, { t: 'choose', choice: s.pending.choices.includes('pass') ? 'pass' : s.pending.choices.includes('wait-out') ? 'wait-out' : 'flee' }));
-  if (s.player.location === 'vivec') s = act(s, { t: 'deposit', house: 'hlaalu', amount: 500 });
+  if (s.player.location === 'vivec') s = act(s, { t: 'deposit', amount: 500 });
   s.player.location = 'balmora';
   s = until(s, D(5, 2, 2));
   await boot(page, s, errors);
@@ -110,17 +112,44 @@ test('codex disputes, save export/import, and phone layout', async ({ page, brow
   expect(errors).toEqual([]);
 });
 
-test('smuggling heat shows in the top bar and the Scathing Charter can be bought', async ({ page }) => {
+test('smuggling heat stays hidden and the Scathing Charter can be bought', async ({ page }) => {
   const errors: string[] = [];
   const s = base(); s.world.flags.relief = 1; s.note.cleared = true; s.note.balance = 0; s.player.cash = 120000; s.player.heat = 65;
   await boot(page, s, errors);
-  await expect(page.getByTitle(/Legion attention/)).toContainText('wanted');
+  await expect(page.getByTitle(/Legion attention/)).toHaveCount(0);
   await page.getByRole('tab', { name: 'Bank' }).click();
   await expect(page.getByRole('heading', { name: 'The Scathing Charter' })).toBeVisible();
   await page.getByRole('button', { name: /^Buy Relief supplier licence/ }).click();
   for (let i = 0; i < 4 && await contBtn(page).count(); i++) { await cont(page).catch(() => {}); await page.waitForTimeout(200); }
   await expect(page.getByText(/yours/).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Buy Warehouse at Narsis/ })).toBeEnabled();
+  // the next tier waits until the first has been held 30 days
+  await expect(page.getByRole('button', { name: /^Buy Warehouse at Narsis/ })).toBeDisabled();
+  await expect(page.getByText(/sells the next tier from/)).toBeVisible();
   await shot(page, '07-charter');
+  expect(errors).toEqual([]);
+});
+
+test('the Red Year shows on the map: haze and omens before the eruption', async ({ page }) => {
+  const errors: string[] = [];
+  let s = base(); s.player.cash = 50000;
+  s = until(s, D(5, 1, 20));
+  await boot(page, s, errors);
+  await page.getByRole('tab', { name: 'Travel' }).click();
+  await expect(page.getByRole('img', { name: 'Map of eastern Tamriel' })).toBeVisible();
+  await shot(page, '10-map-omens');
+  expect(errors).toEqual([]);
+});
+
+test('the Red Year shows on the map: ash, closed lines and refugees after it', async ({ page }) => {
+  const errors: string[] = [];
+  let s = base(); s.player.cash = 50000;
+  s = until(s, D(5, 3, 10));
+  await boot(page, s, errors);
+  for (let i = 0; i < 6 && await contBtn(page).count(); i++) { await cont(page).catch(() => {}); await page.waitForTimeout(150); }
+  await page.getByRole('tab', { name: 'Travel' }).click();
+  await page.getByRole('button', { name: 'Morrowind', exact: true }).click();
+  await expect(page.getByRole('img', { name: 'Map of eastern Tamriel' })).toBeVisible();
+  await page.waitForTimeout(800);
+  await shot(page, '11-map-after-eruption');
   expect(errors).toEqual([]);
 });

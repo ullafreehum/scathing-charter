@@ -1,7 +1,8 @@
 // Save serialisation with schema versioning and ordered migrations. Storage itself lives in src/save/.
-import type { GameState } from './types';
+import type { EncounterKind, GameState, ScrollId } from './types';
+import { choicesFor } from './encounters';
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 7;
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 /** MIGRATIONS[n] upgrades a save from version n to n+1. */
 export const MIGRATIONS: Record<number, Migration> = {
@@ -15,6 +16,32 @@ export const MIGRATIONS: Record<number, Migration> = {
   // 2 → 3: smuggling heat (starts at 0).
   2: raw => ({ ...raw, player: { heat: 0, ...(raw.player as Record<string, unknown>) }, schemaVersion: 3 }),
   // 3 → 4: the Scathing Charter and its warehouse.
+  // 4 → 5 (0.10): one strongbox per city instead of house branches ("hlaalu:balmora" → "balmora"), new endings.
+  4: raw => {
+    const byCity = <T,>(rec: Record<string, T>, merge: (a: T, b: T) => T) => {
+      const out: Record<string, T> = {};
+      for (const [k, v] of Object.entries(rec ?? {})) { const c = k.includes(':') ? k.split(':')[1] : k; out[c] = c in out ? merge(out[c], v) : v; }
+      return out;
+    };
+    const world = raw.world as Record<string, unknown>;
+    const branches = byCity(world.branches as Record<string, 'open' | 'closed'>, (a, b) => (a === 'open' || b === 'open' ? 'open' : 'closed'));
+    // Endings are now win, mark or retire; indenture is gone (a runaway debt now ends the run at 6x).
+    const kind = { charter: 'win', tong: 'mark', trade: 'retire', retire: 'retire' } as Record<string, string>;
+    const ending = raw.ending as { kind: string } | undefined;
+    const rest = { ...raw }; delete rest.indentured;
+    rest.achievements = ((raw.achievements as string[]) ?? []).filter(a => a !== 'bookworm'); // books are found, not bought
+    return { ...rest, ...(ending ? { ending: { ...ending, kind: kind[ending.kind] ?? 'retire' } } : {}), deposits: byCity(raw.deposits as Record<string, number>, (a, b) => a + b), world: { ...world, branches }, schemaVersion: 5 };
+  },
+  // 5 → 6 (0.10): crossing cards print their stakes; a card left open in a save gets the new choice set.
+  5: raw => {
+    const p = raw.pending as { kind: EncounterKind } | null | undefined;
+    if (!p) return { ...raw, schemaVersion: 6 };
+    const scrolls = ((raw.player as Record<string, unknown>).scrolls ?? {}) as Partial<Record<ScrollId, number>>;
+    return { ...raw, pending: { ...p, choices: choicesFor(p.kind, scrolls) }, schemaVersion: 6 };
+  },
+  // 6 → 7 (0.10): a charter tier must be held a while before the next (charter.boughtDay). Older saves have no date,
+  // so the tiers they hold count as held long enough: nothing to change but the version.
+  6: raw => ({ ...raw, schemaVersion: 7 }),
   3: raw => ({ ...raw, charter: raw.charter ?? { tier: 0, paid: 0, renewDue: null, renewed: false, nextDividend: null, dividends: 0 }, warehouse: raw.warehouse ?? {}, schemaVersion: 4 }),
 };
 

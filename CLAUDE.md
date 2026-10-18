@@ -3,10 +3,10 @@
 A lore-dense, Dope Wars–style trading game set in the Elder Scrolls universe at the dawn of the
 Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-commercial fan project.
 
-> Version **0.9.5** (beta): the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
+> Version **0.10.0** (beta): the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
 > bump it there and add a `CHANGELOG.md` entry for each release. To publish: write `docs/releases/v<version>.md`,
-> and push it (or push the tag `v<version>`); `.github/workflows/release.yml` builds the offline ZIP, creates the
-> tag and publishes the release (pre-release while the version is 0.x).
+> and push it (or push the tag `v<version>`); `.github/workflows/release.yml` creates the
+> tag, publishes the release and a Windows runner attaches the Electron Setup and Portable .exe (pre-release while the version is 0.x).
 > Status: **playable** (M1–M7 done). Red Year campaign + Long Chronicle; see README.md to play.
 > Design: `docs/GAME_DESIGN.md` · Lore + sources + dispute register: `docs/LORE_BIBLE.md` · raw notes: `docs/research/`.
 > Renamed from "Ashfall Ledger": internal ids (package name, `ashfall-ledger/` localStorage keys) keep the
@@ -16,12 +16,16 @@ Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-comme
 | What | Command |
 |---|---|
 | Install | `npm install` |
-| Dev server | `npm run dev` (`npm start` also opens the browser; players can double-click `PLAY.cmd` / run `./play.sh`) |
+| Dev server | `npm run dev` (`npm start` also opens the browser) |
+| Desktop app (Electron) | `npm run desktop` (build + open); `npm run package:win` → `release/electron/` Setup + Portable .exe (Windows/CI). `electron/main.cjs` + `preload.cjs`, `electron-builder.yml`. Never change `appId`/`productName`: they fix the save folder. Game-side hooks in `src/ui/desktop.ts` (no-ops in a browser). |
 | Type-check + production build (static, offline, relative paths) | `npm run build` → `dist/` |
 | Preview the build | `npm run preview` |
 | Unit tests (engine, data validation) | `npm test` (watch: `npm run test:watch`) |
 | UI smoke tests + screenshots | `npm run test:e2e` (uses Playwright's Chromium; in the cloud container launch with `executablePath: '/opt/pw-browsers/chromium'` if versions differ — never `playwright install` there) |
 | Lint | `npm run lint` |
+| Checks (see `docs/QA.md`) | `npm run check` before every push (typecheck, lint, unit); `npm run check:release` before saying ready (adds build, browser e2e, desktop e2e) |
+| Desktop e2e | `npm run test:desktop` (Electron via Playwright; headless Linux: `xvfb-run -a`) |
+| 0.10 balance targets | `npm run balance:focus -- 24` (`-- 100 --strict` before a release); bots live in `scripts/bots.ts`. Held: run only when Sinan says so |
 | Balance simulation | `npm run sim` (headless bot runs over many seeds) |
 | Balance diagnostics | `npm run balance -- 24` (6 archetype bots, difficulty sweep, economy scan, design targets); `npm run balance -- blood 40`; `npm run balance -- debt 10 4500,5000:700` (Normal debt[:cash] sweep for careful bots) |
 | Engine diagnostics | `npm run diagnose -- 4` (random-play fuzzing, invariants, replay checks; exits 1 on violations) |
@@ -47,6 +51,7 @@ src/
             hints.ts (next-step strip, travel warnings), prices.ts (reads the price book) and route.ts
             (route planner) are pure helpers over GameState. Decorative motion goes through motion.ts
             (Animations setting + reduced motion); fx.tsx holds coin flights and the night dip.
+            duelBoard.ts = the hearing's Pixi.js board (lazy chunk), playing back DuelState.events from the engine.
   audio/    Procedural Web Audio (no audio files needed).
 tests/e2e/  Playwright specs; screenshots go to tests/e2e/__screenshots__/.
 docs/       GAME_DESIGN.md, LORE_BIBLE.md, research/ (raw researcher notes).

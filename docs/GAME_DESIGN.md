@@ -52,7 +52,7 @@ disputed.
 ### Difficulty: "Terms of the Note"
 | | Fair Terms | **Tong Terms** (default) | Blood Terms |
 |---|---|---|---|
-| Starting cash / debt | 700 / 2,000 | 550 / 3,000 | 250 / 4,500 |
+| Starting cash / debt | 700 / 2,000 | 550 / 4,000 | 250 / 4,500 |
 | Daily interest | 0.2% | 0.3% | 0.6% |
 | Encounter rate | ×0.75 | ×1 | ×1.3 |
 
@@ -65,8 +65,8 @@ At 0.3% a day the note roughly triples in a year and grows ~27× over the campai
 
 At each location the player may, in any order:
 1. **Market**: buy and sell with 2–3 merchants, each with their own leanings, refusals and patter.
-2. **Counting-house / Lender**: deposit, withdraw, buy a *writ of coin* (transfer), pay or extend the note.
-3. **Tavern**: buy a drink to hear rumours, take contracts, hire porters and sellswords.
+2. **Counting-house / Lender**: deposit to or withdraw from the city strongbox, pay or extend the note.
+3. **Tavern**: buy a round for a trade tip, any warning not yet heard, and one lore tale or historians' quarrel that goes quietly into the Codex (Tavern tales / Historians disagree); day labour; hire porters and sellswords.
 4. **Outfitter / Temple**: conveyance upgrades, arms and armour, scrolls, healing.
 5. **Travel**: pick a route and mode on the map. Days pass and encounters may fire on the road.
 
@@ -126,7 +126,7 @@ in Raven Rock until 4E 16.
 |---|---|---|---|
 | Pack guar | 60 | start | — |
 | Guar cart | 140 | 2,400 | Road legs +1 day; strider/ship freight charged per stone |
-| Chartered hold | 320 | 14,000 + 10/day | Sea legs −1 day; carts and guar travel as freight |
+| Chartered hold | 320 | 8,000 + 10/day | Sea legs −1 day; carts and guar travel as freight |
 | Porters (0–4) | +12 each | 100 hire + 4/day | Desert if unpaid for 3 days |
 
 **Fares** = base fare + freight × cargo weight per mode, so heavy cargo is expensive to move by strider.
@@ -144,23 +144,21 @@ in Raven Rock until 4E 16.
   Skyrim and Cyrodiil. There are none in Black Marsh, where the Tong has no reach. Outcomes: pay a "visit
   fee", lose cargo, get hurt, or fight. Clearing the note ends enforcement and earns *Unbowed by the Tong*.
 
-### 4.5 Counting-houses (bank) — invented institutions on a canon idea
-"Banks can offer loans or letters of credit… a *writ of coin*" (canon, LORE_BIBLE §5.2). Deposits are held
-**per branch**:
-
-| House | Branches | Interest | Fees | Historical risk |
-|---|---|---|---|---|
-| **Hlaalu Council Counting-House** | Balmora, Vivec City, Narsis, Mournhold | 0.08%/day | 1% withdrawal; writ 3% | Vivec branch **wiped** 3 SD 4E 5; Balmora branch **frozen**, settled at "ten drakes on the hundred" months later; fees spike after Hlaalu loses its seat; Mournhold branch lost when Mournhold is sacked |
-| **East Empire Company strongroom** | Ebonheart, Raven Rock, Solitude, Imperial City | 0.04%/day | 2% withdrawal; writ 4% | Ebonheart **wiped** 3 SD 4E 5 (extrapolation); Raven Rock moves to Solitude in 4E 16 (Long Chronicle) |
-
-The hedge: foreshadowing gives months of warning, and moving deposits by writ to Narsis, Solitude or the
-Imperial City is the lore-literate play.
+### 4.5 Strongboxes (bank) — invented institutions on a canon idea
+Since 0.10 each city with a Hlaalu or East Empire Company vault (Balmora, Vivec City, Narsis, Mournhold,
+Ebonheart, Raven Rock, Solitude, Imperial City) has **one strongbox**: one balance per city. Daily interest
+is the eruption gamble (`DEPOSIT_RATES` in bank.ts): 0.12% in Vivec, Ebonheart and Balmora, 0.08% in Mournhold,
+0.03% in Narsis, Raven Rock, Solitude and the Imperial City. A 1% withdrawal fee; safe from robbers. There are no writs: money stays where you left it.
+History still strikes the vaults: Vivec and Ebonheart are **wiped** on 3 SD 4E 5; Balmora's is **frozen**
+and settled at "ten drakes on the hundred" months later; Mournhold's is lost when Mournhold is sacked.
+The hedge is to carry your savings to Narsis, Solitude or the Imperial City before the warnings come true.
+Saves from 0.9.x sum each city's house balances into its strongbox (schema v5).
 
 ### 4.6 Market memory, smuggling heat and the Scathing Charter (v0.9.0)
 - **Market memory.** Your trades push a market's price (saturation) and it recovers by 3% of the gap a day
   (`SAT_RECOVERY` in market.ts; half-life about 23 days, was 8). Repeating one run wears it out. The Market tags
   flooded and bought-out goods with the days until they recover.
-- **Heat** (0–100, `HEAT` in encounters.ts). Selling contraband adds 2 + value/250 (max 15 a sale); fencing
+- **Heat** (0–100, `HEAT` in encounters.ts; hidden since 0.10: no meter or hints, it only sets the customs and patrol odds). Selling contraband adds 2 + value/250 (max 15 a sale); fencing
   Company goods adds a little; slipping past customs by Chameleon (+5) or flight (+8) adds more. It falls by 1 a day,
   bribing customs takes 10 off, and being caught takes 40 off. *Watched* (30+): customs searches and informers ×1.5.
   *Wanted* (60+): ×2, confiscation fines double to 40%, and a carrier of contraband meets a Legion patrol on 30% of
@@ -168,9 +166,9 @@ Imperial City is the lore-literate play.
 - **The Scathing Charter** (invented; data in `src/data/charter.ts`). After House Redoran's relief (the `relief`
   flag) the Grand Council sells rights to rebuild the Vivec region, in Mournhold, Narsis or Balmora, to traders who
   owe the Tong nothing:
-  1. *Relief supplier licence* (12,000): three contract offers instead of two, relief contracts weighted ×3 and paid ×1.25.
-  2. *Warehouse at Narsis* (30,000): store cargo without spoilage (Ebonheart, the obvious port, is destroyed).
-  3. *The Scathing Charter* (55,000): 4,000 every 30 days, halved while the war lasts; title *Charter-Holder*.
+  1. *Relief supplier licence* (15,000): three contract offers instead of two, relief contracts weighted ×3 and paid ×1.25.
+  2. *Warehouse at Narsis* (40,000): store cargo without spoilage (Ebonheart, the obvious port, is destroyed).
+  3. *The Scathing Charter* (80,000): 4,000 every 30 days, halved while the war lasts; title *Charter-Holder*.
   Rights count toward net worth at 70% of the price paid. When House Hlaalu loses its seat, holders must pay 20% of
   what they paid within 60 days or lose their highest tier.
 
@@ -303,6 +301,22 @@ follows ("This ledger follows UESP's c. 4E 22; the Imperial Library timeline say
 ## 7. Events, encounters, rumours, contracts
 
 ### 7.1 Road encounters
+**Crossing cards (0.10).** A journey shows at most one card, with a chance of
+`min(0.6, 0.06 + 0.05 × risk × √days)` (× difficulty, × the sellsword factor; `cardChance()`): 11% on a 1-day
+risk-1 hop, 51% on a 9-day risk-3 trek. Enforcers add their pressure odds on top. It (a road card also replaces the customs search on
+arrival). `cardOptions()` in encounters.ts gives every option a label, a stake line in septims and
+percentages and the rolled odds from `choiceOdds()`; a disabled option says why and `step` refuses it.
+Four scenes set the shape: **customs** (declare and pay 40% duty; bribe for 12% of the contraband, and if it
+fails they keep it and charge the duty too; or Chameleon, which loses the whole lot if it fails); **mercy**
+(sell at cost for Mercy +2 and Charter favour +1, or at the crisis price); **hazards** (wait, hire a guide for
+40 or 6% of the cargo's value, or push through: 30% of perishables spoil and there is a 35% chance of losing the
+card's loss share of everything else); **Tong collectors** (pay 300, of which 240 comes off the note; ask for
+time at +0.05% a day; or run with a 35% chance of being caught; the route is *watched*, doubling enforcer odds,
+for 30 days). Charter favour takes 0.3% per point off charter tiers (max 1.5%). Each charter tier must be held
+30 (tier 1) or 60 (tier 2) days before the next is sold, so the earliest win is day 517. Only a payment of at
+least 30 days' interest resets the collectors' clock; borrowing raises the rate by 0.08% per note borrowed.
+Schema v6 gives an open card in an old save the new choice set; v7 adds `charter.boughtDay`.
+
 Chance per travel day = `routeRisk × modeFactor × eraFactor × difficulty − protection`. Weighted tables
 depend on region and era:
 - **Vvardenfell, 4E 4**: cliff racers, ash storm (delay), Tong toll, smugglers, Ashlander tithe, Legion
@@ -398,7 +412,7 @@ armour, scrolls, reputations, Mercy, Lilmoth licence, codex unlocks, achievement
   Historians Disagree · Books · Invented for this game.
 - **Entries**: unlock on contact; a locked entry shows a teaser. Every entry has a body, a status badge,
   clickable sources and related links.
-- **Books**: three, bought from booksellers, each with a perk: *Pocket Guide to the Empire* (shows where
+- **Books**: three, found (not bought) when you visit a town with a bookshop and added to the Codex; since 0.10 their perks are always on: *Pocket Guide to the Empire* (shows where
   goods are usually cheap or expensive), *Moon-Sugar: A Report* (customs searches ×0.7) and *Progress of
   Truth* (more warning rumours). Lore-only books were removed; the codex pages they used to unlock now
   unlock on arriving somewhere fitting (`Location.codex`) or when a history event happens
@@ -568,6 +582,7 @@ Still open:
    a teaching moment rather than inventing a flashier "Hist amber". Tell me if you'd prefer otherwise.
 
 ## Endings and the magistrate's duel (0.9.5)
-- **Crossroads** (`crossroads` action) when the calendar ends: `retire` (game over, epilogue verdict), `trade` / `charter` (tier ≥ 2) / `tong` (debt wiped, +30 heat) continue with `endDay = day + ENDLESS_DAYS`; `ending.worth` freezes the score.
-- **Milestones** (`debt`, `charter` tier 3, `mercy` ≥ 60) unlock `retire` early. **Indenture** at debt > `INDENTURE_RATIO` × note: no interest, pressure 0, `TONG_CUT` of each sale goes to the note.
-- **Duel** (`engine/duel.ts`): Ants rules: tower 30 / wall 10 / generators 2 / stocks 5, hand 8, win at tower 100 or toppling the other; 30 cards, 10 per resource. Contest a customs seizure in the same town (`appeal`); win returns goods and fine, loss doubles the fine. Card names, flavour and art come from the "Daedric duel" thread (`/mnt/project-files/daedric-duel/cards.json`).
+- **Red Year map (0.10, MapView only):** haze over Vvardenfell from day 0 to the eruption, a glow once its foreshadow window opens, cracked rings on `ruined`/`camp` towns and tents on camps, dotted red crosses on routes the history closed (`world.routes[id].closed`), static refugee dots on roads into Narsis and Mournhold for a year, hatching on `besieged`/`occupied` towns and a banner on occupied ones.
+- **Endings (0.10, `endings.ts`):** *win* the moment tier 3 of the Scathing Charter is bought (only sold to traders with the Tong note cleared; tiers 1–2 are not gated); *mark* when the debt passes `MARK_RATIO` (6) × the original note, with inbox warnings past 4× and 5×; *retire* automatically at the end date, ranked by net worth. The Tong lends only up to `LEND_RATIO` (5) × the note. Win and end-date retirement both offer the Long Chronicle; `ending.worth` freezes the score.
+- **Milestones** (`debt`, `mercy` ≥ 60) unlock `retire` early. The crossroads and indenture are gone.
+- **Duel** (`engine/duel.ts`): Ants rules: tower 30 / wall 10 / generators 2 / stocks 5, hand 8, win at tower 100 or toppling the other; 30 cards, 10 per resource. Every seizure (declare without the duty, failed bribe, caught running) and every black-market sting fine opens an `appeal` for `APPEAL_DAYS` (30): contest it in that town or at a court town (`COURT_TOWNS`: Vivec, Ebonheart, Narsis, Mournhold), always optional. Win returns goods and fine; loss pays `courtCost()` (the fine again, or 10% of the seized goods, at least 25). The duel also runs on its own from the title screen (`PracticeDuel`, no engine state). Resting 3 or 7 days with the note overdue rolls `restCollectorChance()` for a Tong card in town. Card names, flavour and art come from the "Daedric duel" thread (`/mnt/project-files/daedric-duel/cards.json`). Since 0.10 `duelTurn()` also records `DuelState.events` (each move and income, with the changes and the sides after), and `ui/duelBoard.ts` (Pixi.js, loaded on demand) plays them back; it never decides anything. `ui/Duel.tsx` keeps a plain DOM board for when WebGL is missing.

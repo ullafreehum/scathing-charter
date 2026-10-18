@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect } from 'react';
+import { useDesktopBridge } from './desktop';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { useGame } from '../store/game';
 import { ERUPTION_DAY } from '../data/history';
@@ -7,7 +8,8 @@ import { AshLayer } from './AshLayer';
 import { Title } from './Title';
 import { NewGame } from './NewGame';
 import { GameScreen } from './Game';
-import { Overlays } from './Modals';
+import { ConfirmDialog, Overlays } from './Modals';
+import { PracticeDuel } from './Duel';
 import { Codex } from './Codex';
 import { Settings } from './Settings';
 import { Toasts } from './Toasts';
@@ -31,6 +33,7 @@ export function App() {
   const intensity = game ? ashIntensity(game.day, region) : 0.35;
   const ember = !!game?.world.flags.erupted;
   const codexOpen = codex !== undefined;
+  useDesktopBridge();
   useLayoutEffect(() => { applyAppearance(st.theme, st.font, st.textScale); }, [st.theme, st.font, st.textScale]);
   useLayoutEffect(() => { document.documentElement.dataset.anim = st.animations ? 'on' : 'off'; }, [st.animations]);
   useEffect(() => {
@@ -54,6 +57,7 @@ export function App() {
         animate={codexOpen || settingsOpen ? { scale: 0.985 } : { scale: 1 }} transition={{ duration: 0.28, ease: EASE }}>
         {screen === 'title' && <Title />}
         {screen === 'new' && <NewGame />}
+        {screen === 'duel' && <PracticeDuel />}
         {screen === 'game' && game && <GameScreen />}
       </motion.div>
       {screen === 'game' && game && <Overlays />}
@@ -63,6 +67,7 @@ export function App() {
       {screen === 'game' && <TravelBanner />}
       {screen === 'game' && <NightDip />}
       <FxLayer />
+      <ConfirmDialog />
       <AnimatePresence>
         {error && <motion.div key={errorTick} role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] panel px-4 py-2 text-danger shake" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>{error}</motion.div>}
       </AnimatePresence>

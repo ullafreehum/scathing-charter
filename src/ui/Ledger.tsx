@@ -10,7 +10,7 @@ export function Ledger({ g }: { g: GameState }) {
     <div className="grid xl:grid-cols-[1fr_340px] gap-3">
       <Section title="Your fortune" className="xl:col-span-2"><FortuneChart g={g} /></Section>
       <Section title="Event log">
-        <ol className="space-y-1 max-h-[620px] overflow-auto scroll-thin pr-1">
+        <ol className="space-y-1 max-h-[39rem] overflow-auto scroll-thin pr-1">
           {[...g.log].reverse().map((e, i) => <li key={i} className={`text-sm ${TONE[e.tone ?? 'neutral']}`}><span className="text-ash-400 num mr-2">{shortDate(e.day)}</span>{e.text}</li>)}
         </ol>
       </Section>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { C } from '../data';
-import { DEPTH, bulkBuyTotal, capacity, cargoWeight, maxBuyQty, DIFFICULTY, D, dateOf, formatDate, moons, Rng, hashSeed, newGame, step, replay, quotes, routeOptions, routeOptionsFrom, netWorth, migrate, serialize, deserialize, SCHEMA_VERSION, RED_YEAR_END, type Action, type GameState, type NewGameConfig } from './index';
+import { BORROW_RATE_RISE, borrowRate, daysUntil, depositRate, DEPTH, bulkBuyTotal, capacity, cargoWeight, maxBuyQty, DIFFICULTY, D, dateOf, formatDate, moons, Rng, hashSeed, newGame, step, replay, quotes, routeOptions, routeOptionsFrom, netWorth, migrate, serialize, deserialize, SCHEMA_VERSION, RED_YEAR_END, type Action, type GameState, type NewGameConfig } from './index';
 
 const CFG: NewGameConfig = { seed: 'test-seed', backgroundId: 'hlaalu-bastard', name: 'Tester', difficulty: 'tong' };
 function act(s: GameState, a: Action): GameState { const r = step(s, a); if (r.error) throw new Error(r.error); return r.state; }
@@ -84,15 +84,16 @@ describe('game', () => {
   });
   it('the Red Year wipes the Vivec vault and freezes Balmora’s', () => {
     let s = drain(newGame(CFG));
-    s = act(s, { t: 'deposit', house: 'hlaalu', amount: 100 });
+    s = act(s, { t: 'deposit', amount: 100 });
     s.player.location = 'balmora';
+    s.note.cleared = true; // no collectors while fast-forwarding
     // fast-forward to the eruption
     while (s.day < D(5, 2, 3) && !s.over) s = act(drain(s), { t: 'wait', days: 7 });
     s = drain(s);
     expect(s.world.status.vivec).toBe('camp');
     expect(s.world.status.balmora === 'ruined' || s.world.status.balmora === 'rebuilding').toBe(true);
-    expect(s.world.branches['hlaalu:balmora']).toBe('closed');
-    expect(s.frozen.length + (s.deposits['hlaalu:narsis'] ?? 0) > 0 || s.over !== null).toBe(true);
+    expect(s.world.branches['balmora']).toBe('closed');
+    expect(s.frozen.length + (s.deposits['narsis'] ?? 0) > 0 || s.over !== null).toBe(true);
     expect(s.note.seat).toBe('narsis');
   });
   it('a broke trader works their passage instead of being stranded', () => {
@@ -112,26 +113,68 @@ describe('game', () => {
   it('the Tong always lends, at a rising rate', () => {
     let s = drain(newGame(CFG));
     const rate = s.note.rate, debt = s.note.balance;
-    s = act(s, { t: 'borrow', amount: s.note.original * 5 });
-    expect(s.note.balance).toBe(debt + s.note.original * 5);
+    s = act(s, { t: 'borrow', amount: s.note.original * 3 });
+    expect(s.note.balance).toBe(debt + s.note.original * 3);
     expect(s.note.rate).toBeGreaterThan(rate);
   });
-  it('offers a crossroads at the end of the calendar, and keep trading plays on', () => {
+  it('retires you automatically at the end date, ranked by net worth', () => {
     let s = drain(newGame(CFG));
     s = { ...s, day: s.endDay - 1 };
     s = drain(act(s, { t: 'wait', days: 1 }));
     expect(s.over?.reason).toBe('calendar');
-    s = act(s, { t: 'crossroads', choice: 'trade' });
+    expect(s.ending?.kind).toBe('retire');
+    expect(s.ending?.worth).toBe(netWorth(s));
+    s = act(s, { t: 'chronicle' });
     expect(s.over).toBeNull();
-    expect(s.ending?.kind).toBe('trade');
-    s = drain(act(s, { t: 'wait', days: 7 }));
-    expect(s.over).toBeNull();
+    expect(s.mode).toBe('long-chronicle');
   });
-  it('turns runaway Tong debt into indenture', () => {
+  it('early retirement needs a milestone', () => {
     let s = drain(newGame(CFG));
-    s = act(s, { t: 'borrow', amount: s.note.original * 6 });
+    expect(step(s, { t: 'retire' }).error).toBeTruthy();
+    s.note.cleared = true; s.note.balance = 0;
     s = drain(act(s, { t: 'wait', days: 1 }));
-    expect(s.indentured).toBe(true);
+    s = act(s, { t: 'retire' });
+    expect(s.over?.reason).toBe('retired');
+    expect(s.ending?.kind).toBe('retire');
+  });
+  it('warns at 4x and 5x the note and marks you past 6x', () => {
+    let s = drain(newGame(CFG));
+    expect(step(s, { t: 'borrow', amount: s.note.original * 6 }).error).toBeTruthy();
+    s.note.balance = s.note.original * 4.2;
+    s = act(s, { t: 'wait', days: 1 });
+    expect(s.inbox.some(m => 'title' in m && m.title.includes('4 times'))).toBe(true);
+    s = drain(s); s.note.balance = s.note.original * 5.2;
+    s = act(s, { t: 'wait', days: 1 });
+    expect(s.inbox.some(m => 'title' in m && m.title.includes('5 times'))).toBe(true);
+    s = drain(s); s.note.balance = s.note.original * 6.2;
+    s = act(s, { t: 'wait', days: 1 });
+    expect(s.over?.reason).toBe('marked');
+    expect(s.ending?.kind).toBe('mark');
+  });
+  it('finds books in bookshop towns and puts them in the Codex', () => {
+    const s = newGame(CFG);
+    expect(C.locs[s.player.location].books).toBe(true);
+    for (const b of C.books.filter(b => b.from === undefined)) { expect(s.player.books).toContain(b.id); expect(s.codex).toContain(`book:${b.id}`); }
+  });
+  it('a tavern round quietly adds a tale or a quarrel to the Codex', () => {
+    let s = drain(newGame(CFG)); s.player.cash = 1000;
+    const before = s.codex.length;
+    for (let i = 0; i < 5; i++) s = drain(act(s, { t: 'rumor' }));
+    expect(s.codex.filter(id => id.startsWith('rumor:') || id.startsWith('dispute:')).length).toBeGreaterThan(0);
+    expect(s.codex.length).toBeGreaterThan(before);
+  });
+  it('wins the moment the Scathing Charter is bought with the debt cleared', () => {
+    let s = drain(newGame(CFG));
+    s.player.location = C.charter.offices[0]; s.world.flags.relief = 1;
+    s.player.cash = 200000; s.charter.tier = 2;
+    expect(step(s, { t: 'charter' }).error).toMatch(/Tong/);
+    s.note.cleared = true; s.note.balance = 0;
+    s = act(s, { t: 'charter' });
+    expect(s.charter.tier).toBe(3);
+    expect(s.over?.reason).toBe('won');
+    expect(s.ending?.kind).toBe('win');
+    s = act(s, { t: 'chronicle' });
+    expect(s.over).toBeNull();
   });
   it('reports net worth including debt', () => { expect(netWorth(newGame(CFG))).toBe(DIFFICULTY.tong.cash - DIFFICULTY.tong.debt); });
 });
@@ -147,6 +190,7 @@ describe('long chronicle', () => {
   it('weeks pass per day of travel and Ocato falls in c. 4E 15', () => {
     let s = drain(newGame({ ...CFG, mode: 'long-chronicle' }));
     s.player.cash = 1e6;
+    s.note.cleared = true; // no collectors while fast-forwarding
     while (s.day < D(15, 9, 1) && !s.over) s = drain(act(s, { t: 'wait', days: 7 }));
     expect(s.world.fired).toContain('ocato-assassinated');
     expect(s.world.flags.interregnum).toBe(1);
@@ -218,10 +262,25 @@ describe('smuggling heat', () => {
 
 describe('the Scathing Charter', () => {
   const ready = () => { const s = drain(newGame(CFG)); s.world.flags.relief = 1; s.note.cleared = true; s.note.balance = 0; s.player.cash = 200000; return s; };
+  /** Buys the next tier as if the current one had been held long enough. */
+  const buy = (s: GameState) => { const x = structuredClone(s); if (x.charter.boughtDay !== undefined) x.charter.boughtDay -= 1000; return drain(act(x, { t: 'charter' })); };
+  it('sells the next tier only after the current one is held 30, then 60 days', () => {
+    let s = buy(ready());
+    expect(s.charter.boughtDay).toBe(s.day);
+    expect(step(s, { t: 'charter' }).error).toMatch(/hold your Relief supplier licence until/);
+    for (let i = 0; i < 4; i++) s = drain(act(s, { t: 'wait', days: 7 }));
+    expect(step(s, { t: 'charter' }).error).toBeTruthy(); // 28 days
+    s = drain(act(drain(act(s, { t: 'wait', days: 1 })), { t: 'wait', days: 1 }));
+    s = drain(act(s, { t: 'charter' }));
+    expect(s.charter.tier).toBe(2);
+    expect(step(s, { t: 'charter' }).error).toMatch(/until/);
+  });
   it('is not on sale before the relief, or while you owe the Tong', () => {
     const s = drain(newGame(CFG)); s.player.cash = 200000;
     expect(step(s, { t: 'charter' }).error).toMatch(/No charters/);
-    const t = ready(); t.note.cleared = false;
+    const t = ready(); t.note.cleared = false; t.note.balance = 100;
+    expect(step(t, { t: 'charter' }).error).toBeUndefined(); // tiers 1 and 2 don't need the debt cleared
+    t.charter.tier = 2;
     expect(step(t, { t: 'charter' }).error).toMatch(/Camonna Tong/);
   });
   it('sells tiers in order and counts them toward net worth', () => {
@@ -231,8 +290,8 @@ describe('the Scathing Charter', () => {
     expect(netWorth(s)).toBe(Math.round(nw0 - C.charter.tiers[0].price * (1 - C.charter.bookValue)));
   });
   it('pays dividends at the full tier, halved in war', () => {
-    let s = ready(); s.player.cash = 1e6;
-    for (let i = 0; i < 3; i++) s = drain(act(s, { t: 'charter' }));
+    let s = ready(); s.player.cash = 1e6; s.mode = 'long-chronicle'; // in the Red Year the third tier wins the game
+    for (let i = 0; i < 3; i++) s = buy(s);
     expect(s.charter.tier).toBe(3);
     const c0 = s.player.cash; s.world.flags.war = 1;
     for (let i = 0; i < 5; i++) s = drain(act(s, { t: 'wait', days: 7 }));
@@ -251,7 +310,7 @@ describe('the Scathing Charter', () => {
   });
   it('stores goods in the Narsis warehouse at tier 2', () => {
     let s = ready(); s.player.cash = 1e6; s.player.location = 'narsis';
-    s = drain(act(drain(act(s, { t: 'charter' })), { t: 'charter' }));
+    s = buy(buy(s));
     s.player.cargo.timber = { qty: 10, cost: 30 };
     s = act(s, { t: 'stash', good: 'timber', qty: 10 });
     expect(s.player.cargo.timber).toBeUndefined(); expect(s.warehouse.timber.qty).toBe(10);
@@ -275,3 +334,33 @@ describe('buying the maximum', () => {
   });
 });
 
+
+describe('economy fixes (0.10)', () => {
+  it('strongboxes pay by city: most in the cities the Red Year threatens', () => {
+    expect(depositRate('vivec')).toBe(0.0012); expect(depositRate('mournhold')).toBe(0.0008); expect(depositRate('narsis')).toBe(0.0003);
+    let s = drain(newGame(CFG)); s.deposits = { balmora: 10000, narsis: 10000 };
+    s = drain(act(s, { t: 'wait', days: 1 }));
+    expect(s.deposits.balmora).toBeCloseTo(10012, 6); expect(s.deposits.narsis).toBeCloseTo(10003, 6);
+  });
+  it('only a payment of 30 days of interest resets the collectors’ clock', () => {
+    const s = drain(newGame(CFG)); s.note.lastPaymentDay = -50;
+    const month = s.note.balance * s.note.rate * 30;
+    expect(act(s, { t: 'pay', amount: 1 }).note.lastPaymentDay).toBe(-50);
+    expect(act(s, { t: 'pay', amount: Math.ceil(month) }).note.lastPaymentDay).toBe(s.day);
+  });
+  it('borrowing raises the rate by 0.08% per note borrowed, and the clock to the mark is printed from it', () => {
+    const s = drain(newGame(CFG));
+    expect(borrowRate(s, s.note.original)).toBeCloseTo(s.note.rate + BORROW_RATE_RISE, 12);
+    expect(daysUntil(100, 0.01, 99)).toBe(0); expect(daysUntil(100, 0.01, 100)).toBe(1);
+    expect(daysUntil(100, 0.01, 110)).toBe(10); // 1.01^10 = 1.1046
+    expect(daysUntil(100, 0, 110)).toBeNull();
+  });
+  it('the Tong note is 4,000 on Tong Terms', () => { expect(DIFFICULTY.tong.debt).toBe(4000); });
+  it('a v6 save loads as v7 and its charter tier counts as held long enough', () => {
+    const s = drain(newGame(CFG)); s.charter.tier = 1; s.world.flags.relief = 1; s.note.cleared = true; s.note.balance = 0; s.player.cash = 1e6;
+    const raw = JSON.parse(serialize(s)); raw.schemaVersion = 6; delete raw.charter.boughtDay;
+    const m = migrate(raw);
+    expect(m.schemaVersion).toBe(SCHEMA_VERSION); expect(SCHEMA_VERSION).toBe(7);
+    expect(drain(act(m, { t: 'charter' })).charter.tier).toBe(2);
+  });
+});

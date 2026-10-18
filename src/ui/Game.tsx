@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { useDialogMark } from './desktop';
 import { nextSteps, type Hint } from './hints';
 import { planRoute } from './route';
 import { AnimatePresence, motion } from 'framer-motion';
 import { C } from '../data';
-import { capacity, cargoWeight, formatDate, netWorth, depositsTotal, pressure, heatLevel, type GameState } from '../engine';
+import { capacity, cargoWeight, charterPrice, formatDate, netWorth, depositsTotal, pressure, type GameState } from '../engine';
 import { useGame, type Tab } from '../store/game';
 import { exportFile, savedWhen, slotInfo, type Slot } from '../save/storage';
 import { CodexLink, DateWidget, Delta, Meter, RollingMoney, StatusPill } from './widgets';
@@ -50,6 +51,7 @@ function TopBar({ g }: { g: GameState }) {
   const { openCodex, openSettings, setScreen } = useGame();
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  useDialogMark('menu', menu);
   // The ☰ menu closes on Escape, on a click or tap outside it, and when focus leaves it.
   useEffect(() => {
     if (!menu) return;
@@ -69,8 +71,8 @@ function TopBar({ g }: { g: GameState }) {
         <span title="All deposits in banks (frozen ones at their expected payout)">Bank <RollingMoney v={depositsTotal(g)} /></span>
         <span title="Cargo weight / capacity">Cargo <span className="num">{cargoWeight(g)}/{capacity(g)}</span></span>
         <span className="flex items-center gap-1" title="Health">♥ <Meter v={g.player.health} color={g.player.health < 35 ? 'var(--c-bad)' : 'var(--c-good)'} /></span>
-        {g.player.heat > 0 && <span title={`Legion attention from smuggling: ${g.player.heat}/100. Watched (30+): searched more often. Wanted (60+): patrols on the roads and double fines. Falls by 1 a day; bribing customs lowers it.`}>Heat <span className={`num ${heatLevel(g.player.heat) === 'wanted' ? 'text-danger' : heatLevel(g.player.heat) === 'watched' ? 'text-gold' : ''}`}>{g.player.heat}</span><Delta value={g.player.heat} upIsGood={false} />{heatLevel(g.player.heat) !== 'quiet' && <span className={heatLevel(g.player.heat) === 'wanted' ? 'text-danger' : 'text-gold'}> ({heatLevel(g.player.heat) === 'wanted' ? 'wanted' : 'watched'})</span>}</span>}
         <span title="Cash + bank deposits + cargo value − debt">Net worth <RollingMoney v={netWorth(g)} className="text-gold" /></span>
+        <GoalChip g={g} />
         <button className="btn" onClick={() => openCodex(null)} title="Codex (c)">Codex</button>
         <button className="btn btn-ghost" onClick={openSettings} aria-label="Settings" title="Settings: sound, theme, font, text size"><span aria-hidden="true">⚙</span><span className="hidden xl:inline">Settings</span></button>
         <div className="relative" ref={menuRef}>
@@ -152,6 +154,21 @@ function LocationPanel({ g }: { g: GameState }) {
   );
 }
 
+/** The win condition, always in view: clear the debt, then own the Scathing Charter. Opens the Bank, where the steps are. */
+function GoalChip({ g }: { g: GameState }) {
+  const setTab = useGame(s => s.setTab);
+  const price = charterPrice(g, 3), worth = Math.max(0, Math.round(netWorth(g)));
+  const held = g.charter.tier >= 3;
+  const text = held ? (g.note.cleared ? 'Charter held: you won' : 'Goal: now clear the debt')
+    : !g.note.cleared ? 'Goal: pay off the Tong' : `Goal: Charter ${worth.toLocaleString('en')} / ${price.toLocaleString('en')}`;
+  return (
+    <button className="btn btn-ghost py-0.5 flex-col items-start gap-0.5 text-xs" onClick={() => setTab('bank')} title="Win: own the Scathing Charter and owe the Tong nothing. Your net worth against the seat's price; the steps are on the Bank tab.">
+      <span>{text}</span>
+      {!held && g.note.cleared && <span className="block h-1 w-full rounded bg-ash-700 overflow-hidden" aria-hidden="true"><span className="block h-full bg-gold" style={{ width: `${Math.min(100, (100 * worth) / price)}%` }} /></span>}
+    </button>
+  );
+}
+
 export function GameScreen() {
   const g = useGame(s => s.game)!;
   const { tab, setTab } = useGame();
@@ -163,7 +180,7 @@ export function GameScreen() {
   // the Travel tab puts its destination list where the town panel sits, so the map lines up with the price list
   const [side, setSide] = useState<HTMLDivElement | null>(null);
   return (
-    <div className="relative z-10 p-2 sm:p-3 flex flex-col gap-3 max-w-[1500px] mx-auto"
+    <div className="relative z-10 p-2 sm:p-3 flex flex-col gap-3 max-w-[94rem] mx-auto"
       onKeyDown={e => { if ((e.target as HTMLElement).tagName === 'INPUT') return; const t = TABS.find(x => x.key === e.key); if (t) setTab(t.id); if (e.key === 'c') useGame.getState().openCodex(null); }} tabIndex={-1}>
       <TopBar g={g} />
       {hints && <NextSteps g={g} />}
