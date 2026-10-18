@@ -57,7 +57,7 @@ function interestPaid(r: { s: GameState; mem: Mem }): number | null {
 }
 function batch(st: Strat, diff: Difficulty, n: number): Row {
   const runs: { s: GameState; mem: Mem }[] = [];
-  for (let i = 0; i < n; i++) runs.push(play(`focus-${st}-${diff}-${i}`, st, diff));
+  for (let i = 0; i < n; i++) { runs.push(play(`focus-${st}-${diff}-${i}`, st, diff)); process.stderr.write(`  ${st} ${diff} ${i + 1}/${n}, ${((Date.now() - t0) / 1000).toFixed(0)} s\r`); }
   const cnt = (o: Outcome) => runs.filter(r => outcome(r.s) === o).length;
   const cards: Record<string, number> = {};
   for (const r of runs) for (const [c, v] of Object.entries(r.mem.cards)) cards[c] = (cards[c] ?? 0) + v;
@@ -140,7 +140,14 @@ function scan(sc: Scene, tr: Trader, base: GameState) {
 }
 let mid = newGame({ seed: 'card-scan', backgroundId: 'hlaalu-bastard', name: 'Scan', difficulty: 'tong' });
 mid.player.cash = 1e6;
-while (mid.day < ERUPT + 30) { while (mid.inbox.length) mid = act(mid, { t: 'ack' }); mid = act(mid, { t: 'wait', days: 7 }); }
+// Keep the note paid up so no Tong collector stops the wait (since 0.10.0 they come while you rest), and settle any
+// card that turns up anyway: a pending card makes every wait fail, and this loop then never ended.
+while (mid.day < ERUPT + 30) {
+  while (mid.inbox.length) mid = act(mid, { t: 'ack' });
+  if (mid.pending) { const n = act(mid, { t: 'choose', choice: 'flee' }); mid = n !== mid ? n : act(mid, { t: 'choose', choice: mid.pending.choices[0] }); continue; }
+  mid.note.lastPaymentDay = mid.day;
+  const n = act(mid, { t: 'wait', days: 7 }); if (n === mid) throw new Error(`card scan setup stuck on ${shortDate(mid.day)}`); mid = n;
+}
 mid.note.balance = mid.note.original; mid.note.lastPaymentDay = mid.day; // a trader still paying the note, not an idle one
 console.log(`\n=== Card value scan (${TRIALS} trials per option, from ${shortDate(mid.day)}; Δ net worth) ===`);
 const dominated: string[] = []; const greedyPays: string[] = [];
