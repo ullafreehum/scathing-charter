@@ -50,35 +50,35 @@ Artist credits follow Wesnoth's own practice: per art set, from each campaign's 
 
 | Card (id) | Wesnoth source |
 |---|---|
-| Scamp (archer) | campaigns/Sceptre_of_Fire/images/portraits/monsters/cave-imp.webp |
-| Clannfear (ordinator) | core/images/portraits/saurians/skirmisher.webp |
-| Spider Daedra (guar-rider) | core/images/portraits/monsters/giant-spider.webp |
-| Daedroth (legion-cohort) | core/images/portraits/monsters/crocodile.webp |
+| Scamp (archer) | Sinan's own picture, no credit |
+| Clannfear (ordinator) | Sinan's own picture, no credit |
+| Spider Daedra (guar-rider) | Sinan's own picture, no credit |
+| Daedroth (legion-cohort) | Sinan's own picture, no credit |
 | Lesser Summoning (fighters-guild) | core/images/portraits/humans/dark-adept.webp |
-| Ogrim (redoran-charge) | core/images/portraits/trolls/troll-hero.webp |
-| Hunger (morag-tong) | core/images/portraits/undead/ghoul.webp |
+| Ogrim (redoran-charge) | Sinan's own picture, no credit |
+| Hunger (morag-tong) | Sinan's own picture, no credit |
 | Mephala's Web (thieves-guild) | core/images/portraits/humans/assassin+female.webp |
-| Winged Twilight (dark-brotherhood) | campaigns/Under_the_Burning_Suns/images/portraits/quenoth/sun_sylph.webp |
-| Golden Saint (dwemer-centurion) | campaigns/Heir_To_The_Throne/images/portraits/lisar.webp |
+| Winged Twilight (dark-brotherhood) | Sinan's own picture, no credit |
+| Golden Saint (dwemer-centurion) | Sinan's own picture, no credit |
 | Frost Atronach (conjure-stone) | campaigns/Sceptre_of_Fire/images/portraits/monsters/snowgolem.webp |
 | Flame Atronach (conjure-steel) | core/images/portraits/monsters/fire_guardian.webp |
 | Storm Atronach (crush-stone) | core/images/portraits/monsters/jinn.webp |
 | Dremora Valkynaz (dremora-lord) | core/images/portraits/undead/death-knight.webp |
 | Banishing (crush-steel) | core/images/portraits/humans/mage-white.webp |
 | Vaermina's Nightmare (crush-magicka) | core/images/portraits/undead/nightgaunt.webp |
-| Mora's Codex (mages-guild) | core/images/portraits/humans/necromancer.webp; alt cards/mages-guild-alt-book.jpg from campaigns/Descent_Into_Darkness/images/story/book.webp |
+| Mora's Codex (mages-guild) | campaigns/Descent_Into_Darkness/images/story/book.webp (book on a pillar) |
 | Azura's Star (conjure-magicka) | campaigns/Secrets_of_the_Ancients/images/portraits/ardonna.webp |
 | Molag Bal's Bargain (daedric-curse) | campaigns/Eastern_Invasion/images/portraits/mal-ravanal.webp |
 | Ghostfence Stones (ghostfence) | campaigns/Descent_Into_Darkness/images/story/parthyn.webp |
 | Mazken Masons (redoran-keep) | core/images/portraits/humans/outlaw+female.webp |
 | Azura's Dawn (almsivi-grace) | campaigns/Liberty/images/story/island.webp |
 | Ash Mortar (ash-wall) | campaigns/The_Rise_Of_Wesnoth/images/story/trow_intro_02.webp (cropped to the burning ruin) |
-| Shrine Stone (foundation) | core/images/story/grim-altar.jpg |
+| Shrine Stone (foundation) | core/images/story/grim-altar.jpg (ash-graded v2) |
 | Ebony Vein (masons-guild) | campaigns/Sceptre_of_Fire/images/story/cave-rails-glow.webp (brightened) |
 | Dagon's Gate (dwemer-crane) | campaigns/The_Rise_Of_Wesnoth/images/story/trow_story_06-Temple_in_the_Deep.webp |
 | Spire of Ebonheart (imperial-fort) | campaigns/Liberty/images/story/Halstead.webp |
 | Baar Dau (ministry-of-truth) | campaigns/Liberty/images/story/return_to_Dallben_and_Delwyn.webp |
-| Dusk Spire (watchtower) | core/images/story/landscape-mountains-04.webp (cropped to the tower) |
+| Dusk Spire (watchtower) | core/images/story/landscape-mountains-04.webp (cropped to the tower, ash-graded v2) |
 | Daedric Brick (stockade) | campaigns/The_Rise_Of_Wesnoth/images/story/trow_story_02-The_Fall.jpg (cropped to the burning gate), GPL v2+ |
 
 ## Artists by Wesnoth art set (use these lines in the in-game credits)
@@ -103,13 +103,5 @@ All from The Battle for Wesnoth, **GPL v2+**. Artists are listed by art set in t
 
 | Card id | Wesnoth source |
 |---|---|
-| ordinator | core/images/portraits/humans/royal-warrior.webp |
-| dwemer-centurion | core/images/portraits/dwarves/dragonguard.webp |
-| guar-rider | campaigns/Under_the_Burning_Suns/images/portraits/quenoth/tauroch_rider.webp |
-| legion-cohort | core/images/portraits/humans/spearman-2.webp |
-| morag-tong | core/images/portraits/humans/huntsman.webp |
-| dark-brotherhood | core/images/portraits/undead/banebow.webp |
-| redoran-charge | campaigns/Under_the_Burning_Suns/images/portraits/quenoth/tauroch_flagbearer.webp |
-| archer | core/images/portraits/elves/marksman.webp |
 | watchtower | core/images/story/landscape-mountains-04.webp (cropped, ash-graded) |
 | foundation | core/images/story/grim-altar.jpg (ash-graded) |

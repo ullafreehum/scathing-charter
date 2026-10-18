@@ -97,6 +97,8 @@ export interface EncounterDef extends Sourced {
   loss: number; delay?: number;
   /** goods offered/involved for opportunity/mercy encounters */
   goods?: readonly string[];
+  /** an animal or monster: no bribe, no coin to loot */
+  creature?: boolean;
 }
 
 export type RumorKind = 'lore' | 'foreshadow' | 'dispute' | 'tip';

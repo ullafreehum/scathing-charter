@@ -168,7 +168,7 @@ Saves from 0.9.x sum each city's house balances into its strongbox (schema v5).
   owe the Tong nothing:
   1. *Relief supplier licence* (15,000): three contract offers instead of two, relief contracts weighted ×3 and paid ×1.25.
   2. *Warehouse at Narsis* (40,000): store cargo without spoilage (Ebonheart, the obvious port, is destroyed).
-  3. *The Scathing Charter* (130,000): 4,000 every 30 days, halved while the war lasts; title *Charter-Holder*.
+  3. *The Scathing Charter* (80,000): 4,000 every 30 days, halved while the war lasts; title *Charter-Holder*.
   Rights count toward net worth at 70% of the price paid. When House Hlaalu loses its seat, holders must pay 20% of
   what they paid within 60 days or lose their highest tier.
 

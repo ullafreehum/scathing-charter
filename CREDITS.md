@@ -9,7 +9,7 @@ Card icons for the non-Daedra cards come from [game-icons.net](https://game-icon
 [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). They are recoloured and set on our own backgrounds.
 The credit line for the game's About or Credits screen: *Icons by Lorc, Delapouite, Skoll and Faithtoken from game-icons.net (CC BY 3.0).*
 
-All other art (Daedra card art, frame, back, towers, background, patron sigils) is original work by the Scathing Charter art thread.
+Frame, card back, cost icons and patron sigils are original work by the Scathing Charter art thread; the duel backdrop is Sinan's own.
 
 | Card | Icon | Author | Source |
 |---|---|---|---|

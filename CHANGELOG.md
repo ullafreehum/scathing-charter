@@ -32,7 +32,9 @@ One goal, one choice per trip, and a Red Year you can see on the map. Now a Wind
   - The Chartered hold costs 8,000 (was 14,000).
   - Borrowing raises the rate less (0.08% per note borrowed), and the Borrow question says how many days until your debt passes six times the note.
   - Only a payment of at least 30 days' interest keeps the collectors away.
-  - Final values (round 2): charter tiers cost 15,000, 40,000 and 130,000; customs duty is 40% and Chameleon works 85% of the time at a gate; Tong collectors catch a runner 35% of the time; luxuries, magic goods and medicine sell in bigger amounts before the price drops; ruined towns and camps pay less of a premium; price spikes are smaller.
+  - Final values (round 2): charter tiers cost 15,000, 40,000 and 80,000; customs duty is 40% and Chameleon works 85% of the time at a gate; Tong collectors catch a runner 35% of the time; luxuries, magic goods and medicine sell in bigger amounts before the price drops; ruined towns and camps pay less of a premium; price spikes are smaller.
+  - Black-market sales are riskier: informers sting more often and the fine is 60% of the sale.
+  - Seizures after declaring (or a failed bribe) can now be contested at a hearing; animals no longer take bribes or carry coin.
 - Saves from 0.9.x load and carry on (save format v7).
 
 ## 0.9.6 (beta): fixes from a playtest

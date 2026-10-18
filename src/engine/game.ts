@@ -21,6 +21,9 @@ export const RED_YEAR_END = D(6, 12, 31);
 export const CORONATION_DAY = D(22, 10, 30);
 /** How far a price spike lifts a good (a multiplier range); dips go to 0.3–0.5. */
 export const SPIKE_UP = [1.6, 2.6] as const;
+/** Black-market sale: chance per unit of enforcement that an informer stings you, and the share of the sale fined. */
+export const STING_CHANCE = 0.1;
+export const STING_FINE = 0.6;
 export const DIFFICULTY = {
   fair: { cash: 700, debt: 2000, rate: 0.002 },
   tong: { cash: 550, debt: 4000, rate: 0.003 },
@@ -76,7 +79,7 @@ export function newGame(cfg: NewGameConfig): GameState {
   applyHistory(s, rng);
   makeOffers(s, rng, s.player.location);
   recordPrices(s);
-  s.log.push({ day: 0, text: `${shortDate(0)}. New Life Festival in Balmora. You owe Gavas Drelloth ${diff.debt} septims.`, tone: 'neutral' });
+  s.log.push({ day: 0, text: `New Life Festival in Balmora. You owe Gavas Drelloth ${diff.debt} septims.`, tone: 'neutral' });
   s.inbox.push({ kind: 'result', title: 'Your debt', text: `It is the New Life Festival, 4E 4, in Balmora. You owe Gavas Drelloth of the Camonna Tong ${diff.debt} septims, at ${(diff.rate * 100).toFixed(1)}% interest a day. You have ${diff.cash} septims and a pack guar. Pay him back at the Bank tab in Balmora. The Tong will wait about two months before sending collectors.` });
   s.rng = rng.state();
   findBooks(s);
@@ -492,8 +495,8 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
     let total = bulkSellTotal(q.sell, qty, depth);
     const profit = total - Math.round(lot.cost * qty);
     if (q.legality === 'restricted' && q.sellNote?.startsWith('black')) {
-      if (rng.chance(here(s).enforcement * 0.06 * C.backgrounds[s.player.backgroundId].customsMod * heatMult(s.player.heat))) {
-        const fine = Math.round(total * 0.4); total -= fine;
+      if (rng.chance(here(s).enforcement * STING_CHANCE * C.backgrounds[s.player.backgroundId].customsMod * heatMult(s.player.heat))) {
+        const fine = Math.round(total * STING_FINE); total -= fine;
         log(s, `An EEC informer was watching. Fine: ${fine} septims.`, 'bad');
         s.inbox.push({ kind: 'result', title: 'An informer', text: `The East Empire Company does not forgive unlicensed ${g.name}. You are fined ${fine} septims.` });
       }

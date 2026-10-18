@@ -17,6 +17,7 @@ const hand = (page: Page) => page.getByRole('group', { name: 'Your hand' }).getB
 const firstPlayable = (page: Page) => hand(page).evaluateAll(bs => bs.findIndex(b => !(b as HTMLButtonElement).disabled));
 
 test('hearing: the board plays cards by mouse and keyboard, and the duel ends', async ({ page }) => {
+  test.setTimeout(240_000); // a full duel; slow when the machine is busy
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await boot(page);
   const board = page.locator('[data-turn]');

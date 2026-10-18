@@ -95,7 +95,7 @@ export function choicesFor(kind: EncounterKind, scrolls: Partial<Record<ScrollId
 }
 
 export function buildPending(s: GameState, def: EncounterDef, routeId: string, dest: string, remainingDays: number, customs = false): PendingEncounter {
-  const choices = choicesFor(def.kind, s.player.scrolls);
+  const choices = choicesFor(def.kind, s.player.scrolls).filter(c => !(def.creature && c === 'bribe')); // beasts take no bribes
   const bribe = def.kind === 'enforcer' ? Math.max(60, Math.round(s.note.balance * 0.1))
     : def.kind === 'customs' ? Math.max(40, Math.round(contrabandValue(s, dest) * CARD.bribeShare * heatMult(s.player.heat)))
     : Math.round(def.threat * 14 + cargoValue(s) * 0.03);
@@ -171,12 +171,12 @@ export function resolve(s: GameState, rng: Rng, choice: string): { text: string;
   switch (choice) {
     case 'fight': {
       if (rng.chance(fightChance(s))) {
-        const loot = rng.int(p.threat * 4, p.threat * 12);
+        const loot = def.creature ? 0 : rng.int(p.threat * 4, p.threat * 12);
         s.player.cash += loot; s.stats.fightsWon++;
         const d = hurt(s, rng, 0, 12);
         if (fac) s.player.rep[fac] = clampRep(s.player.rep[fac] - 6);
         if (def.kind === 'enforcer') s.note.lastPaymentDay = s.day; // they report back… later
-        return { text: `You win the fight${d ? `, taking ${d} wounds` : ''}, and find ${loot} septims on them.`, good: true };
+        return { text: `You win the fight${d ? `, taking ${d} wounds` : ''}${loot ? `, and find ${loot} septims on them` : ' and drive them off'}.`, good: true };
       }
       const d = hurt(s, rng, 8, 22); const lost = loseCargo(s, rng, def.loss); const cash = Math.round(s.player.cash * 0.15); s.player.cash -= cash;
       return { text: `You are beaten (${d} wounds). They take ${lost} and ${cash} septims.`, good: false };
@@ -303,13 +303,14 @@ function tongPayment(s: GameState): { ask: number; fee: number; off: number } {
 }
 function guideFee(s: GameState): number { return Math.max(CARD.guideFee, Math.round(cargoValue(s) * CARD.guideShare)); }
 
-/** Takes every contraband lot, no fine and no appeal. */
+/** Takes every contraband lot, with no fine; the seizure can be contested at the hearing. */
 function seizeContraband(s: GameState): { taken: string; value: number } {
-  const dest = s.pending!.dest; let value = 0; const taken: string[] = [];
+  const dest = s.pending!.dest; let value = 0; const taken: string[] = []; const seized: Record<string, Lot> = {};
   for (const [g, lot] of Object.entries(s.player.cargo)) {
     if (legalityAt(s, dest, g) !== 'contraband') continue;
-    value += lot.qty * fairValue(s, g); taken.push(`${lot.qty} ${C.goods[g].name}`); delete s.player.cargo[g];
+    value += lot.qty * fairValue(s, g); taken.push(`${lot.qty} ${C.goods[g].name}`); seized[g] = { ...lot }; delete s.player.cargo[g];
   }
+  if (taken.length) s.appeal = { loc: dest, goods: seized, fine: 0 };
   return { taken: taken.join(', ') || 'nothing', value: Math.round(value) };
 }
 
