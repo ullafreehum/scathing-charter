@@ -3,7 +3,8 @@
 #  - release notes docs/releases/v<version>.md (or this workflow) are pushed on any branch
 #    and that version has not been released yet (the release step creates the tag).
 # It creates the release, then a Windows runner builds the desktop app (Electron, unsigned) and attaches
-# the installer and the portable .exe.
+# the installer and the portable .exe; a separate job builds the Android debug APK and attaches it too
+# (it can fail without holding up the Windows files).
 name: Release
 
 on:
@@ -62,3 +63,30 @@ jobs:
           files: |
             release/electron/ScathingCharter-Setup-*.exe
             release/electron/ScathingCharter-Portable-*.exe
+  android:
+    needs: release
+    if: needs.release.outputs.skip != '1'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: npm ci
+      - run: npm run android:sync
+      - name: Build the debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+      - run: |
+          v=$(node -p "require('./package.json').version")
+          mkdir -p out && cp android/app/build/outputs/apk/debug/app-debug.apk "out/ScathingCharter-$v-Android-A26-debug.apk"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.release.outputs.tag }}
+          files: out/*.apk

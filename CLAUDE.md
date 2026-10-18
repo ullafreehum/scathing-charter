@@ -3,10 +3,10 @@
 A lore-dense, Dope Wars–style trading game set in the Elder Scrolls universe at the dawn of the
 Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-commercial fan project.
 
-> Version **0.10.2** (beta): the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
+> Version **0.10.5** (beta): the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
 > bump it there and add a `CHANGELOG.md` entry for each release. To publish: write `docs/releases/v<version>.md`,
 > and push it (or push the tag `v<version>`); `.github/workflows/release.yml` creates the
-> tag, publishes the release and a Windows runner attaches the Electron Setup and Portable .exe (pre-release while the version is 0.x).
+> tag, publishes the release and a Windows runner attaches the Electron Setup and Portable .exe, and a Linux runner the Android debug APK (pre-release while the version is 0.x).
 > Status: **playable** (M1–M7 done). Red Year campaign + Long Chronicle; see README.md to play.
 > Design: `docs/GAME_DESIGN.md` · Lore + sources + dispute register: `docs/LORE_BIBLE.md` · raw notes: `docs/research/`.
 > Renamed from "Ashfall Ledger": internal ids (package name, `ashfall-ledger/` localStorage keys) keep the
