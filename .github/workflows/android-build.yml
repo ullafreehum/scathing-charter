@@ -1,0 +1,40 @@
+# Builds the Android app as a debug-signed APK (installable by hand, not for the Play Store) and attaches it to the
+# run as an artifact for 14 days. It runs by hand (Actions tab, Run workflow) and on a push that changes the game or
+# the Android project. Separate from release.yml: releases stay Windows-only until the APK is ready.
+name: Android build
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main, gh-pages]
+    paths: ['src/**', 'android/**', 'capacitor.config.ts', 'index.html', 'vite.config.ts', 'package.json', 'package-lock.json', '.github/workflows/android-build.yml']
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: npm ci
+      - name: Build the web game and copy it into the Android project
+        run: npm run android:sync
+      - name: Build the debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Name the APK after the version
+        run: |
+          v=$(node -p "require('./package.json').version")
+          mkdir -p out && cp android/app/build/outputs/apk/debug/app-debug.apk "out/ScathingCharter-$v-debug.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scathing-charter-android
+          retention-days: 14
+          path: out/*.apk
