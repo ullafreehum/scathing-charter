@@ -7,7 +7,7 @@ import { C } from '../data';
 import { capacity, cargoWeight, charterPrice, formatDate, netWorth, depositsTotal, pressure, type GameState } from '../engine';
 import { useGame, type Tab } from '../store/game';
 import { exportFile, savedWhen, slotInfo, type Slot } from '../save/storage';
-import { CodexLink, DateWidget, Delta, Meter, RollingMoney, StatusPill } from './widgets';
+import { CodexLink, DateWidget, Delta, Meter, Money, RollingMoney, StatusPill } from './widgets';
 import { TimeRibbon } from './TimeRibbon';
 import { Market } from './Market';
 import { Bank, bankTip } from './Bank';
@@ -15,6 +15,7 @@ import { Tavern } from './Tavern';
 import { Outfitter } from './Outfitter';
 import { MapView } from './MapView';
 import { Ledger } from './Ledger';
+import { PHONE, useBack, usePhone } from './phone';
 
 const SLIDE = {
   enter: (d: number) => ({ opacity: 0, x: 16 * d }),
@@ -22,9 +23,9 @@ const SLIDE = {
   exit: (d: number) => ({ opacity: 0, x: -12 * d }),
 };
 
-const TABS: { id: Tab; label: string; key: string }[] = [
-  { id: 'market', label: 'Market', key: 'm' }, { id: 'map', label: 'Travel', key: 't' }, { id: 'bank', label: 'Bank', key: 'b' },
-  { id: 'tavern', label: 'Tavern', key: 'v' }, { id: 'outfitter', label: 'Shop & Temple', key: 's' }, { id: 'ledger', label: 'Journal', key: 'j' },
+const TABS: { id: Tab; label: string; key: string; icon?: string }[] = [
+  { id: 'market', label: 'Market', key: 'm', icon: '⚖' }, { id: 'map', label: 'Travel', key: 't', icon: '➶' }, { id: 'bank', label: 'Bank', key: 'b', icon: '¤' },
+  { id: 'tavern', label: 'Tavern', key: 'v', icon: '♨' }, { id: 'outfitter', label: 'Shop & Temple', key: 's', icon: '✚' }, { id: 'ledger', label: 'Journal', key: 'j', icon: '✎' },
 ];
 
 /** The save slots: what each holds and when it was saved; a slot holding another game asks before it is overwritten. */
@@ -94,7 +95,7 @@ function TopBar({ g }: { g: GameState }) {
 const ABOUT_KEY = 'ashfall-ledger/ui/about-open';
 function readAbout(): boolean { try { return localStorage.getItem(ABOUT_KEY) !== '0'; } catch { return true; } }
 
-function NextSteps({ g }: { g: GameState }) {
+function NextSteps({ g, one = false }: { g: GameState; one?: boolean }) {
   const setTab = useGame(s => s.setTab);
   const plan = useGame(s => s.plan);
   const loc = g.player.location;
@@ -103,15 +104,15 @@ function NextSteps({ g }: { g: GameState }) {
     const p = planRoute(g, plan);
     planHint = p ? { text: `Route plan to ${C.locs[plan].name}: next stop ${C.locs[p.path[1]].name} (${p.days * g.timeScale} days in all).`, tab: 'map' } : { warn: true, text: `Your route plan to ${C.locs[plan].name} is blocked right now.`, tab: 'map' };
   }
-  const hints = [...(planHint ? [planHint] : []), ...nextSteps(g)].slice(0, 2);
+  const hints = [...(planHint ? [planHint] : []), ...nextSteps(g)].slice(0, one ? 1 : 2);
   if (!hints.length) return null;
   return (
-    <div className="panel px-4 py-2 flex flex-col gap-1 text-sm" aria-label="Next steps">
+    <div className={`panel flex flex-col gap-1 text-sm ${one ? 'phone-hint px-3' : 'px-4 py-2'}`} aria-label="Next steps">
       {hints.map((h, i) => (
         <div key={i} className="flex items-center gap-2">
           <span className={h.warn ? 'text-danger' : 'text-gold'} aria-hidden="true">{h.warn ? '⚠' : '→'}</span>
           <span className={h.warn ? 'text-bone' : 'text-parchment'}>{h.text}</span>
-          {h.tab && <button className="btn btn-ghost ml-auto py-0.5" onClick={() => setTab(h.tab!)}>{TABS.find(t => t.id === h.tab)?.label}</button>}
+          {h.tab && !(one && h.tab === useGame.getState().tab) && <button className="btn btn-ghost ml-auto py-0.5" onClick={() => setTab(h.tab!)}>{TABS.find(t => t.id === h.tab)?.label}</button>}
         </div>
       ))}
     </div>
@@ -169,7 +170,9 @@ function GoalChip({ g }: { g: GameState }) {
   );
 }
 
-export function GameScreen() {
+export function GameScreen() { return PHONE ? <PhoneGame /> : <DesktopGame />; }
+
+function DesktopGame() {
   const g = useGame(s => s.game)!;
   const { tab, setTab } = useGame();
   // content slides in from the side of the tab you moved toward
@@ -209,6 +212,87 @@ export function GameScreen() {
           </AnimatePresence>}
         </main>
       </div>
+    </div>
+  );
+}
+
+/** A sheet sliding in from the right edge of the phone screen; a tap outside, ✕ or Back closes it. */
+export function Sheet({ title, onClose, children, side = 'right' }: { title: React.ReactNode; onClose: () => void; children: React.ReactNode; side?: 'left' | 'right' }) {
+  useBack(true, onClose);
+  return (
+    <div className="fixed inset-0 z-40 phone-scrim" onClick={onClose}>
+      <motion.aside role="dialog" aria-label={typeof title === 'string' ? title : undefined} className={`phone-sheet phone-sheet-${side} panel-solid`} onClick={e => e.stopPropagation()}
+        initial={{ x: side === 'right' ? 40 : -40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.18 }}>
+        <div className="flex items-center gap-2 mb-2"><h2 className="h-display text-gold text-lg min-w-0">{title}</h2><button className="btn btn-ghost ml-auto" aria-label="Close" onClick={onClose}>✕</button></div>
+        {children}
+      </motion.aside>
+    </div>
+  );
+}
+
+/** The phone shell: a status strip on top, the tabs as a left rail, and the tab's content filling the rest. */
+function PhoneGame() {
+  const g = useGame(s => s.game)!;
+  const { tab, setTab, openCodex, openSettings, setScreen } = useGame();
+  const hints = useGame(s => s.meta.settings.hints);
+  const { sheet, setSheet, tabs } = usePhone();
+  useEffect(() => { if (tabs[tabs.length - 1] !== tab) tabs.push(tab); if (tabs.length > 20) tabs.splice(0, tabs.length - 20); }, [tab, tabs]);
+  const close = () => setSheet(null);
+  const pr = pressure(g);
+  const L = C.locs[g.player.location];
+  const road = g.player.location === 'road';
+  return (
+    <div className="phone-shell">
+      <header className="phone-strip panel">
+        <button className="btn btn-ghost" onClick={() => setSheet('town')} title="Town: laws, merchants, news"><span className="num">{formatDate(g.day, false)}</span> · <span className="text-bone">{L?.name ?? 'On the road'}</span></button>
+        <button className="btn btn-ghost gap-3" onClick={() => setSheet('wallet')} title="Your money: cash, debt, bank and net worth">
+          <span id="cash-counter">Cash <RollingMoney v={g.player.cash} className="text-bone" /></span>
+          <span>Debt {g.note.cleared ? <span className="text-moss">cleared</span> : <span id="debt-counter"><RollingMoney v={g.note.balance} className={pr >= 2 ? 'text-danger' : 'text-ember'} /></span>}{pr > 0 && !g.note.cleared && <span className="text-danger ml-0.5">{'⚠'.repeat(pr)}</span>}</span>
+          <span>Cargo <span className="num">{cargoWeight(g)}/{capacity(g)}</span></span>
+        </button>
+        <span className="flex items-center gap-1" title="Health">♥ <Meter v={g.player.health} color={g.player.health < 35 ? 'var(--c-bad)' : 'var(--c-good)'} /></span>
+        <GoalChip g={g} />
+        <button className="btn btn-ghost ml-auto" onClick={() => setSheet('menu')} aria-label="Menu" title="Codex, settings, save, quit">☰</button>
+      </header>
+      <nav className="phone-rail" role="tablist" aria-orientation="vertical">
+        {TABS.map(t => (
+          <button key={t.id} role="tab" aria-selected={tab === t.id} className="phone-tab" onClick={() => setTab(t.id)}>
+            <span className="text-lg leading-none" aria-hidden="true">{t.icon}</span><span>{t.id === 'outfitter' ? 'Shop' : t.label}</span>
+          </button>
+        ))}
+      </nav>
+      <main className={`phone-main ${tab === 'map' && !road ? 'phone-main-map' : ''}`}>
+        <div className="phone-scroll">
+        {road ? <div className="panel p-4 fell text-lg text-parchment">On the road{g.pending ? ` to ${C.locs[g.pending.dest]?.name ?? '…'}` : ''}. Something blocks the way: make your choice to continue.</div> : <>
+          {tab === 'market' && <Market g={g} />}
+          {tab === 'map' && <MapView g={g} />}
+          {tab === 'bank' && <Bank g={g} />}
+          {tab === 'tavern' && <Tavern g={g} />}
+          {tab === 'outfitter' && <Outfitter g={g} />}
+          {tab === 'ledger' && <Ledger g={g} />}
+        </>}
+        </div>
+        {hints && tab === 'market' && !road && <NextSteps g={g} one />}
+      </main>
+      {sheet === 'town' && <Sheet title="Town" onClose={close}>{L ? <LocationPanel g={g} /> : <p className="text-parchment">On the road.</p>}</Sheet>}
+      {sheet === 'wallet' && <Sheet title="Your money" onClose={close}>
+        <dl className="phone-dl">
+          <dt>Cash</dt><dd><Money v={g.player.cash} /></dd>
+          <dt>Debt</dt><dd>{g.note.cleared ? 'cleared' : <><Money v={g.note.balance} /> <span className="text-ash-400 text-xs">(interest about {Math.round(g.note.balance * g.note.rate)} a day)</span></>}</dd>
+          <dt>Bank</dt><dd><Money v={depositsTotal(g)} /><div className="text-xs text-ash-400 whitespace-pre-line">{bankTip(g)}</div></dd>
+          <dt>Cargo</dt><dd className="num">{cargoWeight(g)}/{capacity(g)}</dd>
+          <dt>Net worth</dt><dd><Money v={netWorth(g)} className="text-gold" /><div className="text-xs text-ash-400">Cash + bank deposits + cargo value − debt</div></dd>
+        </dl>
+        <button className="btn mt-3 w-full" onClick={() => { close(); setTab('bank'); }}>Open the Bank</button>
+      </Sheet>}
+      {sheet === 'menu' && <Sheet title="Menu" onClose={close}>
+        <div className="flex flex-col gap-2">
+          <button className="btn" onClick={() => { close(); openCodex(null); }}>Codex</button>
+          <button className="btn" onClick={() => { close(); openSettings(); }}>Settings</button>
+          <SaveSlots g={g} />
+          <button className="btn btn-ghost" onClick={() => { close(); setScreen('title'); }}>Quit to title</button>
+        </div>
+      </Sheet>}
     </div>
   );
 }

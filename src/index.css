@@ -127,6 +127,11 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
   mask-image: var(--fade-x), var(--fade-y); mask-composite: intersect;
   filter: drop-shadow(0 12px 28px var(--shadow-strong));
 }
+/* touch screens: a long-press shows a tip or does a shortcut, so it must not select text or open the browser's menu */
+@media (pointer: coarse) {
+  body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  input, textarea { -webkit-user-select: text; user-select: text; }
+}
 /* hover tips (Tooltip.tsx) */
 .tip { border-radius: 6px; box-shadow: 0 6px 18px var(--shadow-strong); line-height: 1.45; }
 /* a traded market row glows briefly: an overlay that fades out (opacity only, so the page isn't repainted every frame) */
@@ -149,3 +154,54 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 @keyframes shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-4px); } 40%, 60% { transform: translateX(4px); } }
 .shake { animation: shake .5s; }
 @media (prefers-reduced-motion: reduce) { .flash-up, .flash-down, .shake { animation: none; } }
+
+/* ---- Android app (html.phone): Galaxy A26 in landscape, 892×412. 24 px kept clear left and right for the camera. */
+.phone body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+.phone .btn, .phone .input, .phone select { min-height: 44px; }
+.phone input[type="checkbox"] { width: 22px; height: 22px; }
+.phone .title-menu { display: grid; grid-template-columns: 1fr 1fr; width: min(640px, 90vw); margin-top: 1rem; }
+.phone .title-menu > :first-child:not(:only-child) { grid-column: 1 / -1; }
+.phone .logo-art { width: min(52vw, 440px); }
+.phone-shell { position: relative; z-index: 10; height: 100dvh; display: grid; grid-template-columns: 64px minmax(0, 1fr); grid-template-rows: 44px minmax(0, 1fr); column-gap: 8px;
+  padding: 0 max(24px, env(safe-area-inset-right)) 0 max(24px, env(safe-area-inset-left)); }
+.phone-strip { grid-column: 1 / -1; display: flex; align-items: center; gap: 4px; padding: 0 4px; font-size: 13px; border-top: 0; border-radius: 0 0 8px 8px; white-space: nowrap; overflow: hidden; }
+.phone-strip .btn { min-height: 44px; min-width: 48px; padding: 0 8px; font-size: 12px; justify-content: center; }
+.phone-rail { display: flex; flex-direction: column; gap: 3px; padding-top: 8px; }
+.phone-tab { height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 8px; font-size: 11px; color: var(--c-muted); border: 1px solid transparent; }
+.phone-tab[aria-selected="true"] { color: var(--c-text); background: color-mix(in oklab, var(--c-accent) 22%, transparent); border-color: var(--c-accent); }
+.phone-main { min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 0; }
+.phone-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.phone-main-map { padding-bottom: 0; }
+.phone-main-map .phone-scroll { overflow: hidden; }
+.phone-hint { flex: none; min-height: 32px; justify-content: center; font-size: 12px; }
+.phone-hint .btn { min-height: 44px; }
+.phone-scrim { background: rgb(0 0 0 / .35); }
+.phone-sheet { position: absolute; top: 0; bottom: 0; width: 340px; max-width: 80vw; overflow-y: auto; padding: 10px 12px; border-radius: 0; }
+.phone-sheet-right { right: 0; padding-right: max(24px, env(safe-area-inset-right)); }
+.phone-sheet-left { left: 0; padding-left: max(24px, env(safe-area-inset-left)); }
+.phone-dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; font-size: 14px; }
+.phone-dl dt { color: var(--c-muted); }
+.phone-undo { position: fixed; z-index: 45; left: 0; right: 0; margin: 0 auto; bottom: 10px; width: min(470px, 80vw); min-height: 56px; display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 14px; font-size: 13px; }
+.phone .panel.p-3, .phone .panel.p-4 { padding: 8px 10px; }
+.phone .market-head { flex-wrap: nowrap; gap: 6px; position: sticky; top: 0; z-index: 5; background: var(--c-panel-bottom); padding: 2px 0; }
+.phone .market-head [role="radiogroup"] .btn { width: 44px; padding: 0; justify-content: center; }
+.phone .market-head > .btn { font-size: 12px; padding: 0 10px; white-space: nowrap; }
+.phone .market-table td { padding-top: 4px; padding-bottom: 4px; vertical-align: middle; }
+.phone .market-table td:first-child > div { max-width: 210px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone .market-table td:last-child .btn { width: 140px; justify-content: center; font-size: 12.5px; }
+.phone .market-table tbody tr { cursor: pointer; }
+.phone .market-table thead th:last-child { width: 300px; }
+.map-glass { background: color-mix(in oklab, var(--c-panel-bottom) 93%, transparent); min-height: 48px; }
+.phone .map-pop .btn { min-height: 44px; }
+.phone [role="dialog"] .fell.text-lg { font-size: 15px; }
+.phone .title-root { justify-content: flex-start; padding: 8px 24px; }
+.phone .title-kicker { display: none; }
+.phone .logo-art { width: auto; height: 118px; }
+.phone .title-blurb { font-size: 13px; margin-top: 2px; }
+.phone .title-menu { margin-top: 8px; gap: 6px; }
+.phone .newgame-actions { position: sticky; bottom: 0; z-index: 5; margin: 8px -8px 0; padding: 8px; background: var(--c-panel-bottom); border-top: 1px solid var(--c-panel-border); }
+.phone [data-card] button[aria-label="Close"] { min-width: 48px; }
+.phone [role="dialog"].p-5 { padding: 12px 14px; max-height: calc(100dvh - 16px); }
+.phone [role="dialog"] h2.text-2xl { font-size: 18px; margin-bottom: 4px; }
+.phone [role="dialog"] .fell.text-lg { font-size: 14px; line-height: 1.35; margin-bottom: 8px; }
+.phone [role="dialog"] .grid > .btn { padding-top: 4px; padding-bottom: 4px; }

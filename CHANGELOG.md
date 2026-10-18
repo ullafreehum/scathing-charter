@@ -4,6 +4,10 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.10.5 (beta): Android test app and more music
+- Three more songs by Sorcerer: Salt & Silt, Red Mountain Procession and Ghostgate Vigil. With Music on, the game moves to another of the four songs every five minutes, keeping the mood (calm, after Baar Dau, duel).
+- Android app (debug APK for the Galaxy A26, landscape): a phone layout with a left tab rail, a status strip and sheets for the town, your money and the menu; a touch Market (labelled Buy/Sell buttons, tap a row for details, an Undo bar) and a full-screen touch map (pinch, double tap, a town sheet, Places and Layers). The Back button closes sheets, steps back through tabs, then asks to quit. Music pauses when the app goes to the background. No card duel on the phone: fines and seized goods stand, with no hearing. Desktop and web are unchanged.
+
 ## 0.10.2 (beta): the Solstheim fix
 - Ebony and stalhrim no longer make an easy fortune between Solstheim and Skyrim: Raven Rock sells them dearer, Skyrim and the Imperial City pay less for them.
 - Restricted goods cost more to buy (half again from the East Empire Company, 40% more from a fence), and buying many at once raises their price faster.

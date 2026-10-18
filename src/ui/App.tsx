@@ -17,7 +17,8 @@ import { Toasts } from './Toasts';
 import { TravelBanner } from './TravelBanner';
 import { FxLayer, NightDip } from './fx';
 import { applyAppearance, themeById } from './themes';
-import { setMusicMood, startWind, stopWind } from '../audio/sfx';
+import { pauseAudio, setMusicMood, startWind, stopWind } from '../audio/sfx';
+import { back, exitApp, onBackButton, onPause, usePhone } from './phone';
 
 function ashIntensity(day: number, region: string | undefined): number {
   let i = day < ERUPTION_DAY ? 0.12 + 0.75 * (day / ERUPTION_DAY) ** 2 : Math.max(0.55, 1.4 - (day - ERUPTION_DAY) / 400);
@@ -42,6 +43,21 @@ export function App() {
   }, [screen, intensity, st.sound]);
   const mood = screen === 'duel' || (screen === 'game' && game?.duel) ? 2 : ember ? 1 : 0;
   useEffect(() => { setMusicMood(mood); }, [mood]);
+  // Android: Back closes the dialog or sheet on top, then steps back through the tabs, then asks to quit to the title.
+  useEffect(() => onBackButton(() => {
+    const s = useGame.getState();
+    if (s.ask) { s.answer(false); return; }
+    if (s.settingsOpen) { s.closeSettings(); return; }
+    if (s.codex !== undefined) { s.closeCodex(); return; }
+    back(() => {
+      if (s.screen === 'title') { exitApp(); return; }
+      if (s.screen !== 'game') { s.setScreen('title'); return; }
+      const tabs = usePhone.getState().tabs;
+      if (tabs.length > 1) { tabs.pop(); s.setTab(tabs.pop() as typeof s.tab); return; }
+      void s.confirm({ title: 'Quit to title?', text: 'Your game is saved as you play.', yes: 'Quit to title', no: 'Keep playing' }).then(y => { if (y) { tabs.length = 0; useGame.getState().setScreen('title'); } });
+    });
+  }), []);
+  useEffect(() => onPause(pauseAudio), []);
   useEffect(() => { if (!error) return; const t = setTimeout(clearError, 3500); return () => clearTimeout(t); }, [error, errorTick, clearError]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

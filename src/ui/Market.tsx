@@ -5,6 +5,9 @@ import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
 import { coinBurst, coinsFor } from './fx';
+import { onLongPress } from './Tooltip';
+import { PHONE, usePhone } from './phone';
+import { Sheet } from './Game';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ago, bestSeenSell } from './prices';
 
@@ -54,6 +57,21 @@ export function Market({ g }: { g: GameState }) {
   const gain = (q: Quote) => (q.buy === null ? -Infinity : (bestSeenSell(g, q.good, loc)?.price ?? -Infinity) - q.buy) / C.goods[q.good].weight;
   if (sort === 'gain') rows = [...rows].sort((a, b) => gain(b) - gain(a));
   const chip = (on: boolean) => `btn px-2 py-0.5 ${on ? 'btn-ember' : 'btn-ghost'}`;
+  // Phone: the Show, Sort and Keep fare choices live in a sheet, and each trade shows an Undo bar for 5 seconds.
+  const [filters, setFilters] = useState(false);
+  const [done, setDone] = useState<{ text: string; n: number } | null>(null);
+  useEffect(() => { if (!done) return; const t = setTimeout(() => setDone(null), 5000); return () => clearTimeout(t); }, [done]);
+  const tell = (text: string) => { if (PHONE) setDone(d => ({ text, n: (d?.n ?? 0) + 1 })); };
+  const showSort = <>
+    <div className="flex flex-wrap items-center gap-1" role="radiogroup" aria-label="Show">
+      <span className="text-ash-400 mr-1">Show</span>
+      {([['all', 'All'], ['cargo', 'My cargo'], ['cheap', 'Cheap here ▼']] as const).map(([f, l]) => <button key={f} role="radio" aria-checked={filter === f} className={chip(filter === f)} onClick={() => setFilter(f)}>{l}</button>)}
+    </div>
+    <label className="flex items-center gap-1"><span className="text-ash-400">Sort</span>
+      <select className="input w-auto py-0.5" value={sort} onChange={e => setSort(e.target.value as Sort)}><option value="usual">Usual</option><option value="name">Name</option><option value="price">Cheapest first</option><option value="gain">Best profit elsewhere</option></select></label>
+    <label className="flex items-center gap-1" title="Buying leaves enough cash for the cheapest trip out of here, with the new cargo aboard"><input type="checkbox" checked={keepFare} onChange={e => setKeepFare(e.target.checked)} /><span className="text-ash-400">Keep fare</span></label>
+  </>;
+  const help = `Buy and Sell use the amount chosen above, capped by your cash, cargo space and what you own.${PHONE ? ' Hold a Buy or Sell button for the most on that row; hold a good for its Codex entry; tap a row for its details.' : ' Hold Shift to make them Buy max and Sell max on the row under your cursor.'} ▼ cheap / ▲ expensive compared with the usual price across Tamriel. * sold with a restriction.${PHONE ? '' : ' ▸ opens a good\'s details.'} “Best seen elsewhere” comes from towns you have visited, so it can be out of date. Selling a lot lowers the price; buying a lot raises it.`;
   return (
     <div className="flex flex-col gap-3">
       {!marketOpen(g, loc) && (
@@ -67,7 +85,7 @@ export function Market({ g }: { g: GameState }) {
       )}
       {hol && !hol.marketClosed && <div className="panel p-3 text-sm"><span className="text-gold h-display">{hol.name}.</span> {hol.text}</div>}
       {(loc === 'lilmoth' || loc === 'stormhold') && !g.player.licence && <div className="panel p-3 text-sm text-ember">Foreigners need a trade licence here. Buy one at the Lilmoth gate (Shop & Temple tab) or from the Argonian agent in Leyawiin.</div>}
-      {canContest(g) && g.appeal && (
+      {!PHONE && canContest(g) && g.appeal && (
         <div className="panel p-3 flex flex-wrap items-center gap-2 text-sm">
           <span className="text-gold h-display">{Object.keys(g.appeal.goods).length ? 'Seized goods.' : 'A fine to contest.'}</span>
           <span>You may take it before the magistrate, a card hearing. Win and you get back {Object.keys(g.appeal.goods).length ? 'your goods' : ''}{Object.keys(g.appeal.goods).length && g.appeal.fine ? ' and ' : ''}{g.appeal.fine ? <>the <Money v={g.appeal.fine} /> fine</> : ''}; lose and you pay <Money v={courtCost(g.appeal)} /> more. You can contest it until {formatDate(g.appeal.until ?? g.day)}, in the town where it happened or at the courts of Vivec, Ebonheart, Narsis and Mournhold.</span>
@@ -80,30 +98,25 @@ export function Market({ g }: { g: GameState }) {
           <button className="btn btn-ember ml-auto" onClick={() => act({ t: 'deliver', id: c.id })}>Deliver</button>
         </div>
       ); })}
-      <Section title="Goods" right={<span className="text-xs text-ash-400">Cash <Money v={g.player.cash} className="text-gold" /> · <span title="The fare grows with your cargo: the second figure is the fare with your hold full">cheapest trip <Money v={fareWith(0)} /> (full load <Money v={fareWith(free)} />)</span> · space left {free}</span>}>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2 text-sm">
+      <Section title={PHONE ? '' : 'Goods'} right={<span className="text-xs text-ash-400">Cash <Money v={g.player.cash} className="text-gold" /> · <span title="The fare grows with your cargo: the second figure is the fare with your hold full">cheapest trip <Money v={fareWith(0)} /> (full load <Money v={fareWith(free)} />)</span> · space left {free}</span>}>
+        <div className="market-head flex flex-wrap items-center gap-x-4 gap-y-2 mb-2 text-sm">
+          {PHONE && <button className="btn" onClick={() => usePhone.getState().setSheet('town')}>Town ▾</button>}
           <div className="flex items-center gap-1" role="radiogroup" aria-label="Trade amount">
             <span className="text-ash-400 mr-1">Amount</span>
             {AMOUNTS.map(n => <button key={n} role="radio" aria-checked={amt === n} className={chip(amt === n)} onClick={() => setAmt(n)}><span className="font-body num">{n}</span></button>)}
             <button role="radio" aria-checked={amt === 'max'} className={chip(amt === 'max')} onClick={() => setAmt('max')} title="Buy as many as you can afford and carry; sell everything">Max</button>
-            <input aria-label="Custom amount" type="number" min={1} placeholder="other" className="input w-20 num py-0.5"
-              value={typeof amt === 'number' && !AMOUNTS.includes(amt) ? amt : ''} onChange={e => setAmt(Math.max(1, Math.floor(Number(e.target.value) || 1)))} />
+            {!PHONE && <input aria-label="Custom amount" type="number" min={1} placeholder="other" className="input w-20 num py-0.5"
+              value={typeof amt === 'number' && !AMOUNTS.includes(amt) ? amt : ''} onChange={e => setAmt(Math.max(1, Math.floor(Number(e.target.value) || 1)))} />}
           </div>
-          <div className="flex items-center gap-1" role="radiogroup" aria-label="Show">
-            <span className="text-ash-400 mr-1">Show</span>
-            {([['all', 'All'], ['cargo', 'My cargo'], ['cheap', 'Cheap here ▼']] as const).map(([f, l]) => <button key={f} role="radio" aria-checked={filter === f} className={chip(filter === f)} onClick={() => setFilter(f)}>{l}</button>)}
-          </div>
-          <label className="flex items-center gap-1"><span className="text-ash-400">Sort</span>
-            <select className="input w-auto py-0.5" value={sort} onChange={e => setSort(e.target.value as Sort)}><option value="usual">Usual</option><option value="name">Name</option><option value="price">Cheapest first</option><option value="gain">Best profit elsewhere</option></select></label>
-          <label className="flex items-center gap-1" title="Buying leaves enough cash for the cheapest trip out of here, with the new cargo aboard"><input type="checkbox" checked={keepFare} onChange={e => setKeepFare(e.target.checked)} /><span className="text-ash-400">Keep fare</span></label>
-          <button className="btn ml-auto" disabled={!profitable.length} onClick={e => { const el = e.currentTarget; let sum = 0; for (const q of profitable) { const n = g.player.cargo[q.good].qty; if (act({ t: 'sell', good: q.good, qty: n })) sum += n * (q.sell ?? 0); } if (sum) coinBurst(el, 'cash', coinsFor(sum)); }}
-            title="Sell every good whose price here is above what you paid">Sell all at a profit{profitable.length ? ` (${profitable.length})` : ''}</button>
-          {undo.length > 0 && <button className="btn btn-ghost" onClick={undoTrade} title="Take back your last buy or sell. Works until you travel, wait or do anything else.">↶ Undo last trade{undo.length > 1 ? ` (${undo.length})` : ''}</button>}
+          {PHONE ? <button className="btn" onClick={() => setFilters(true)}>Filter ▾{filter !== 'all' && <span className="text-gold" aria-label="(on)"> •</span>}</button> : showSort}
+          <button className="btn ml-auto" disabled={!profitable.length} onClick={e => { const el = e.currentTarget; let sum = 0; for (const q of profitable) { const n = g.player.cargo[q.good].qty; if (act({ t: 'sell', good: q.good, qty: n })) sum += n * (q.sell ?? 0); } if (sum) { coinBurst(el, 'cash', coinsFor(sum)); tell(`Sold ${profitable.length} goods at a profit`); } }}
+            title="Sell every good whose price here is above what you paid">{PHONE ? 'Sell all' : 'Sell all at a profit'}{profitable.length ? ` (${profitable.length})` : ''}</button>
+          {PHONE ? <button className="btn btn-ghost" disabled={!undo.length} onClick={undoTrade}>↶ Undo</button> : undo.length > 0 && <button className="btn btn-ghost" onClick={undoTrade} title="Take back your last buy or sell. Works until you travel, wait or do anything else.">↶ Undo last trade{undo.length > 1 ? ` (${undo.length})` : ''}</button>}
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="market-table w-full text-sm">
             <thead><tr className="text-left text-xs h-display uppercase text-ash-400">
-              <th className="py-1">Good</th><th>Weight</th><th className="text-right pl-2">You buy</th><th className="text-right pl-3">You sell</th><th className="text-right pl-3">Owned</th><th className="text-right pl-3" title="The highest price you have seen for it in another town">Best seen elsewhere</th><th></th>
+              <th className="py-1">Good</th>{!PHONE && <th>Weight</th>}<th className="text-right pl-2">You buy</th><th className="text-right pl-3">You sell</th><th className="text-right pl-3">Owned</th>{!PHONE && <th className="text-right pl-3" title="The highest price you have seen for it in another town">Best seen elsewhere</th>}<th></th>
             </tr></thead>
             <tbody>
               <AnimatePresence initial={false}>
@@ -114,7 +127,10 @@ export function Market({ g }: { g: GameState }) {
                 const asMax = amt === 'max' || maxRow === q.good;
                 const nBuy = asMax ? maxBuy : Math.min(amt as number, maxBuy);
                 const nSell = lot && q.sell !== null ? (asMax ? lot.qty : Math.min(amt as number, lot.qty)) : 0;
-                const maxWord = maxRow === q.good ? 'max ' : '';
+                const maxWord = maxRow === q.good || (PHONE && amt === 'max') ? 'max ' : '';
+                // Phone: a button that can't act says why, in words, instead of a tooltip.
+                const whyBuy = q.buy === null ? 'Not for sale' : g.player.cash < q.buy ? `Need ${Math.ceil(q.buy - g.player.cash)} more` : free < G.weight ? 'Hold full' : 'Saving the fare';
+                const whySell = !lot ? 'Nothing to sell' : 'Nobody buys this';
                 const margin = lot && q.sell !== null ? Math.round(q.sell - lot.cost) : null;
                 const l = LEG[q.legality];
                 const sat = g.markets[loc]?.[q.good]?.sat ?? 1;
@@ -123,6 +139,13 @@ export function Market({ g }: { g: GameState }) {
                 const buyTotal = nBuy > 0 ? bulkBuyTotal(q.buy!, nBuy, DEPTH[G.category]) : 0;
                 const sellTotal = nSell > 0 ? bulkSellTotal(q.sell!, nSell, DEPTH[G.category]) : 0;
                 const isOpen = open === q.good;
+                // Buy and Sell, also used by the long-press shortcut (max for this row) on touch screens.
+                const buy = (n: number, el: Element) => { if (n >= 1 && act({ t: 'buy', good: q.good, qty: n })) { coinBurst('cash', el, coinsFor(n * (q.buy ?? 0))); traded(q.good); tell(`Bought ${n} ${G.name} for ${bulkBuyTotal(q.buy!, n, DEPTH[G.category]).toLocaleString('en-US')} septims`); } };
+                const sell = async (n: number, el: Element) => {
+                  if (n < 1 || q.sell === null) return;
+                  if (margin !== null && margin < 0 && !(await useGame.getState().confirm({ title: `Sell at a loss?`, text: `${n} ${G.name} at ${-margin} below what you paid each: ${-margin * n} septims lost in all.`, yes: 'Sell anyway' }))) return;
+                  if (act({ t: 'sell', good: q.good, qty: n })) { coinBurst(el, 'cash', coinsFor(n * (q.sell ?? 0))); traded(q.good); tell(`Sold ${n} ${G.name} for ${bulkSellTotal(q.sell, n, DEPTH[G.category]).toLocaleString('en-US')} septims`); }
+                };
                 // Everything the row's hover tips say, written out for touch and keyboard players.
                 const details = [
                   l.tip,
@@ -133,10 +156,13 @@ export function Market({ g }: { g: GameState }) {
                   q.sell !== null && `Sell to ${q.sellTo}${q.sellNote ? ` (${q.sellNote})` : ''}.`,
                   nSell > 1 && `Selling ${nSell} at once brings ${sellTotal.toLocaleString('en-US')} (${Math.round(sellTotal / nSell)} each instead of ${q.sell}).`,
                   lot && `You own ${lot.qty}, bought at ${Math.round(lot.cost)} each on average.`,
+                  PHONE && `Weight ${G.weight} each.${nBuy > 0 ? ` Buying ${nBuy} costs ${buyTotal.toLocaleString('en-US')} and leaves ${free - nBuy * G.weight} space.` : ''}${nSell > 0 ? ` Selling ${nSell} brings ${sellTotal.toLocaleString('en-US')}.` : ''}`,
                   best && `Best price seen elsewhere: ${best.price} in ${C.locs[best.loc].name}, ${ago(best.age)}. Prices move, so older figures are less reliable.`,
                 ].filter((x): x is string => !!x);
                 return [
-                  <motion.tr key={q.good} onPointerEnter={e => enterRow(q.good, e)} className={`relative border-t border-ash-700 hover:bg-ash-800 ${lot ? 'bg-ash-800/60' : ''}`}
+                  <motion.tr key={q.good} onPointerEnter={e => enterRow(q.good, e)}
+                    onClick={PHONE ? e => { if (!(e.target as Element).closest('button, a')) setOpen(isOpen ? null : q.good); } : undefined}
+                    ref={PHONE ? onLongPress<HTMLTableRowElement>(() => useGame.getState().openCodex(`good:${q.good}`)) : undefined} className={`relative border-t border-ash-700 hover:bg-ash-800 ${lot ? 'bg-ash-800/60' : ''}`}
                     initial={arriving ? { opacity: 0, x: -10 } : { opacity: 0 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
                     transition={{ duration: 0.28, delay: arriving ? Math.min(i, 15) * 0.028 : 0, ease: [0.22, 1, 0.36, 1] }}>
                     <td className="py-1.5 pr-2">
@@ -145,36 +171,43 @@ export function Market({ g }: { g: GameState }) {
                       {l.label && <span title={l.tip} className={`ml-1 text-[.7rem] h-display uppercase ${l.cls}`}>{l.label}</span>}
                       {sat < 0.85 && <span className="ml-1 text-[.7rem] h-display uppercase text-danger" title={`So much has been sold here lately that the price is down. Back to normal in about ${satRecoveryDays(sat)} days.`}>Flooded · {satRecoveryDays(sat)}d</span>}
                       {sat > 1.2 && <span className="ml-1 text-[.7rem] h-display uppercase text-gold" title={`So much has been bought here lately that the price is up. Back to normal in about ${satRecoveryDays(sat)} days.`}>Bought out · {satRecoveryDays(sat)}d</span>}
-                      <button className="ml-1 px-1 text-ash-400 hover:text-bone" aria-expanded={isOpen} aria-label="Details" title={`${isOpen ? 'Hide' : 'Show'} details`} onClick={() => setOpen(isOpen ? null : q.good)}>{isOpen ? '▾' : '▸'}</button>
+                      {!PHONE && <button className="ml-1 px-1 text-ash-400 hover:text-bone" aria-expanded={isOpen} aria-label="Details" title={`${isOpen ? 'Hide' : 'Show'} details`} onClick={() => setOpen(isOpen ? null : q.good)}>{isOpen ? '▾' : '▸'}</button>}
                       <div className="text-xs text-ash-400">{G.short}{tend && <span className="text-gold"> · {(C.locs[loc].tendencies[q.good] ?? 1) < 0.9 ? 'usually cheap here' : (C.locs[loc].tendencies[q.good] ?? 1) > 1.2 ? 'usually expensive here' : 'usual price here'}</span>}</div>
                     </td>
-                    <td className="num text-ash-400">{G.weight}</td>
+                    {!PHONE && <td className="num text-ash-400">{G.weight}</td>}
                     <td className="text-right whitespace-nowrap">{q.buy !== null ? <span title={`from ${q.buyFrom}`}><Money v={q.buy} /> {r < 0.8 ? <span className="text-moss" title="Cheap: well below the usual price">▼</span> : r > 1.25 ? <span className="text-danger" title="Expensive: well above the usual price">▲</span> : null}</span> : <span className="text-ash-400 text-xs">{q.stock ? '—' : 'out of stock'}</span>}</td>
                     <td className="text-right whitespace-nowrap">{q.sell !== null ? <span title={`to ${q.sellTo}${q.sellNote ? ` (${q.sellNote})` : ''}`}><Money v={q.sell} />{q.sellNote && <span className="text-ice text-xs">*</span>}</span> : <span className="text-ash-400 text-xs">no buyer</span>}
                       {margin !== null && <div className={`text-xs ${margin >= 0 ? 'text-moss' : 'text-danger'}`} title={`You paid ${Math.round(lot!.cost)} each`}>{margin >= 0 ? '+' : ''}{margin} each</div>}</td>
                     <td className="text-right num pl-3">{lot ? <motion.span key={lot.qty} className="inline-block" initial={{ scale: 1.4 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 600, damping: 15 }} title={`You paid ${Math.round(lot.cost)} each on average`}>{lot.qty}</motion.span> : <span className="text-ash-400">0</span>}</td>
-                    <td className="text-right pl-3 whitespace-nowrap">{best ? <span title={`Seen in ${C.locs[best.loc].name} ${ago(best.age)}. Prices move, so older figures are less reliable.`}><Money v={best.price} />{edge !== null && edge > 0 && <span className="text-moss text-xs"> (+{Math.round(edge)})</span>}<span className="block text-xs text-ash-400">{C.locs[best.loc].name}, {ago(best.age)}</span></span> : <span className="text-ash-400 text-xs">not seen yet</span>}</td>
+                    {!PHONE && <td className="text-right pl-3 whitespace-nowrap">{best ? <span title={`Seen in ${C.locs[best.loc].name} ${ago(best.age)}. Prices move, so older figures are less reliable.`}><Money v={best.price} />{edge !== null && edge > 0 && <span className="text-moss text-xs"> (+{Math.round(edge)})</span>}<span className="block text-xs text-ash-400">{C.locs[best.loc].name}, {ago(best.age)}</span></span> : <span className="text-ash-400 text-xs">not seen yet</span>}</td>}
                     <td className="whitespace-nowrap pl-3 text-right space-x-1">
-                      <button className="btn" disabled={nBuy < 1} onClick={e => { const el = e.currentTarget; if (act({ t: 'buy', good: q.good, qty: nBuy })) { coinBurst('cash', el, coinsFor(nBuy * (q.buy ?? 0))); traded(q.good); } }} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} for ${bulkBuyTotal(q.buy!, nBuy, DEPTH[G.category]).toLocaleString('en-US')} septims (the most you can afford and carry: ${maxBuy}). Buying many at once raises the price a little.`}>Buy {maxWord}{nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</button>
-                      <button className="btn" disabled={nSell < 1} onClick={async e => { const el = e.currentTarget; if (margin !== null && margin < 0 && !(await useGame.getState().confirm({ title: `Sell at a loss?`, text: `${nSell} ${G.name} at ${-margin} below what you paid each: ${-margin * nSell} septims lost in all.`, yes: 'Sell anyway' }))) return; if (act({ t: 'sell', good: q.good, qty: nSell })) { coinBurst(el, 'cash', coinsFor(nSell * (q.sell ?? 0))); traded(q.good); } }} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>Sell {maxWord}{nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</button>
-                      {(nBuy > 0 || nSell > 0) && <div className="text-xs text-ash-400 mt-0.5">{nBuy > 0 && <span title="Total cost, and cargo space left after buying">−<span className="num">{buyTotal.toLocaleString('en-US')}</span> · {free - nBuy * G.weight} space left</span>}{nBuy > 0 && nSell > 0 && ' | '}{nSell > 0 && <span title="What this sale brings in">+<span className="num">{sellTotal.toLocaleString('en-US')}</span></span>}</div>}
+                      <button className="btn" disabled={nBuy < 1} ref={onLongPress(el => buy(maxBuy, el))} onClick={e => buy(nBuy, e.currentTarget)} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} for ${bulkBuyTotal(q.buy!, nBuy, DEPTH[G.category]).toLocaleString('en-US')} septims (the most you can afford and carry: ${maxBuy}). Buying many at once raises the price a little.`}>{PHONE && nBuy < 1 ? whyBuy : <>Buy {maxWord}{nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</>}</button>
+                      <button className="btn" disabled={nSell < 1} ref={onLongPress(el => void sell(lot?.qty ?? 0, el))} onClick={e => void sell(nSell, e.currentTarget)} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>{PHONE && nSell < 1 ? whySell : <>{PHONE && amt === 'max' ? 'Sell all ' : `Sell ${maxWord}`}{nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</>}</button>
+                      {!PHONE && (nBuy > 0 || nSell > 0) && <div className="text-xs text-ash-400 mt-0.5">{nBuy > 0 && <span title="Total cost, and cargo space left after buying">−<span className="num">{buyTotal.toLocaleString('en-US')}</span> · {free - nBuy * G.weight} space left</span>}{nBuy > 0 && nSell > 0 && ' | '}{nSell > 0 && <span title="What this sale brings in">+<span className="num">{sellTotal.toLocaleString('en-US')}</span></span>}</div>}
                     </td>
                   </motion.tr>,
-                  isOpen && <tr key={`${q.good}-details`} className="bg-ash-800/40"><td colSpan={7} className="px-6 pb-2 text-xs text-parchment"><ul className="list-disc pl-4 space-y-0.5">{details.map((d, j) => <li key={j}>{d}</li>)}</ul></td></tr>,
+                  isOpen && <tr key={`${q.good}-details`} className="bg-ash-800/40"><td colSpan={PHONE ? 5 : 7} className="px-6 pb-2 text-xs text-parchment"><ul className="list-disc pl-4 space-y-0.5">{details.map((d, j) => <li key={j}>{d}</li>)}</ul></td></tr>,
                 ];
               })}
               </AnimatePresence>
-              {!rows.length && <tr><td colSpan={7} className="py-3 text-ash-400">Nothing matches this filter.</td></tr>}
+              {!rows.length && <tr><td colSpan={PHONE ? 5 : 7} className="py-3 text-ash-400">Nothing matches this filter.</td></tr>}
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-ash-400 mt-2">Buy and Sell use the amount chosen above, capped by your cash, cargo space and what you own. Hold Shift to make them Buy max and Sell max on the row under your cursor. ▼ cheap / ▲ expensive compared with the usual price across Tamriel. * sold with a restriction. ▸ opens a good's details. “Best seen elsewhere” comes from towns you have visited, so it can be out of date. Selling a lot lowers the price; buying a lot raises it.</p>
+        {!PHONE && <p className="text-xs text-ash-400 mt-2">{help}</p>}
       </Section>
       {cargoGoods.length > 0 && (
         <Section title="In your cargo, but nobody here buys it">
           <div className="flex flex-wrap gap-3 text-sm">{cargoGoods.map(id => <span key={id}><GoodIcon id={id} category={C.goods[id].category} /> <CodexLink id={`good:${id}`}>{C.goods[id].name}</CodexLink> ×{g.player.cargo[id].qty}</span>)}</div>
         </Section>
       )}
+      {filters && <Sheet title="Filter & more" onClose={() => setFilters(false)}><div className="flex flex-col items-start gap-3 text-sm">{showSort}<p className="text-xs text-ash-400">{help}</p></div></Sheet>}
+      <AnimatePresence>{done && (
+        <motion.div key={done.n} role="status" className="phone-undo panel-solid" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>
+          <span className="min-w-0 truncate">{done.text}</span>
+          <button className="btn ml-auto" disabled={!undo.length} onClick={() => { undoTrade(); setDone(null); }}>Undo</button>
+        </motion.div>
+      )}</AnimatePresence>
     </div>
   );
 }

@@ -9,6 +9,8 @@ import { themeById } from './themes';
 import { travelWarnings } from './hints';
 import { ago, outlook } from './prices';
 import { planRoute, type RoutePlan } from './route';
+import { PHONE, useBack } from './phone';
+import { onLongPress } from './Tooltip';
 import { BORDERS, ISLES, LAKES, MAINLAND, MARSH, MORROWIND_REGION, MOUNTAINS, RED_MOUNTAIN, RIVERS, SOLSTHEIM, VVARDENFELL } from './mapShapes';
 
 type Stroke = { stroke: string; dash?: string };
@@ -82,6 +84,10 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
   const [sel, setSel] = useState<string | null>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [markers, setMarkers] = useState<Set<Marker>>(readMarkers);
+  // Phone: one popup at a time over the map (View menu, Layers, the Places drawer); Back closes it, then the town sheet.
+  const [pop, setPop] = useState<'view' | 'layers' | 'places' | null>(null);
+  useBack(!!sel, () => setSel(null));
+  useBack(!!pop, () => setPop(null));
   const here = g.player.location;
   const opts = routeOptions(g);
   const byDest = new Map<string, RouteOption[]>();
@@ -153,20 +159,51 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
   }, [zoomAt]);
   const drag = useRef<{ x: number; y: number; cam: Cam; moved: boolean; id: number } | null>(null);
   const dragged = useRef(false);
+  // Touch: two fingers pinch-zoom about their midpoint; a double tap on open map zooms in.
+  const fingers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ d: number; cam: Cam; fx: number; fy: number } | null>(null);
+  const lastTap = useRef({ t: 0, x: 0, y: 0 });
+  const spread = () => { const [a, b] = [...fingers.current.values()]; return { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; };
   const onPointerDown = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest('[data-card]') || !camRef.current) return;
+    if ((e.target as HTMLElement).closest('[data-card], [data-float]') || !camRef.current) return;
     dragged.current = false;
+    if (e.pointerType === 'touch') {
+      fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (fingers.current.size === 2 && box.current) {
+        const r = box.current.getBoundingClientRect(), m = spread();
+        pinch.current = { d: m.d, cam: camRef.current, fx: (m.x - r.left) / r.width, fy: (m.y - r.top) / r.height };
+        drag.current = null; dragged.current = true; anim.current?.stop(); setView(null); return;
+      }
+    }
     drag.current = { x: e.clientX, y: e.clientY, cam: camRef.current, moved: false, id: e.pointerId };
   };
   const onPointerMove = (e: React.PointerEvent) => {
+    if (fingers.current.has(e.pointerId)) fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const pz = pinch.current;
+    if (pz && fingers.current.size === 2 && box.current) {
+      const a = box.current.clientHeight / box.current.clientWidth, w2 = Math.max(170, Math.min(1400, pz.cam.w * pz.d / spread().d));
+      const x0 = pz.cam.cx - pz.cam.w / 2 + pz.fx * pz.cam.w, y0 = pz.cam.cy - (pz.cam.w * a) / 2 + pz.fy * pz.cam.w * a;
+      setCam(clampCam({ cx: x0 - pz.fx * w2 + w2 / 2, cy: y0 - pz.fy * w2 * a + (w2 * a) / 2, w: w2 }, a));
+      return;
+    }
     const d = drag.current; if (!d || !box.current) return;
     const dx = e.clientX - d.x, dy = e.clientY - d.y;
-    if (!d.moved && Math.abs(dx) + Math.abs(dy) < 5) return;
+    if (!d.moved && Math.abs(dx) + Math.abs(dy) < (PHONE ? 8 : 5)) return;
     if (!d.moved) { d.moved = true; dragged.current = true; box.current.setPointerCapture(d.id); anim.current?.stop(); setView(null); }
     const k = d.cam.w / box.current.clientWidth;
     setCam(clampCam({ cx: d.cam.cx - dx * k, cy: d.cam.cy - dy * k, w: d.cam.w }, box.current.clientHeight / box.current.clientWidth));
   };
-  const endDrag = () => { drag.current = null; };
+  const endDrag = (e: React.PointerEvent) => {
+    fingers.current.delete(e.pointerId);
+    if (fingers.current.size < 2) pinch.current = null;
+    if (PHONE && e.type === 'pointerup' && drag.current && !dragged.current && box.current && !(e.target as Element).closest('[role="button"], [data-card], [data-float]')) {
+      // a tap on open map closes the town sheet; a second tap soon after zooms in there
+      const now = performance.now(), t = lastTap.current, r = box.current.getBoundingClientRect();
+      if (now - t.t < 320 && Math.hypot(e.clientX - t.x, e.clientY - t.y) < 30) { zoomAt(1 / 1.6, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); lastTap.current = { t: 0, x: 0, y: 0 }; }
+      else { lastTap.current = { t: now, x: e.clientX, y: e.clientY }; setSel(null); setPop(null); }
+    }
+    drag.current = null;
+  };
   const pick = (id: string) => { if (dragged.current) return; setSel(s => (s === id ? null : id)); };
 
   // keys: 1–9 pick a destination (then Enter goes), Esc closes the card
@@ -213,13 +250,22 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
   let cardStyle: CSSProperties = {};
   if (S && size.cw) {
     const p = toPx(S.x, S.y);
-    if (size.cw < 640) cardStyle = { left: 8, right: 8, bottom: 8, maxHeight: '62%' };
+    if (PHONE) cardStyle = { right: 8, top: 8, bottom: 8, width: 303 };
+    else if (size.cw < 640) cardStyle = { left: 8, right: 8, bottom: 8, maxHeight: '62%' };
     else {
       const top = Math.max(8, Math.min(p.y - 40, size.ch - 280));
       cardStyle = p.x > size.cw * 0.55 ? { right: Math.max(8, size.cw - p.x + 22), top, width: 310, maxHeight: size.ch - 16 } : { left: Math.max(8, p.x + 22), top, width: 310, maxHeight: size.ch - 16 };
     }
   }
   const selOpts = sel ? byDest.get(sel) ?? [] : [];
+  useEffect(() => {
+    if (!PHONE || !sel || !size.cw || !camRef.current) return;
+    const L = C.locs[sel], p = toPx(L.x, L.y), x0 = 64, x1 = size.cw - 311;
+    if (p.x >= x0 + 48 && p.x <= x1 - 48 && p.y >= 48 && p.y <= size.ch - 48) return;
+    const k = camRef.current.w / size.cw, mid = (x0 + x1) / 2;
+    goTo(clampCam({ cx: L.x - (mid - size.cw / 2) * k, cy: L.y, w: camRef.current.w }, aspect), view === 'routes' ? null : view);
+  }, [sel]); // only when the selection changes
+  const wide = PHONE && c.w > 420; // Morrowind and All Tamriel on the phone: fewer labels, no day chips
 
   const destinations = (
     <Section title="Destinations" right={<span className="text-xs text-ash-400">keys 1–9</span>}>
@@ -254,11 +300,73 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
     </Section>
   );
 
+  const markerRow = (
+    <div className="flex flex-wrap items-center gap-1.5 px-1 text-xs" role="group" aria-label="Map markers">
+      <span className="text-ash-400 mr-1">Show on map:</span>
+      {MARKERS.map(m => (
+        <button key={m.id} className={`btn px-2 py-0.5 ${markers.has(m.id) ? '' : 'btn-ghost opacity-70'}`} aria-pressed={markers.has(m.id)} onClick={() => toggleMarker(m.id)}>
+          <span className="inline-flex h-4 min-w-4 px-0.5 items-center justify-center rounded-full font-body text-[.7rem] font-bold" style={{ background: m.color, color: 'var(--c-map-halo)' }} aria-hidden="true">{m.glyph}</span>{m.label}
+        </button>
+      ))}
+      {!PHONE && <span className="text-ash-400 ml-auto">Scroll or +/− to zoom · drag to move · click a town</span>}
+    </div>
+  );
+  const legend = (['strider', 'inner-sea', 'sea-of-ghosts', 'caravan', 'road', 'barge', 'guide'] as TravelMode[]).map(m => <span key={m} className="flex items-center gap-1"><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke={modeStyle(m, light).stroke} strokeDasharray={modeStyle(m, light).dash} strokeWidth="2.5" /></svg>{MODE_LABEL[m]}</span>);
+  const viewName = view === 'routes' ? 'My routes' : view ? VIEWS[view].label : 'Custom view';
+  const toggle = (p: 'view' | 'layers' | 'places') => { setSel(null); setPop(x => (x === p ? null : p)); };
+  // Phone: controls float over the map's left edge; View, Layers and Places open beside them.
+  const floating = PHONE && (
+    <>
+      <div data-float className="map-float absolute left-2 top-2 z-10 flex flex-col gap-1.5">
+        <button className="btn map-glass" aria-expanded={pop === 'view'} onClick={() => toggle('view')}>{viewName} ▾</button>
+        <button className="btn map-glass w-12" aria-label="Zoom in" onClick={() => zoomAt(1 / 1.35)}>＋</button>
+        <button className="btn map-glass w-12" aria-label="Zoom out" onClick={() => zoomAt(1.35)}>－</button>
+        <button className="btn map-glass w-12 text-[.65rem]" aria-expanded={pop === 'layers'} onClick={() => toggle('layers')}>Layers</button>
+      </div>
+      <button data-float className="btn map-glass absolute left-2 bottom-2 z-10" aria-expanded={pop === 'places'} onClick={() => toggle('places')}>Places ☰</button>
+      {pop === 'view' && (
+        <div data-float className="map-pop panel-solid absolute left-[9.5rem] top-2 z-20 flex flex-col w-52" role="menu">
+          {([['routes', 'My routes'], ...(Object.keys(VIEWS) as (keyof typeof VIEWS)[]).map(v => [v, VIEWS[v].label])] as [ViewId, string][]).map(([v, l]) => (
+            <button key={v} role="menuitemradio" aria-checked={view === v} className="btn btn-ghost justify-start" onClick={() => { goTo(fit(v === 'routes' ? routesBox() : VIEWS[v].box, aspect), v); setPop(null); }}>{view === v ? '✓ ' : ''}{l}</button>
+          ))}
+        </div>
+      )}
+      {pop === 'layers' && (
+        <div data-float className="map-pop panel-solid absolute left-16 top-2 bottom-2 z-20 w-[300px] overflow-auto scroll-thin p-2 text-xs flex flex-col gap-2">
+          <div className="flex items-center"><span className="h-display text-gold">Layers</span><button className="btn btn-ghost ml-auto" aria-label="Close" onClick={() => setPop(null)}>✕</button></div>
+          {markerRow}
+          <div className="text-ash-400">Roads and boats</div>
+          <div className="grid grid-cols-2 gap-1 text-ash-400">{legend}</div>
+          <div className="text-ash-400">Town marks: the dot's colour is the town's state; ✕ closed, a broken ring ruined or ash-grey, a tent a refugee camp, a flag occupied.</div>
+          <div className="text-ash-400">Tap a town for ways to get there. Pinch to zoom, drag to move. Hold a town for its Codex entry.</div>
+        </div>
+      )}
+      {pop === 'places' && (
+        <div data-float className="map-pop panel-solid absolute left-0 top-0 bottom-0 z-20 w-[310px] overflow-auto scroll-thin p-2 text-sm">
+          <div className="flex items-center mb-1"><span className="h-display text-gold">Places you can reach</span><button className="btn btn-ghost ml-auto" aria-label="Close" onClick={() => setPop(null)}>✕</button></div>
+          {dests.map(d => { const best = d.options[0]; const warn = travelWarnings(g, d.id, best.days).length; return (
+            <button key={d.id} className="flex w-full items-center gap-2 min-h-14 px-1 border-t border-ash-700 text-left" onClick={() => { setSel(d.id); setPop(null); }}>
+              <span className="flex-1 min-w-0"><span className="text-bone font-bold">{C.locs[d.id].name}</span><span className="block text-xs text-ash-400">{MODE_LABEL[best.mode]} · {best.days * g.timeScale} day{best.days * g.timeScale > 1 ? 's' : ''} · fare <Money v={best.fare} /></span></span>
+              {warn > 0 && <span className="text-danger">⚠</span>}<span className="text-ash-400">›</span>
+            </button>
+          ); })}
+          {!dests.length && <p className="text-ash-400">No road leaves this place.</p>}
+        </div>
+      )}
+      {plan && plan !== here && (
+        <div data-float className="map-glass panel-solid absolute top-2 left-[9.5rem] z-10 flex items-center gap-2 px-2 py-1 text-xs" style={{ right: sel ? 319 : 8 }}>
+          <button className="min-w-0 text-left truncate" onClick={() => planned && setSel(planned.path[1])}>{planned ? <>Plan to {C.locs[plan].name}: next {C.locs[planned.path[1]].name} · {planned.days * g.timeScale} days</> : <span className="text-danger">Plan to {C.locs[plan].name}: no way through right now</span>}</button>
+          <button className="btn btn-ghost ml-auto" onClick={() => setPlan(null)}>Cancel</button>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <>
-      <div className="panel p-2 flex flex-col gap-2 min-w-0">
+      <div className={PHONE ? 'relative h-full min-w-0' : 'panel p-2 flex flex-col gap-2 min-w-0'}>
 
-        <div className="flex flex-wrap items-center gap-1 px-1 text-sm">
+        {!PHONE && <div className="flex flex-wrap items-center gap-1 px-1 text-sm">
           <span className="text-ash-400 mr-2">You are in <span className="text-bone">{C.locs[here]?.name ?? 'the wilds'}</span></span>
           <div className="flex flex-wrap gap-1 ml-auto" role="group" aria-label="Map view">
             <button className={`btn px-2 py-0.5 ${view === 'routes' ? 'btn-ember' : 'btn-ghost'}`} aria-pressed={view === 'routes'} onClick={() => goTo(fit(routesBox(), aspect), 'routes')}>My routes</button>
@@ -266,8 +374,8 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
             <button className="btn btn-ghost px-2 py-0.5" aria-label="Zoom out" onClick={() => zoomAt(1.35)}>−</button>
             <button className="btn btn-ghost px-2 py-0.5" aria-label="Zoom in" onClick={() => zoomAt(1 / 1.35)}>+</button>
           </div>
-        </div>
-        <div ref={box} className="relative w-full h-[max(20rem,calc(100dvh-22rem))] overflow-hidden rounded-md touch-none select-none cursor-grab active:cursor-grabbing"
+        </div>}
+        <div ref={box} className={`relative w-full ${PHONE ? 'h-full' : 'h-[max(20rem,calc(100dvh-22rem))]'} overflow-hidden rounded-md touch-none select-none cursor-grab active:cursor-grabbing`}
           onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endDrag} onPointerCancel={endDrag}>
           <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} className="absolute inset-0 w-full h-full" role="img" aria-label="Map of eastern Tamriel">
             <defs>
@@ -330,21 +438,23 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
             })}
             {planned && <polyline points={pathLine(planned)} fill="none" style={{ stroke: 'var(--c-accent)' }} strokeWidth={4 * u} strokeOpacity={0.9} strokeDasharray={`${9 * u} ${6 * u}`} strokeLinecap="round" />}
             {preview && preview !== planned && <polyline points={pathLine(preview)} fill="none" style={{ stroke: 'var(--c-text)' }} strokeWidth={3 * u} strokeOpacity={0.75} strokeDasharray={`${6 * u} ${6 * u}`} strokeLinecap="round" />}
-            {C.locs[here] && dests.map(d => {
+            {C.locs[here] && !wide && dests.map(d => {
               const A = C.locs[here], B = C.locs[d.id]; const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
               return <text key={`d-${d.id}`} x={mx} y={my} textAnchor="middle" dominantBaseline="middle" fontSize={11.5 * u} fontWeight={700} style={{ fill: 'var(--c-text)', stroke: 'var(--c-map-halo)' }} strokeWidth={3 * u} paintOrder="stroke" className="num pointer-events-none">{d.options[0].days * g.timeScale}d</text>;
             })}
             {C.locList.map(L => {
               const st = g.world.status[L.id]; const isHere = L.id === here; const can = reach.has(L.id); const closed = st === 'closed';
               const focus = sel === L.id || hover === L.id || plan === L.id;
-              const r = (isHere || can ? 8 : 5.5) * u;
+              const r = (isHere || can ? (PHONE ? 10 : 8) : PHONE ? 6.5 : 5.5) * u;
+              const named = !wide || isHere || can || focus;
+              const marks = !wide || isHere || sel === L.id;
               const left = LEFT.has(L.id); const gain = cargoGain(L.id); const bs = badges(L.id);
               return (
-                <g key={L.id} transform={`translate(${L.x},${L.y})`} opacity={isHere || can || focus ? 1 : 0.62} style={{ cursor: 'pointer' }}
+                <g key={L.id} ref={PHONE ? onLongPress<SVGGElement>(() => useGame.getState().openCodex(`loc:${L.id}`)) : undefined} transform={`translate(${L.x},${L.y})`} opacity={isHere || can || focus ? 1 : 0.62} style={{ cursor: 'pointer' }}
                   role="button" tabIndex={0} aria-label={`${L.name}${isHere ? ', you are here' : can ? ', reachable' : ''}`} aria-pressed={sel === L.id}
                   onClick={() => pick(L.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(s => (s === L.id ? null : L.id)); } }}
                   onMouseEnter={() => setHover(L.id)} onMouseLeave={() => setHover(h => (h === L.id ? null : h))}>
-                  <circle r={16 * u} fill="transparent" />
+                  <circle r={(PHONE ? 24 : 16) * u} fill="transparent" />
                   {isHere && <motion.circle fill="none" style={{ stroke: 'var(--c-accent)' }} strokeWidth={2 * u} initial={{ r: r * 1.3 }} animate={{ r: [r * 1.3, r * 2.3, r * 1.3], opacity: [1, 0.25, 1] }} transition={{ duration: 2.2, repeat: Infinity }} />}
                   {focus && !isHere && <circle r={r + 5 * u} fill="none" style={{ stroke: 'var(--c-text)' }} strokeWidth={2 * u} />}
                   <circle r={closed ? 4.5 * u : r} style={{ fill: STATUS_FILL[st], stroke: can ? 'var(--c-accent)' : 'var(--c-map-halo)' }} strokeWidth={(can ? 2.4 : 1.2) * u} />
@@ -352,20 +462,21 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
                   {ASHEN.has(st) && <circle r={r + 3 * u} fill="none" style={{ stroke: 'var(--c-muted)' }} strokeWidth={1.5 * u} strokeDasharray={`${5 * u} ${2 * u} ${2 * u} ${3 * u}`} aria-hidden="true" />}
                   {st === 'camp' && <path d={`M${-5 * u},${r + 9 * u} L0,${r + 2 * u} L${5 * u},${r + 9 * u} Z`} style={{ fill: 'var(--c-muted)', stroke: 'var(--c-map-halo)' }} strokeWidth={0.8 * u} aria-hidden="true" />}
                   {st === 'occupied' && <path d={`M${r * 0.6},${-r * 0.6} l0,${-12 * u} l${8 * u},${3 * u} l${-8 * u},${3 * u}`} style={{ fill: 'var(--c-text)', stroke: 'var(--c-text)' }} strokeWidth={1.2 * u} aria-hidden="true" />}
-                  <text x={(left ? -1 : 1) * (r + 6 * u)} y={5 * u} textAnchor={left ? 'end' : 'start'} fontSize={(isHere || can ? 15.5 : 13.5) * u} fontWeight={isHere ? 700 : 400}
-                    style={{ fill: closed ? 'var(--c-muted)' : 'var(--c-map-label)', stroke: 'var(--c-map-halo)' }} strokeWidth={3.5 * u} paintOrder="stroke" className="h-display">{L.name}</text>
-                  {bs.map((b, i) => (
+                  {named && <text x={(left ? -1 : 1) * (r + 6 * u)} y={5 * u} textAnchor={left ? 'end' : 'start'} fontSize={(isHere || can ? 15.5 : 13.5) * u} fontWeight={isHere ? 700 : 400}
+                    style={{ fill: closed ? 'var(--c-muted)' : 'var(--c-map-label)', stroke: 'var(--c-map-halo)' }} strokeWidth={3.5 * u} paintOrder="stroke" className="h-display">{L.name}</text>}
+                  {marks && bs.map((b, i) => (
                     <g key={b.id} transform={`translate(${(i - (bs.length - 1) / 2) * 14 * u},${-(r + 10 * u)})`} aria-hidden="true">
-                      <circle r={6.5 * u} style={{ fill: b.color, stroke: 'var(--c-map-halo)' }} strokeWidth={1.2 * u} />
-                      <text textAnchor="middle" dominantBaseline="central" fontSize={9 * u} fontWeight={700} style={{ fill: 'var(--c-map-halo)' }} className="font-body">{b.glyph}</text>
+                      <circle r={(PHONE ? 8 : 6.5) * u} style={{ fill: b.color, stroke: 'var(--c-map-halo)' }} strokeWidth={1.2 * u} />
+                      <text textAnchor="middle" dominantBaseline="central" fontSize={(PHONE ? 11 : 9) * u} fontWeight={700} style={{ fill: 'var(--c-map-halo)' }} className="font-body">{b.glyph}</text>
                     </g>
                   ))}
-                  {gain > 0 && <text x={(left ? -1 : 1) * (r + 6 * u)} y={19 * u} textAnchor={left ? 'end' : 'start'} fontSize={11.5 * u} fontWeight={700} style={{ fill: 'var(--c-good)', stroke: 'var(--c-map-halo)' }} strokeWidth={3 * u} paintOrder="stroke" className="num font-body">↑ +{gain.toLocaleString('en-US')}</text>}
+                  {marks && gain > 0 && <text x={(left ? -1 : 1) * (r + 6 * u)} y={19 * u} textAnchor={left ? 'end' : 'start'} fontSize={11.5 * u} fontWeight={700} style={{ fill: 'var(--c-good)', stroke: 'var(--c-map-halo)' }} strokeWidth={3 * u} paintOrder="stroke" className="num font-body">↑ +{gain.toLocaleString('en-US')}</text>}
                 </g>
               );
             })}
           </svg>
 
+          {floating}
           {S && sel && (
             <div ref={card} data-card role="group" aria-label={`Travel to ${S.name}`} className="absolute z-10 panel-solid p-3 text-sm overflow-auto scroll-thin cursor-auto" style={cardStyle}>
               <div className="flex items-start gap-2">
@@ -400,20 +511,9 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
             </div>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 px-1 text-xs" role="group" aria-label="Map markers">
-          <span className="text-ash-400 mr-1">Show on map:</span>
-          {MARKERS.map(m => (
-            <button key={m.id} className={`btn px-2 py-0.5 ${markers.has(m.id) ? '' : 'btn-ghost opacity-70'}`} aria-pressed={markers.has(m.id)} onClick={() => toggleMarker(m.id)}>
-              <span className="inline-flex h-4 min-w-4 px-0.5 items-center justify-center rounded-full font-body text-[.7rem] font-bold" style={{ background: m.color, color: 'var(--c-map-halo)' }} aria-hidden="true">{m.glyph}</span>{m.label}
-            </button>
-          ))}
-          <span className="text-ash-400 ml-auto">Scroll or +/− to zoom · drag to move · click a town</span>
-        </div>
-        <div className="flex flex-wrap gap-3 text-xs text-ash-400 px-1 pb-1">
-          {(['strider', 'inner-sea', 'sea-of-ghosts', 'caravan', 'road', 'barge', 'guide'] as TravelMode[]).map(m => <span key={m} className="flex items-center gap-1"><svg width="22" height="6" aria-hidden="true"><line x1="0" y1="3" x2="22" y2="3" stroke={modeStyle(m, light).stroke} strokeDasharray={modeStyle(m, light).dash} strokeWidth="2.5" /></svg>{MODE_LABEL[m]}</span>)}
-        </div>
+        {!PHONE && <>{markerRow}<div className="flex flex-wrap gap-3 text-xs text-ash-400 px-1 pb-1">{legend}</div></>}
       </div>
-      {side ? createPortal(<motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>{destinations}</motion.div>, side) : <div className="mt-3">{destinations}</div>}
+      {PHONE ? null : side ? createPortal(<motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>{destinations}</motion.div>, side) : <div className="mt-3">{destinations}</div>}
     </>
   );
 }
