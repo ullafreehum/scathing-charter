@@ -1,5 +1,6 @@
 // Tiny procedural Web Audio effects: no audio files, works offline.
 import { createScore, type Score } from './score';
+import { createScore as createSong } from './songs';
 let ctx: AudioContext | null = null;
 let enabled = true;
 let volume = 0.8;
@@ -7,6 +8,8 @@ let wind: { stop: () => void; gain: GainNode; level: number } | null = null;
 let musicOn = false, mood: 0 | 1 | 2 = 0;
 let music: Score | null = null;
 const MUSIC_LEVEL = 0.4; // the score's own level at full volume
+const SONG_MS = 5 * 60 * 1000; // each song plays about five minutes, then another one starts
+let song = -1, rotate = 0; // -1 = the first score (score.js), 0-2 = songs.js
 
 export function setSound(on: boolean) { enabled = on; if (!on) stopWind(); syncMusic(); }
 /** Master volume 0–1 for effects and wind. */
@@ -21,8 +24,21 @@ export function setMusic(on: boolean) { musicOn = on; syncMusic(); }
 export function setMusicMood(m: 0 | 1 | 2) { mood = m; music?.setMood(m); }
 function syncMusic() {
   const want = musicOn && enabled && volume > 0;
-  if (want && !music) { const a = ac(); if (!a) return; music = createScore(a, a.destination); music.setMood(mood); music.start(MUSIC_LEVEL * volume); }
-  else if (!want && music) { music.stop(); music = null; }
+  if (want && !music) playSong(song);
+  else if (!want && music) { clearTimeout(rotate); music.stop(); music = null; }
+}
+/** Starts song `n` (the first score is -1), then after SONG_MS a random different one, in the current mood. */
+function playSong(n: number) {
+  const a = ac(); if (!a) return;
+  song = n; music = n < 0 ? createScore(a, a.destination) : createSong(a, a.destination, { song: n as 0 | 1 | 2 });
+  music.setMood(mood); music.start(MUSIC_LEVEL * volume);
+  clearTimeout(rotate);
+  rotate = window.setTimeout(() => {
+    if (!music) return;
+    music.stop(); music = null;
+    const others = [-1, 0, 1, 2].filter(x => x !== song);
+    playSong(others[Math.floor(Math.random() * others.length)]);
+  }, SONG_MS);
 }
 function ac(): AudioContext | null {
   if (!enabled || volume <= 0) return null;

@@ -4,6 +4,10 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.10.3 (beta, preview)
+- Three more songs by Sorcerer: Salt & Silt, Red Mountain Procession and Ghostgate Vigil. With Music on, the game moves to another of the four songs every five minutes, keeping the mood (calm, after Baar Dau, duel).
+- Groundwork for an Android version (not built yet).
+
 ## 0.10.2 (beta): the Solstheim fix
 - Ebony and stalhrim no longer make an easy fortune between Solstheim and Skyrim: Raven Rock sells them dearer, Skyrim and the Imperial City pay less for them.
 - Restricted goods cost more to buy (half again from the East Empire Company, 40% more from a fence), and buying many at once raises their price faster.
