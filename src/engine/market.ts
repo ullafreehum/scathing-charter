@@ -36,6 +36,9 @@ export function maxBuyQty(price: number | null, depth: number, cash: number, fre
 
 /** Daily recovery of market saturation toward normal (1 = none). Higher = markets remember your trades longer. */
 export const SAT_RECOVERY = 0.94;
+/** Buying a restricted good costs this much more from the East Empire Company, or from a fence. */
+export const COMPANY_MARKUP = 1.5;
+export const FENCE_MARKUP = 1.4;
 /** Days until a market you flooded or bought out is back within 5% of its normal price. */
 export function satRecoveryDays(sat: number): number {
   const gap = Math.abs(sat - 1);
@@ -135,7 +138,7 @@ export function quotes(s: GameState, loc: string): Quote[] {
       const canDeal = legality === 'legal' || m.fence || (legality === 'restricted' && m.eec);
       if (!canDeal) continue;
       if (open && cell.stock) {
-        const p = Math.max(1, Math.round(mid * m.lean * holMult * bgBuy * (1 - rm) * (legality === 'restricted' && m.eec ? 1.12 : 1)));
+        const p = Math.max(1, Math.round(mid * m.lean * holMult * bgBuy * (1 - rm) * (legality === 'restricted' ? (m.eec ? COMPANY_MARKUP : FENCE_MARKUP) : 1)));
         if (buy === null || p < buy) { buy = p; buyFrom = m.name; }
       }
       if (open) {

@@ -4,6 +4,10 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.10.2 (beta): the Solstheim fix
+- Ebony and stalhrim no longer make an easy fortune between Solstheim and Skyrim: Raven Rock sells them dearer, Skyrim and the Imperial City pay less for them.
+- Restricted goods cost more to buy (half again from the East Empire Company, 40% more from a fence), and buying many at once raises their price faster.
+
 ## 0.10.1 (beta): a bigger hearing
 - The card hearing fills the screen, and the pictures on the cards are half again as big. Hovering (or focusing) a card in your hand shows it full size.
 - New pictures for all 30 cards (from Sinan's sheets) and a new card frame.

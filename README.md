@@ -15,8 +15,8 @@ Welcome, outlander. There are two ways in, and both are free:
 
 - **In your browser:** **[play The Scathing Charter online](https://ullafreehum.github.io/scathing-charter/)**.
   Nothing to install. It works on any computer with a modern browser, and your saves stay in that browser.
-- **On Windows:** download the game from the **[v0.10.1 release](https://github.com/ullafreehum/scathing-charter/releases/tag/v0.10.1)**.
-  Take **`ScathingCharter-Setup-0.10.1.exe`** to install it, or **`ScathingCharter-Portable-0.10.1.exe`** to run it
+- **On Windows:** download the game from the **[v0.10.2 release](https://github.com/ullafreehum/scathing-charter/releases/tag/v0.10.2)**.
+  Take **`ScathingCharter-Setup-0.10.2.exe`** to install it, or **`ScathingCharter-Portable-0.10.2.exe`** to run it
   from anywhere with no install. The game isn't signed, so Windows may say *"Windows protected your PC"*: click
   **More info**, then **Run anyway**.
 
@@ -32,7 +32,7 @@ Curious about the look of the world? Leaf through the art book, **[Art of the Re
 
 ## 🕯️ Install on Windows
 
-1. Open the **[latest release](https://github.com/ullafreehum/scathing-charter/releases/tag/v0.10.1)** (or [all releases](https://github.com/ullafreehum/scathing-charter/releases)) and download the newest
+1. Open the **[latest release](https://github.com/ullafreehum/scathing-charter/releases/tag/v0.10.2)** (or [all releases](https://github.com/ullafreehum/scathing-charter/releases)) and download the newest
    **`ScathingCharter-Setup-<version>.exe`**. (Prefer no install? Take **`ScathingCharter-Portable-<version>.exe`**:
    one file that runs from anywhere, such as a USB stick.)
 2. Run it. The game isn't signed, so the first time Windows may say *"Windows protected your PC"*: click
