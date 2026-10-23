@@ -5,6 +5,7 @@ goes up for new features, the last one for fixes. 1.0 comes after full human pla
 and the Long Chronicle.
 
 ## 0.10.9 (pre-release): the card duel on phones
+- A new app icon for Android and Windows: a sealed charter, painted for the game.
 - The magistrate's card hearing now works in the Android app: contest fines and seizures from the Market, or play a practice duel from the title screen.
 - On the phone the duel fills the screen. Tap a card to see it big, then tap Play (or the card again) to play it; Discard throws the chosen card away. Speed and Rules sit on the left.
 - Bigger card text on the phone, with short names and rules in your hand.
