@@ -41,9 +41,9 @@ jobs:
         with:
           tag_name: ${{ steps.v.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: The Scathing Charter ${{ steps.v.outputs.tag }}${{ startsWith(steps.v.outputs.tag, 'v0.') && ' (beta)' || '' }}
+          name: The Scathing Charter ${{ steps.v.outputs.tag }}
           body_path: docs/releases/${{ steps.v.outputs.tag }}.md
-          prerelease: ${{ startsWith(steps.v.outputs.tag, 'v0.') }}
+          prerelease: false # full releases since 0.10.8
   windows:
     needs: release
     if: needs.release.outputs.skip != '1'
@@ -85,7 +85,7 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon
       - run: |
           v=$(node -p "require('./package.json').version")
-          mkdir -p out && cp android/app/build/outputs/apk/debug/app-debug.apk "out/ScathingCharter-$v-Android-A26-debug.apk"
+          mkdir -p out && cp android/app/build/outputs/apk/debug/app-debug.apk "out/ScathingCharter-$v-Android.apk"
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.release.outputs.tag }}

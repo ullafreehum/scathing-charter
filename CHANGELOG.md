@@ -4,6 +4,12 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.10.8: full release
+- The Android app fits every common phone held sideways, from 640×360 to 932×430: on smaller phones the top strip keeps your date, town, money and cargo (Drelloth's line stays on the Bank tab), the Market bar drops the "Amount" label, and the tab rail fits short screens.
+- The phone buzz now works in the Android app (it was missing the permission to vibrate).
+- No longer marked beta: the release is a full release, and the APK is named for any phone.
+- A shorter README.
+
 ## 0.10.7 (beta)
 - Ald'ruhn no longer shows a "masons are rebuilding" paragraph on day 1 (a town that starts half-built says nothing until the eruption).
 - Drelloth counts a payment made on day 0 (or any small payment) as paid.

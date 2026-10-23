@@ -155,7 +155,8 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 .shake { animation: shake .5s; }
 @media (prefers-reduced-motion: reduce) { .flash-up, .flash-down, .shake { animation: none; } }
 
-/* ---- Android app (html.phone): Galaxy A26 in landscape, 892×412. 24 px kept clear left and right for the camera. */
+/* ---- Android app (html.phone): phones in landscape, from 640×360 to 932×430 (tuned on the Galaxy A26, 892×412).
+   24 px kept clear left and right for the camera. Narrow and short phones get the media rules at the end. */
 .phone body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
 .phone .btn, .phone .input, .phone select { min-height: 44px; }
 .phone input[type="checkbox"] { width: 22px; height: 22px; }
@@ -222,3 +223,19 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 .phone .market-table td:last-child .btn { width: 126px; padding: 0 4px; font-size: 11.5px; letter-spacing: 0; }
 .phone .market-table td:first-child > div { max-width: 180px; }
 .phone .market-table thead th:last-child { width: 264px; }
+
+/* Smaller phones: the status strip keeps date, town, money and cargo; Drelloth's line stays on the Bank tab. */
+@media (max-width: 779px) {
+  .phone .phone-goal { display: none; }
+  .phone-strip [title="Health"] > :last-child { width: 40px; }
+}
+@media (max-width: 699px) {
+  .phone .market-head .amount-label { display: none; }
+  .phone .market-head [role="radiogroup"] .btn { width: 40px; }
+  .phone .market-table td:first-child > div { max-width: 140px; }
+}
+/* Short phones (360-380 px tall): the tab rail fits without clipping Journal. */
+@media (max-height: 380px) {
+  .phone-tab { height: 46px; }
+  .phone-rail { gap: 2px; padding-top: 4px; }
+}
