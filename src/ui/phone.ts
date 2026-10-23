@@ -48,11 +48,17 @@ export function onPause(fn: (hidden: boolean) => void): () => void {
 export const exitApp = () => { if (NATIVE) void CapApp.exitApp(); };
 
 /** Short buzz for a long-press, where the phone allows it. */
-export const buzz = () => { try { navigator.vibrate?.(10); } catch { /* not allowed */ } };
+export const buzz = (pattern: number | number[] = 10) => { try { navigator.vibrate?.(pattern); } catch { /* not allowed */ } };
 
 /** No hearings on the phone: drop the engine's "you can contest it" lines. */
 export const noContest = (t: string) => PHONE ? t.replace(/ ?You can contest[^]*?\(Market tab\)\./g, '').replace(/ \(you can contest it\)/g, '') : t;
 
 /** Which right-hand sheet is open on the phone (one at a time). */
 export type PhoneSheet = 'menu' | 'wallet' | 'town' | 'time' | null;
-export const usePhone = create<{ sheet: PhoneSheet; setSheet(s: PhoneSheet): void; tabs: string[] }>()(set => ({ sheet: null, setSheet: sheet => set({ sheet }), tabs: [] }));
+export const usePhone = create<{
+  sheet: PhoneSheet; setSheet(s: PhoneSheet): void; tabs: string[];
+  /** town notices already read (UI only, not saved): they fold to one line the next time */
+  seen: Record<string, true>; see(id: string): void;
+  /** where the player was when the app went to the background: tab, open sheet and the Market's scroll */
+  resume: { tab: string; sheet: PhoneSheet; scroll: number } | null; keep(r: { tab: string; sheet: PhoneSheet; scroll: number } | null): void;
+}>()(set => ({ sheet: null, setSheet: sheet => set({ sheet }), tabs: [], seen: {}, see: id => set(s => s.seen[id] ? s : { seen: { ...s.seen, [id]: true } }), resume: null, keep: resume => set({ resume }) }));

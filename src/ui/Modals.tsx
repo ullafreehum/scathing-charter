@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { noContest } from './phone';
+import { PHONE, buzz, noContest } from './phone';
 import { useEffect, useRef } from 'react';
 import { C } from '../data';
 import { cardOptions, conductTitles, depositsTotal, cargoValue, formatDate, knewParagraph, netWorth, wealthTitle, type GameState } from '../engine';
@@ -64,8 +64,11 @@ export function ConfirmDialog() {
 export function Overlays() {
   const g = useGame(s => s.game);
   const act = useGame(s => s.act);
+  const item = g?.inbox[0];
+  // Phone: one buzz when a card's outcome appears, a longer one for the fall of Baar Dau.
+  const buzzKey = !PHONE || !g || g.duel || g.pending || !item ? '' : item.kind === 'chronicle' ? `c:${item.eventId}` : item.kind === 'result' && !item.notice ? `r:${item.title}:${g.actions.length}` : '';
+  useEffect(() => { if (buzzKey) buzz(buzzKey === 'c:red-year-eruption' ? [60, 40, 120] : 10); }, [buzzKey]);
   if (!g) return null;
-  const item = g.inbox[0];
   let node: React.ReactNode = null;
   if (g.duel) node = <Card key="duel" board label="Magistrate’s hearing"><DuelScreen d={g.duel} /></Card>;
   else if (g.pending) {

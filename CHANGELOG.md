@@ -9,6 +9,7 @@ and the Long Chronicle.
 - The end screen opens with what you knew and when: how often you were warned, and what you left in the vaults when Baar Dau fell.
 - Merchants remember you: they speak differently to a saint, to a profiteer, in a flooded market and to a regular.
 - Gavas Drelloth speaks on the Bank tab, by how hard the Tong presses and how you have paid.
+- Phone: five Market rows fit (no description line, no empty Sell button); the hint goes after your first sale; a town notice opens once, then folds to one line; Drelloth's short line replaces the goal while the Tong is owed; a short buzz when a card's outcome appears (a longer one when Baar Dau falls); the app keeps your tab, sheet and Market scroll when it comes back from the background.
 - Chronicle cards add a line for your background, and shut or ruined markets say so in a dated paragraph.
 - Saves move to version 8 (the day each rumour was heard).
 - Settings: Sound effects and Music switch on and off separately (one volume for both).
