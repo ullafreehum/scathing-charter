@@ -164,7 +164,7 @@ function GoalChip({ g, short = false }: { g: GameState; short?: boolean }) {
     : !g.note.cleared ? 'Goal: pay off the Tong' : `Goal: Charter ${worth.toLocaleString('en')} / ${price.toLocaleString('en')}`;
   const shortText = held ? (g.note.cleared ? 'Won' : 'Clear debt') : !g.note.cleared ? drellothLine(g, true) : `Charter ${Math.min(100, Math.floor((100 * worth) / price))}%`;
   return (
-    <button className="btn btn-ghost py-0.5 flex-col items-start gap-0.5 text-xs" onClick={() => setTab('bank')} title="Win: own the Scathing Charter and owe the Tong nothing. Your net worth against the seat's price; the steps are on the Bank tab.">
+    <button className={`btn btn-ghost py-0.5 flex-col items-start gap-0.5 text-xs ${short ? 'phone-goal' : ''}`} onClick={() => setTab('bank')} title="Win: own the Scathing Charter and owe the Tong nothing. Your net worth against the seat's price; the steps are on the Bank tab.">
       <span>{short ? shortText : text}</span>
       {!held && g.note.cleared && <span className="block h-1 w-full rounded bg-ash-700 overflow-hidden" aria-hidden="true"><span className="block h-full bg-gold" style={{ width: `${Math.min(100, (100 * worth) / price)}%` }} /></span>}
     </button>

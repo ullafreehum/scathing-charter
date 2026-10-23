@@ -111,7 +111,7 @@ export function Market({ g }: { g: GameState }) {
         <div className="market-head flex flex-wrap items-center gap-x-4 gap-y-2 mb-2 text-sm">
           {PHONE && <button className="btn" onClick={() => usePhone.getState().setSheet('town')}>Town ▾</button>}
           <div className="flex items-center gap-1" role="radiogroup" aria-label="Trade amount">
-            <span className="text-ash-400 mr-1">Amount</span>
+            <span className="amount-label text-ash-400 mr-1">Amount</span>
             {AMOUNTS.map(n => <button key={n} role="radio" aria-checked={amt === n} className={chip(amt === n)} onClick={() => setAmt(n)}><span className="font-body num">{n}</span></button>)}
             <button role="radio" aria-checked={amt === 'max'} className={chip(amt === 'max')} onClick={() => setAmt('max')} title="Buy as many as you can afford and carry; sell everything">Max</button>
             {!PHONE && <input aria-label="Custom amount" type="number" min={1} placeholder="other" className="input w-20 num py-0.5"

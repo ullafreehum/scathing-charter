@@ -40,7 +40,7 @@ export function Title() {
         {msg && <div className="text-danger text-sm">{msg}</div>}
         {meta.achievements.length > 0 && <div className="text-xs text-ash-400 mt-1">Achievements earned in all games: {meta.achievements.length}/{C.achievements.length}{meta.chronicleUnlocked && ' · Long Chronicle unlocked'}</div>}
       </motion.div>
-      <p className="text-xs text-ash-400 mt-8 num">Version {__APP_VERSION__} (beta)</p>
+      <p className="text-xs text-ash-400 mt-8 num">Version {__APP_VERSION__}</p>
       <p className="text-[.7rem] text-ash-400 mt-2 max-w-lg">An unofficial, non-commercial fan game. The Elder Scrolls and all related names are trademarks of ZeniMax Media / Bethesda Softworks; this project is not affiliated with or endorsed by them.</p>
       {credits && <Credits onClose={() => setCredits(false)} />}
     </div>
