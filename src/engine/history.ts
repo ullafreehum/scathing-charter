@@ -47,6 +47,7 @@ export function applyEffect(s: GameState, e: Effect, rng: Rng, ev: HistoryEvent)
         } else if (e.action === 'freeze') {
           s.frozen.push({ amount: amt, ratio: e.ratio ?? 0.1, settleDay: s.day + (e.settleDays ?? 120), settleAt: e.settleAt ?? 'narsis', house: e.house });
           s.world.flags.lostDeposits = (s.world.flags.lostDeposits ?? 0) + amt * (1 - (e.ratio ?? 0.1));
+          if (s.stats.lostAtBaarDau && ev.id === 'red-year-eruption') { s.stats.lostAtBaarDau.deposits += amt * (1 - (e.ratio ?? 0.1)); (s.stats.lostAtBaarDau.depositsAt ??= []).push(e.loc); } // the frozen share that never comes back
           log(s, LOG_AFTER.depositFrozen(Math.round(amt), C.locs[e.loc].name), 'bad');
         } else {
           const to = branchKey(e.house, e.settleAt ?? e.loc);
@@ -83,7 +84,7 @@ export function applyHistory(s: GameState, rng: Rng): void {
     if (ev.day !== s.day || s.world.fired.includes(ev.id)) continue;
     if (ev.mode !== 'both' && ev.mode !== s.mode && !(ev.mode === 'red-year' && s.mode === 'long-chronicle')) continue;
     s.world.fired.push(ev.id);
-    if (ev.id === 'red-year-eruption') s.stats.lostAtBaarDau = { deposits: 0, cargo: 0 }; // only a player who is there when it falls has something to answer for
+    if (ev.id === 'red-year-eruption') s.stats.lostAtBaarDau = { deposits: 0, cargo: 0 }; // the end screen tallies what the eruption cost you (deposits wiped or frozen, cargo burned)
     const lostBefore = s.world.flags.lostDeposits ?? 0;
     const inboxAt = s.inbox.length;
     for (const e of ev.effects) applyEffect(s, e, rng, ev);

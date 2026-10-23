@@ -30,6 +30,13 @@ describe('0.10.6 texture', () => {
     expect(s.stats.lostAtBaarDau?.deposits).toBeGreaterThan(799);
     const p = knewParagraph(s)!; expect(p).toContain('2 times'); expect(p).toContain('Vivec vault');
   });
+  it('counts a frozen Balmora strongbox as lost, and names every town', () => {
+    let s = base(); const ev = C.history.find(h => h.id === 'red-year-eruption')!;
+    s.deposits.balmora = 1000; s.deposits.vivec = 500; s.world.branches.balmora = 'open'; s.world.branches.vivec = 'open';
+    s = step({ ...s, day: ev.day - 1 }, { t: 'wait', days: 1 }).state;
+    expect(s.stats.lostAtBaarDau?.deposits).toBeGreaterThan(1399);
+    const p = knewParagraph(s)!; expect(p).not.toContain('kept nothing'); expect(p).toMatch(/Balmora and Vivec vaults|Vivec and Balmora vaults/);
+  });
   it('picks merchant lines by what the town knows of you, and Drelloth by how you paid', () => {
     const s = base(); const bal = C.locs.balmora; const m = bal.merchants.find(x => x.lines)!;
     expect(merchantLine(s, m, 'balmora')).toBe(m.line);

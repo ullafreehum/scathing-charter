@@ -38,7 +38,8 @@ export function knewParagraph(s: GameState): string | null {
   const ev = C.history.find(h => h.id === 'red-year-eruption');
   if (!lost || !ev?.foreshadow) return null;
   const n = ev.foreshadow.rumors.filter(id => s.heard.includes(id) && (s.heardDay[id] ?? -1) < ev.day).length;
-  const where = [...new Set(lost.depositsAt ?? [])].map(townName).join(' and ');
+  const names = [...new Set(lost.depositsAt ?? [])].map(townName);
+  const where = names.length > 2 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names.join(' and ');
   return `${KNEW.a(n)} ${KNEW.b(n, Math.round(lost.deposits), lost.cargo, where, townName(lost.cargoAt ?? ''))}`;
 }
 
