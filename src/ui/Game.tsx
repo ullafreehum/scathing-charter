@@ -4,7 +4,7 @@ import { nextSteps, type Hint } from './hints';
 import { planRoute } from './route';
 import { AnimatePresence, motion } from 'framer-motion';
 import { C } from '../data';
-import { capacity, cargoWeight, charterPrice, formatDate, shortDate, netWorth, depositsTotal, pressure, type GameState } from '../engine';
+import { capacity, cargoWeight, charterPrice, formatDate, merchantLine, shortDate, netWorth, depositsTotal, pressure, type GameState } from '../engine';
 import { useGame, type Tab } from '../store/game';
 import { exportFile, savedWhen, slotInfo, type Slot } from '../save/storage';
 import { CodexLink, DateWidget, Delta, Meter, Money, RollingMoney, StatusPill } from './widgets';
@@ -141,7 +141,7 @@ function LocationPanel({ g }: { g: GameState }) {
         <p className="text-[.95rem] text-parchment mt-2">{L.blurb}</p>
         <div className="h-display text-xs uppercase text-ash-400 mt-2 mb-1">Merchants</div>
         <ul className="space-y-1.5">{L.merchants.map(m => (
-          <li key={m.name} className="text-sm"><span className="text-bone">{m.name}</span> <span className="text-ash-400">({m.race}, {m.trade}{m.fence && !m.trade.includes('fence') ? ', fence' : ''}{m.eec ? ', East Empire Company' : ''})</span><div className="fell italic text-parchment text-[.9rem]">{m.line}</div></li>
+          <li key={m.name} className="text-sm"><span className="text-bone">{m.name}</span> <span className="text-ash-400">({m.race}, {m.trade}{m.fence && !m.trade.includes('fence') ? ', fence' : ''}{m.eec ? ', East Empire Company' : ''})</span><div className="fell italic text-parchment text-[.9rem]">{merchantLine(g, m, L.id)}</div></li>
         ))}</ul>
         <div className="text-xs text-ash-400 mt-2">Tavern: {L.tavern}.</div>
       </details>

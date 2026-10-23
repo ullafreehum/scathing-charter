@@ -10,7 +10,7 @@ import { APPEAL_DAYS, HEAT, addHeat, buildPending, canContest, cardOptions, cont
 import { charterPrice, charterReadyDay, checkAchievements, netWorth } from './score';
 import { duelTurn, newDuel } from './duel';
 import { SCHEMA_VERSION } from './save';
-import { here, log, unlock } from './util';
+import { here, log, logV, unlock } from './util';
 import { bankAction, depositRate } from './bank';
 import { contractAction, makeOffers } from './contracts';
 import { findBooks } from './books';
@@ -76,7 +76,7 @@ export function newGame(cfg: NewGameConfig): GameState {
       faction: Object.fromEntries(C.locList.map(l => [l.id, l.faction])),
       routes: {}, priceMods: [], legal: {}, branches, flags: { guides: 1, almsivi: 95 }, fired: [], news: [],
     },
-    offers: [], contracts: [], heard: [], seen: {}, charter: { tier: 0, paid: 0, renewDue: null, renewed: false, nextDividend: null, dividends: 0 }, warehouse: {}, pending: null, inbox: [], log: [], codex: [], achievements: [],
+    offers: [], contracts: [], heard: [], heardDay: {}, seen: {}, charter: { tier: 0, paid: 0, renewDue: null, renewed: false, nextDividend: null, dividends: 0 }, warehouse: {}, pending: null, inbox: [], log: [], codex: [], achievements: [],
     stats: { trades: 0, profit: 0, maxNetWorth: 0, journeys: 0, encounters: 0, fightsWon: 0, smuggled: 0, visited: ['balmora'], reliefDelivered: 0, contractsDone: 0 },
     actions: [], over: null,
   };
@@ -133,7 +133,7 @@ export function tickDay(s: GameState, rng: Rng): void {
   if (wages > 0) {
     if (s.player.cash >= wages) { s.player.cash -= wages; s.player.unpaidDays = 0; }
     else if (++s.player.unpaidDays >= 3 && (s.player.porters || s.player.sellswords)) {
-      s.player.porters = 0; s.player.sellswords = 0; log(s, 'Unpaid, your porters and sellswords walk off in the night.', 'bad');
+      s.player.porters = 0; s.player.sellswords = 0; logV(s, 'walkOff', 'bad');
     }
   }
   if (s.player.heat > 0) s.player.heat = Math.max(0, s.player.heat - HEAT.decayPerDay);
@@ -200,7 +200,7 @@ export function tickDay(s: GameState, rng: Rng): void {
   for (const c of s.contracts.filter(c => c.deadline < s.day)) {
     const t = C.contracts.find(x => x.id === c.templateId)!;
     s.player.rep[t.faction] = clampRep(s.player.rep[t.faction] - 6);
-    log(s, `Contract failed: ${c.qty} ${C.goods[c.good].name} never reached ${C.locs[c.destination].name}.`, 'bad');
+    logV(s, 'contractFailed', 'bad', c.qty, C.goods[c.good].name, C.locs[c.destination].name);
   }
   s.contracts = s.contracts.filter(c => c.deadline >= s.day);
   s.offers = s.offers.filter(o => o.deadline > s.day);
@@ -221,6 +221,8 @@ function arrive(s: GameState, rng: Rng, dest: string, afterCard = false) {
   if (to !== dest) s.inbox.push({ kind: 'result', title: `${C.locs[dest].name} is gone`, text: `Where ${C.locs[dest].name} stood there is only ash and steam. The boatmen put you ashore at ${C.locs[to].name}.` });
   s.player.location = to;
   if (!s.stats.visited.includes(to)) s.stats.visited.push(to);
+  (s.stats.visits ??= {})[to] = (s.stats.visits[to] ?? 0) + 1;
+  if (['ruined', 'camp', 'sacked'].includes(s.world.status[to])) logV(s, 'ruinedArrival', 'neutral', C.locs[to].name);
   unlock(s, `loc:${to}`);
   findBooks(s);
   for (const u of C.locs[to].codex ?? []) unlock(s, u);
@@ -293,7 +295,7 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       const free = holidayAt(s, loc)?.freeRest;
       const cost = free ? 0 : BOARD_PER_DAY * a.days * s.timeScale;
       if (s.player.cash >= cost) s.player.cash -= cost;
-      else { s.player.health = Math.max(1, s.player.health - 2 * a.days); log(s, 'You cannot pay for a bed, so you sleep rough in the ash.', 'bad'); }
+      else { s.player.health = Math.max(1, s.player.health - 2 * a.days); logV(s, 'roughSleep', 'bad'); }
       tickDays(s, rng, a.days * s.timeScale);
       if (s.over) return;
       makeOffers(s, rng, s.player.location);
@@ -525,6 +527,7 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
     lot.qty -= qty; if (lot.qty <= 0) delete s.player.cargo[good];
     cell.sat = Math.max(0.45, cell.sat * (1 - qty / depth));
     s.stats.profit += profit;
+    if (total >= 1500) logV(s, 'bigSale', 'good', qty, g.name, Math.round(total));
   }
   s.stats.trades++;
 }
@@ -569,20 +572,21 @@ function rumor(s: GameState, rng: Rng): string | void {
     (r.from === undefined || s.day >= r.from) && (r.to === undefined || s.day < r.to) && (!r.flag || s.world.flags[r.flag]));
   // Every round buys one true, useful tip with real numbers, then the talk of the tavern.
   const tip = tradeTip(s);
-  if (tip) { s.inbox.push({ kind: 'result', notice: true, title: 'Rumour (trade tip)', text: tip }); log(s, `Trade tip: ${tip}`); }
+  if (tip) { s.inbox.push({ kind: 'result', notice: true, title: 'Rumour (trade tip)', text: tip }); logV(s, 'tradeTip', 'neutral', tip); }
   // A warning about what is coming, if there is one not yet heard.
   const unheard = pool.filter(r => !s.heard.includes(r.id));
   const warn = unheard.filter(r => r.kind === 'foreshadow');
   if (warn.length) {
-    const w = rng.pick(warn); s.heard.push(w.id);
+    const w = rng.pick(warn); s.heard.push(w.id); s.heardDay[w.id] = s.day;
+    logV(s, 'warning', 'neutral', w.text);
     s.inbox.push({ kind: 'result', notice: true, title: 'Rumour (a warning)', text: `${w.voice ? w.voice + ': ' : ''}“${w.text}”` });
   }
   // And one tale or historians' quarrel, which goes quietly into the Codex.
   const tales = unheard.filter(r => r.kind === 'lore' || r.kind === 'dispute');
   if (tales.length) {
-    const t = rng.pick(tales); s.heard.push(t.id);
+    const t = rng.pick(tales); s.heard.push(t.id); s.heardDay[t.id] = s.day;
     unlock(s, t.dispute ? `dispute:${t.dispute}` : `rumor:${t.id}`);
-    log(s, t.dispute ? 'You hear historians’ quarrels over your drink. They are in your Codex.' : 'You hear an old tale over your drink. It is in your Codex.');
+    logV(s, t.dispute ? 'taleDispute' : 'tale', 'neutral');
   }
   if (!tip && !warn.length && !tales.length) s.inbox.push({ kind: 'result', notice: true, title: 'Rumour', text: 'Nobody has anything new tonight.' });
 }

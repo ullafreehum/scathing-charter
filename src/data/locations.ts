@@ -4,17 +4,20 @@ import { U, UG, IL, T } from './src';
 // Merchants are all INVENTED for this game; names follow LORE_BIBLE §8 conventions.
 export const LOCATIONS: Location[] = [
   { id: 'balmora', name: 'Balmora', region: 'vvardenfell', jurisdiction: 'vvardenfell', x: 520, y: 268, faction: 'House Hlaalu', status: 'thriving', refuge: 'narsis',
+    ruinText: { ruined: 'Ash lies in the council streets. The river carries soot to the sea.' },
     blurb: 'Hlaalu’s council town on the Odai River, which divides it into four districts. Strider-port to Ald’ruhn, Seyda Neen, Suran and Vivec, with a Mages Guild hall and its Guild Guide. Balmora is also the Camonna Tong’s nest: the native syndicate that once owned Hlaalu councilors outright and considers outlanders fit only for slavery. You owe it money.',
     laws: 'Imperial District law: moon sugar, skooma and Dwemer artefacts are contraband; ebony and glass belong to the East Empire Company. Hlaalu guards are bribable.',
     enforcement: 3, duty: 0.04, temple: 'tribunal', outfitter: true, books: true, tavern: 'the Council Club (Tong)', canon: 'canon',
     sources: [U('Balmora'), U('Odai_River'), U('Camonna_Tong'), UG('Morrowind', 'Transport')],
     merchants: [
-      { name: 'Ilvi Romathran', race: 'Dunmer', trade: 'Hlaalu general trader', line: '“House Hlaalu trades with anyone, muthsera. That is why the others hate us.”', categories: 'all', lean: 1.0 },
+      { name: 'Ilvi Romathran', race: 'Dunmer', trade: 'Hlaalu general trader', line: '“House Hlaalu trades with anyone, muthsera. That is why the others hate us.”', categories: 'all', lean: 1.0,
+        lines: { saint: '“They say you feed the camps, muthsera. House Hlaalu will pretend it did not hear that.”', famine: '“Muthsera! The ash has been kind to us both this year, has it not?”', flooded: '“You have buried my stalls in your goods, muthsera. Come back when the market can breathe.”', regular: '“Back again! Hlaalu likes a face it can price.”' } },
       { name: 'J’Dhannar', race: 'Khajiit', trade: 'pawnbroker (fence)', line: '“This one buys what the guards do not see, yes? Sugar, cogs… memories.”', categories: ['narcotic', 'luxury'], lean: 1.04, fence: true },
       { name: 'Teris Vandral', race: 'Dunmer', trade: 'alchemist', line: '“The ash gets in everything this year. Buy a draught.”', categories: ['medicine', 'magic', 'food'], lean: 0.96 },
     ],
     tendencies: T('kwama-eggs .7 saltrice 1 sujamma .7 skingrad-wine 1.3 nord-mead 1.25 timber 1.3 raw-glass 1 raw-ebony 1.05 dwemer-artifacts .6 moon-sugar 1.6 skooma 1.5 bug-musk 1 soul-gems 1.1 healing-draughts 1.25 washtongue 1.3') },
   { id: 'vivec', codex: ['person:nerevarine'], name: 'Vivec City', region: 'vvardenfell', jurisdiction: 'vvardenfell', x: 580, y: 312, faction: 'Tribunal Temple', status: 'uneasy', refuge: 'narsis',
+    ruinText: { camp: 'The canton roofs are under the bay. What trades here is hope.', closed: 'The canton roofs are under the bay. Nothing is sold here.' },
     blurb: 'The god-king’s city of cantons on the water, seat of a Temple whose gods are dead or gone. Above it hangs Baar Dau, the Ministry of Truth, a hollowed moonlet once held aloft by Vivec’s power and now, since his disappearance, by the soul-eating Ingenium of the mage Vuhon. A guar-caravan road runs south to Narsis.',
     laws: 'Temple law and Imperial District law. Ordinators patrol; contraband is seized; Dwemer goods are “property of the Emperor”.',
     enforcement: 4, duty: 0.05, temple: 'tribunal', outfitter: true, books: true, tavern: 'a canton tavern under the Ministry’s shadow', canon: 'canon',

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { C } from '../data';
-import { DEPTH, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight, fairValue, maxBuyQty, quotes, routeOptions, FREIGHT, holidayAt, marketOpen, satRecoveryDays, canContest, courtCost, formatDate, type GameState, type Quote } from '../engine';
+import { DEPTH, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight, fairValue, maxBuyQty, quotes, routeOptions, FREIGHT, holidayAt, marketOpen, satRecoveryDays, canContest, closedParagraph, courtCost, formatDate, ruinLine, type GameState, type Quote } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
@@ -39,6 +39,7 @@ export function Market({ g }: { g: GameState }) {
   }, []);
   const enterRow = (good: string, e: PointerEvent) => { lastRow.current = good; if (e.shiftKey) setMaxRow(good); };
   const loc = g.player.location;
+  const closed = closedParagraph(g, loc);
   const qs = quotes(g, loc);
   const hol = holidayAt(g, loc);
   const free = capacity(g) - cargoWeight(g);
@@ -83,6 +84,7 @@ export function Market({ g }: { g: GameState }) {
           </span>
         </div>
       )}
+      {(() => { const r = ruinLine(g, loc); return r && marketOpen(g, loc) ? <div className="market-notice panel p-3 text-sm italic" onClick={e => e.currentTarget.classList.toggle('open')}>{r}</div> : null; })()}
       {hol && !hol.marketClosed && <div className="market-notice panel p-3 text-sm" onClick={e => e.currentTarget.classList.toggle('open')}><span className="text-gold h-display">{hol.name}.</span> {hol.text}</div>}
       {(loc === 'lilmoth' || loc === 'stormhold') && !g.player.licence && <div className="market-notice panel p-3 text-sm text-ember" onClick={e => e.currentTarget.classList.toggle('open')}>Foreigners need a trade licence here. Buy one at the Lilmoth gate (Shop & Temple tab) or from the Argonian agent in Leyawiin.</div>}
       {!PHONE && canContest(g) && g.appeal && (
@@ -98,7 +100,7 @@ export function Market({ g }: { g: GameState }) {
           <button className="btn btn-ember ml-auto" onClick={() => act({ t: 'deliver', id: c.id })}>Deliver</button>
         </div>
       ); })}
-      <Section className="market-sec" title={PHONE ? '' : 'Goods'} right={<span className="text-xs text-ash-400">Cash <Money v={g.player.cash} className="text-gold" /> · <span title="The fare grows with your cargo: the second figure is the fare with your hold full">cheapest trip <Money v={fareWith(0)} /> (full load <Money v={fareWith(free)} />)</span> · space left {free}</span>}>
+      {closed ? <div className="panel p-4 fell text-parchment">{closed}</div> : <Section className="market-sec" title={PHONE ? '' : 'Goods'} right={<span className="text-xs text-ash-400">Cash <Money v={g.player.cash} className="text-gold" /> · <span title="The fare grows with your cargo: the second figure is the fare with your hold full">cheapest trip <Money v={fareWith(0)} /> (full load <Money v={fareWith(free)} />)</span> · space left {free}</span>}>
         <div className="market-head flex flex-wrap items-center gap-x-4 gap-y-2 mb-2 text-sm">
           {PHONE && <button className="btn" onClick={() => usePhone.getState().setSheet('town')}>Town ▾</button>}
           <div className="flex items-center gap-1" role="radiogroup" aria-label="Trade amount">
@@ -195,8 +197,8 @@ export function Market({ g }: { g: GameState }) {
           </table>
         </div>
         {!PHONE && <p className="text-xs text-ash-400 mt-2">{help}</p>}
-      </Section>
-      {cargoGoods.length > 0 && (
+      </Section>}
+      {!closed && cargoGoods.length > 0 && (
         <Section title="In your cargo, but nobody here buys it">
           <div className="flex flex-wrap gap-3 text-sm">{cargoGoods.map(id => <span key={id}><GoodIcon id={id} category={C.goods[id].category} /> <CodexLink id={`good:${id}`}>{C.goods[id].name}</CodexLink> ×{g.player.cargo[id].qty}</span>)}</div>
         </Section>

@@ -360,7 +360,7 @@ describe('economy fixes (0.10)', () => {
     const s = drain(newGame(CFG)); s.charter.tier = 1; s.world.flags.relief = 1; s.note.cleared = true; s.note.balance = 0; s.player.cash = 1e6;
     const raw = JSON.parse(serialize(s)); raw.schemaVersion = 6; delete raw.charter.boughtDay;
     const m = migrate(raw);
-    expect(m.schemaVersion).toBe(SCHEMA_VERSION); expect(SCHEMA_VERSION).toBe(7);
+    expect(m.schemaVersion).toBe(SCHEMA_VERSION); expect(SCHEMA_VERSION).toBe(8);
     expect(drain(act(m, { t: 'charter' })).charter.tier).toBe(2);
   });
 });

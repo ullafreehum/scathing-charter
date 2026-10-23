@@ -13,3 +13,4 @@ export * from './bank';
 export * from './endings';
 export * from './contracts';
 export * from './books';
+export * from './voice';

@@ -32,6 +32,8 @@ export interface Good extends Sourced {
 
 export interface Merchant {
   name: string; race: Race; trade: string; line: string;
+  /** other things this merchant says: to a saint, to a profiteer, in a flooded market, to a regular (0.10.6) */
+  lines?: { flooded?: string; saint?: string; famine?: string; regular?: string };
   categories: readonly GoodCategory[] | 'all';
   /** <1 = cheaper to buy from, better seller */
   lean: number;
@@ -55,6 +57,8 @@ export interface Location extends Sourced {
   /** where you end up if this place is closed under you */
   refuge: string;
   status: LocStatus;
+  /** what the market paragraph says when the stalls are shut and the town is in this state (0.10.6) */
+  ruinText?: Partial<Record<LocStatus, string>>;
 }
 
 /** A day-labour job in one place (data/jobs.ts). `mult` scales the local wage; `hurt` is health lost per day. */
@@ -85,6 +89,8 @@ export interface HistoryEvent extends Sourced {
   foreshadow?: { lead: number; rumors: readonly string[] };
   /** codex entries unlocked when this event happens */
   unlocks?: readonly string[];
+  /** one italic line under the card for a player of this background (by background id) */
+  echo?: Readonly<Record<string, string>>;
 }
 
 export type EncounterKind = 'hostile' | 'enforcer' | 'customs' | 'mercy' | 'hazard' | 'opportunity';
@@ -230,6 +236,10 @@ export interface WorldState {
 export interface Stats {
   trades: number; profit: number; maxNetWorth: number; journeys: number; encounters: number;
   fightsWon: number; smuggled: number; visited: string[]; reliefDelivered: number; contractsDone: number;
+  /** What the eruption took: vault deposits wiped and cargo lost (septims at cost). Set when it happens in your game (0.10.6). */
+  lostAtBaarDau?: { deposits: number; cargo: number };
+  /** Arrivals per town, for the merchants who remember you (0.10.6) */
+  visits?: Record<string, number>;
   /** [day, net worth] sampled weekly, for the fortune chart */
   worth?: [number, number][];
   /** Strongbox interest earned so far, by city (tracked since 0.10.1) */
@@ -246,6 +256,8 @@ export interface GameState {
   world: WorldState;
   offers: Contract[]; contracts: Contract[];
   heard: string[];
+  /** the day each rumour was heard (0.10.6) */
+  heardDay: Record<string, number>;
   seen: Record<string, SeenPrices>;
   charter: CharterState;
   /** cargo stored in the charter warehouse (tier 2) */

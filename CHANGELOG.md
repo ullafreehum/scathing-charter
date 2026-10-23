@@ -4,7 +4,13 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
-## Unreleased
+## 0.10.6 (beta): the trader's voice
+- Your Ledger now speaks in your own voice: hopeful and naive before the eruption, sober after it.
+- The end screen opens with what you knew and when: how often you were warned, and what you left in the vaults when Baar Dau fell.
+- Merchants remember you: they speak differently to a saint, to a profiteer, in a flooded market and to a regular.
+- Gavas Drelloth speaks on the Bank tab, by how hard the Tong presses and how you have paid.
+- Chronicle cards add a line for your background, and shut or ruined markets say so in a dated paragraph.
+- Saves move to version 8 (the day each rumour was heard).
 - Settings: Sound effects and Music switch on and off separately (one volume for both).
 - A new app icon by Sorcerer (a gold septim ring around Red Mountain) for the Android app and the Windows .exe and installer.
 - Phone: the top strip no longer clips with the Classic font (short date, short goal); notices fold to one line (tap to read); the Market hint can be closed and goes after the first purchase.

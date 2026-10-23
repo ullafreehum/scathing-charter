@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { noContest } from './phone';
 import { useEffect, useRef } from 'react';
 import { C } from '../data';
-import { cardOptions, conductTitles, depositsTotal, cargoValue, formatDate, netWorth, wealthTitle, type GameState } from '../engine';
+import { cardOptions, conductTitles, depositsTotal, cargoValue, formatDate, knewParagraph, netWorth, wealthTitle, type GameState } from '../engine';
 import { useGame } from '../store/game';
 import { exportFile } from '../save/storage';
 import { CodexLink, Money, Sources } from './widgets';
@@ -97,6 +97,7 @@ export function Overlays() {
         <h2 className="h-display text-3xl text-[#3a1a0c] mb-1">{ev.title}</h2>
         <div className="mb-3" />
         <p className="text-lg leading-relaxed text-[#2a1d14] first-letter:text-5xl first-letter:font-display first-letter:float-left first-letter:mr-2 first-letter:text-[#7a2a10]">{ev.text}</p>
+        {ev.echo?.[g.player.backgroundId] && <p className="fell italic text-lg text-[#5a3a1f] mt-3">{ev.echo[g.player.backgroundId]}</p>}
         {ev.dateNote && <p className="text-sm italic text-[#6b4a2b] mt-3">About the date: {ev.dateNote}</p>}
         {ev.disputes && <p className="text-sm mt-2">Historians disagree: {ev.disputes.map(d => <CodexLink key={d} id={`dispute:${d}`} className="mr-2 text-[#5a2d7a]">{d}</CodexLink>)}</p>}
         <div className="[&_*]:!text-[#6b4a2b]"><Sources list={ev.sources} /></div>
@@ -167,6 +168,7 @@ function EndScreen({ g }: { g: GameState }) {
         </div>
         <div className="panel p-3 text-sm max-h-48 overflow-auto scroll-thin">
           <div className="h-display text-xs uppercase text-ash-400 mb-1">History you lived through</div>
+          {knewParagraph(g) && <p className="text-gold mb-1">{knewParagraph(g)}</p>}
           {history.map((h, i) => <div key={i} className="text-parchment">{h.text}</div>)}
         </div>
       </div>

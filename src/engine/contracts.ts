@@ -4,7 +4,7 @@ import type { Action, GameState } from './types';
 import type { Rng } from './rng';
 import { fairValue } from './market';
 import { clampRep } from './history';
-import { log, unlock } from './util';
+import { logV, unlock } from './util';
 
 export function makeOffers(s: GameState, rng: Rng, loc: string) {
   s.offers = s.offers.filter(o => o.origin !== loc);
@@ -39,7 +39,7 @@ export function contractAction(s: GameState, a: Action, loc: string): string | v
       if (t.mercy > 0) s.stats.reliefDelivered++;
       s.stats.contractsDone++;
       s.contracts = s.contracts.filter(x => x.id !== c.id);
-      log(s, `Delivered ${c.qty} ${C.goods[c.good].name} for ${t.issuer}: ${c.reward} septims.`, 'good');
+      logV(s, 'delivered', 'good', c.qty, C.goods[c.good].name, t.issuer, c.reward);
       return;
     }
   }

@@ -1,3 +1,4 @@
+import { LOG_VOICE } from '../data/voice';
 import { useState } from 'react';
 import { C } from '../data';
 import { netWorth, shortDate, type GameState } from '../engine';
@@ -18,7 +19,7 @@ export function FortuneChart({ g, height = 170 }: { g: GameState; height?: numbe
   const Y = (v: number) => PAD.t + (1 - (v - lo) / (hi - lo)) * (H - PAD.t - PAD.b);
   const line = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join('');
   const events = C.history.filter(e => e.major && g.world.fired.includes(e.id) && e.day >= x0 && e.day <= x1).map(e => ({ day: e.day, title: e.title }));
-  const paid = g.log.find(l => l.text.startsWith('You paid off the Camonna Tong'));
+  const paid = g.log.find(l => l.text === LOG_VOICE.payOff.before() || l.text === LOG_VOICE.payOff.after());
   if (paid) events.push({ day: paid.day, title: 'Debt paid off' });
   for (const l of g.log) if (l.text.startsWith('You buy the ')) events.push({ day: l.day, title: l.text.replace(/^You buy the (.*) for .*/, '$1') });
   const h = hover !== null ? pts[hover] : null;

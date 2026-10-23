@@ -40,6 +40,7 @@ export function applyEffect(s: GameState, e: Effect, rng: Rng, ev: HistoryEvent)
       if (amt > 0) {
         if (e.action === 'wipe') {
           s.world.flags.lostDeposits = (s.world.flags.lostDeposits ?? 0) + amt;
+          if (s.stats.lostAtBaarDau) s.stats.lostAtBaarDau.deposits += amt;
           s.log.push({ day: s.day, text: `The ${houseName(e.house)} vault at ${C.locs[e.loc].name} is gone, and ${amt} septims with it.`, tone: 'bad' });
         } else if (e.action === 'freeze') {
           s.frozen.push({ amount: amt, ratio: e.ratio ?? 0.1, settleDay: s.day + (e.settleDays ?? 120), settleAt: e.settleAt ?? 'narsis', house: e.house });
@@ -57,7 +58,9 @@ export function applyEffect(s: GameState, e: Effect, rng: Rng, ev: HistoryEvent)
     case 'disaster': {
       if (!e.locs.includes(s.player.location)) break;
       for (const [g, lot] of Object.entries(s.player.cargo)) {
+        const before = lot.qty;
         lot.qty -= Math.floor(lot.qty * e.cargoLoss + rng.next());
+        if (s.stats.lostAtBaarDau) s.stats.lostAtBaarDau.cargo += Math.round((before - Math.max(0, lot.qty)) * lot.cost);
         if (lot.qty <= 0) delete s.player.cargo[g];
       }
       s.player.health = Math.max(1, s.player.health - Math.round(e.injury * rng.range(0.6, 1.2)));
@@ -78,6 +81,7 @@ export function applyHistory(s: GameState, rng: Rng): void {
     if (ev.day !== s.day || s.world.fired.includes(ev.id)) continue;
     if (ev.mode !== 'both' && ev.mode !== s.mode && !(ev.mode === 'red-year' && s.mode === 'long-chronicle')) continue;
     s.world.fired.push(ev.id);
+    if (ev.id === 'red-year-eruption') s.stats.lostAtBaarDau = { deposits: 0, cargo: 0 }; // only a player who is there when it falls has something to answer for
     const lostBefore = s.world.flags.lostDeposits ?? 0;
     const inboxAt = s.inbox.length;
     for (const e of ev.effects) applyEffect(s, e, rng, ev);
