@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { C } from '../data';
-import { LEND_RATIO, MARK_RATIO, borrowRate, charterPrice, charterReadyDay, daysUntil, depositRate, WITHDRAW_FEE, houseName, pressure, shortDate, strongboxCities, type GameState } from '../engine';
+import { LEND_RATIO, MARK_RATIO, borrowRate, charterPrice, charterReadyDay, daysUntil, depositRate, WITHDRAW_FEE, drellothLine, houseName, shortDate, strongboxCities, type GameState } from '../engine';
 import { useGame } from '../store/game';
 import { CodexLink, Money, Section } from './widgets';
 import { GoodIcon } from './GoodIcon';
@@ -124,19 +124,18 @@ export function Bank({ g }: { g: GameState }) {
   const n = g.note;
   const atTong = loc === n.seat || n.agents.includes(loc);
   const lendRoom = Math.floor(n.original * LEND_RATIO - (n.cleared ? 0 : n.balance));
-  const pr = pressure(g);
   const places = [n.seat, ...n.agents].map(a => C.locs[a].name).join(' or ');
   const payAll = Math.min(g.player.cash, Math.ceil(n.balance));
   return (
     <div className="grid xl:grid-cols-2 gap-3">
       <GoalTrack g={g} />
       <Section title="Your debt (Camonna Tong)">
-        {n.cleared ? <><p className="text-moss">Paid off. You owe the Camonna Tong nothing.</p>
+        {n.cleared ? <><p className="text-moss">Paid off. You owe the Camonna Tong nothing. <span className="text-parchment italic">{drellothLine(g)}</span></p>
           {atTong && <div className="flex flex-wrap gap-2 mt-3 items-center"><input className="input w-28 num" type="number" min={1} value={loan} onChange={e => setLoan(toInt(e.target.value))} aria-label="Loan amount" /><button className="btn btn-ghost" onClick={borrow}>Borrow again</button></div>}</> : (
           <>
             <p className="text-sm text-parchment">You owe <b>Gavas Drelloth</b> <Money v={n.balance} className="text-ember" />. Interest is {(n.rate * 100).toFixed(2)}% a day: about <Money v={n.balance * n.rate} /> a day right now.</p>
             <p className="text-sm mt-1">Only a payment of at least 30 days’ interest (<Money v={Math.ceil(n.balance * n.rate * 30 * g.timeScale)} />) keeps the collectors away. Last one: {shortDate(n.lastPaymentDay)}.</p>
-            <p className="text-sm mt-1">{pr === 0 ? 'The Tong is patient, for now.' : pr === 1 ? 'Drelloth is getting impatient. Pay something soon.' : pr === 2 ? 'Debt collectors are looking for you on the roads.' : 'The Tong has sent killers after you. Pay now.'}</p>
+            <p className="text-sm mt-1">{drellothLine(g)}</p>
             {atTong ? (<>
               <div className="flex flex-wrap gap-2 mt-3 items-center">
                 <input className="input w-28 num" type="number" min={1} value={pay} onChange={e => setPay(toInt(e.target.value))} aria-label="Payment amount" />

@@ -18,12 +18,12 @@ export function setVolume(v: number) {
   if (wind && ctx) wind.gain.gain.setTargetAtTime(wind.level * volume, ctx.currentTime, 0.2);
   music?.setVolume(MUSIC_LEVEL * volume); syncMusic();
 }
-/** The background score (Settings → Music): plays while music and sound are on and the volume is above zero. */
+/** The background score (Settings → Music): plays while Music is on and the volume is above zero, whatever Sound effects says. */
 export function setMusic(on: boolean) { musicOn = on; syncMusic(); }
 /** 0 calm, 1 after Baar Dau falls, 2 during a card duel. */
 export function setMusicMood(m: 0 | 1 | 2) { mood = m; music?.setMood(m); }
 function syncMusic() {
-  const want = musicOn && enabled && volume > 0;
+  const want = musicOn && volume > 0;
   if (want && !music) playSong(song);
   else if (!want && music) { clearTimeout(rotate); music.stop(); music = null; }
 }

@@ -3,7 +3,7 @@ import { LEND_RATIO } from './endings';
 import { C } from '../data';
 import type { Action, GameState } from './types';
 import { vaultHouse } from './history';
-import { log, unlock } from './util';
+import { logV, unlock } from './util';
 
 /** Daily interest on each city's strongbox (the eruption gamble: the game never says which cities are doomed),
  *  and the fee for taking money out. */
@@ -50,7 +50,7 @@ export function bankAction(s: GameState, a: Action, loc: string): string | void 
       if (s.note.cleared) { s.note.cleared = false; s.note.balance = 0; s.note.lastPaymentDay = s.day; }
       s.note.rate = borrowRate(s, amt);
       s.note.extended += amt; s.note.balance += amt; s.player.cash += amt;
-      log(s, `You borrow ${amt} more from the Tong.`, 'bad');
+      logV(s, 'borrow', 'bad', amt);
       return;
     }
   }
@@ -73,5 +73,7 @@ export function daysUntil(balance: number, rate: number, limit: number, timeScal
 export function payNote(s: GameState, amt: number): void {
   if (amt >= s.note.balance * s.note.rate * 30 * s.timeScale || amt >= s.note.balance - 1) s.note.lastPaymentDay = s.day;
   s.player.cash -= amt; s.note.balance -= amt;
-  if (s.note.balance < 1) { s.note.balance = 0; s.note.cleared = true; log(s, 'You paid off the Camonna Tong. You owe no one.', 'good'); s.inbox.push({ kind: 'result', title: 'Debt paid off', text: 'Gavas Drelloth counts the coin twice, then tears up your note. "Pleasure, outlander." You are free of the Tong.' }); }
+  if (s.note.balance < s.note.original / 2) s.note.halved = true;
+  if (s.note.balance < 1) { s.note.balance = 0; s.note.cleared = true; logV(s, 'payOff', 'good'); s.inbox.push({ kind: 'result', title: 'Debt paid off', text: 'Gavas Drelloth counts the coin twice, then tears up your note. "Pleasure, outlander." You are free of the Tong.' }); }
+  else if (amt >= 1) logV(s, 'payPart', 'good', Math.round(amt));
 }

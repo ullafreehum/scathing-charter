@@ -205,3 +205,18 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 .phone [role="dialog"] h2.text-2xl { font-size: 18px; margin-bottom: 4px; }
 .phone [role="dialog"] .fell.text-lg { font-size: 14px; line-height: 1.35; margin-bottom: 8px; }
 .phone [role="dialog"] .grid > .btn { padding-top: 4px; padding-bottom: 4px; }
+.phone-strip > * { min-width: 0; flex-shrink: 1; }
+.phone-strip .btn, .phone-strip .btn * { font-family: var(--font-body, inherit); text-transform: none; letter-spacing: 0; white-space: nowrap; }
+.phone-strip .btn > span { overflow: hidden; text-overflow: ellipsis; }
+.phone-strip .btn:last-child { flex-shrink: 0; }
+.phone-strip [title="Health"] { flex-shrink: 0; }
+.phone-strip [title="Health"] > :last-child { width: 56px; }
+.phone .market-notice { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 6px; padding-bottom: 6px; cursor: pointer; }
+.phone .market-notice.open { white-space: normal; }
+.phone-hint-x { position: absolute; right: 4px; top: 50%; translate: 0 -50%; width: 44px; height: 44px; color: var(--c-muted); }
+.phone-hint { padding-right: 48px; }
+.phone .market-sec > div:first-child { display: none; }
+.phone .market-table th { white-space: nowrap; font-size: 11px; }
+.phone .market-table td:last-child .btn { width: 126px; padding: 0 4px; font-size: 11.5px; letter-spacing: 0; }
+.phone .market-table td:first-child > div { max-width: 180px; }
+.phone .market-table thead th:last-child { width: 264px; }

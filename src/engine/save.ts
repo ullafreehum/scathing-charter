@@ -2,7 +2,7 @@
 import type { EncounterKind, GameState, ScrollId } from './types';
 import { choicesFor } from './encounters';
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 /** MIGRATIONS[n] upgrades a save from version n to n+1. */
 export const MIGRATIONS: Record<number, Migration> = {
@@ -42,6 +42,8 @@ export const MIGRATIONS: Record<number, Migration> = {
   // 6 → 7 (0.10): a charter tier must be held a while before the next (charter.boughtDay). Older saves have no date,
   // so the tiers they hold count as held long enough: nothing to change but the version.
   6: raw => ({ ...raw, schemaVersion: 7 }),
+  // 7 → 8 (0.10.6): the day each rumour was heard, for the end screen. Rumours heard earlier have no day.
+  7: raw => ({ ...raw, heardDay: raw.heardDay ?? {}, schemaVersion: 8 }),
   3: raw => ({ ...raw, charter: raw.charter ?? { tier: 0, paid: 0, renewDue: null, renewed: false, nextDividend: null, dividends: 0 }, warehouse: raw.warehouse ?? {}, schemaVersion: 4 }),
 };
 

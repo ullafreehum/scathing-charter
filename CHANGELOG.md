@@ -4,6 +4,18 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.10.6 (beta): the trader's voice
+- Your Ledger now speaks in your own voice: hopeful and naive before the eruption, sober after it.
+- The end screen opens with what you knew and when: how often you were warned, and what you left in the vaults when Baar Dau fell.
+- Merchants remember you: they speak differently to a saint, to a profiteer, in a flooded market and to a regular.
+- Gavas Drelloth speaks on the Bank tab, by how hard the Tong presses and how you have paid.
+- Chronicle cards add a line for your background, and shut or ruined markets say so in a dated paragraph.
+- Saves move to version 8 (the day each rumour was heard).
+- Settings: Sound effects and Music switch on and off separately (one volume for both).
+- A new app icon by Sorcerer (a gold septim ring around Red Mountain) for the Android app and the Windows .exe and installer.
+- Phone: the top strip no longer clips with the Classic font (short date, short goal); notices fold to one line (tap to read); the Market hint can be closed and goes after the first purchase.
+- Phone: pop-up messages and the Undo bar go away sooner; tapping the date shows the time (and the date in the game) instead of the town.
+
 ## 0.10.5 (beta): Android test app and more music
 - Three more songs by Sorcerer: Salt & Silt, Red Mountain Procession and Ghostgate Vigil. With Music on, the game moves to another of the four songs every five minutes, keeping the mood (calm, after Baar Dau, duel).
 - Android app (debug APK for the Galaxy A26, landscape): a phone layout with a left tab rail, a status strip and sheets for the town, your money and the menu; a touch Market (labelled Buy/Sell buttons, tap a row for details, an Undo bar) and a full-screen touch map (pinch, double tap, a town sheet, Places and Layers). The Back button closes sheets, steps back through tabs, then asks to quit. Music pauses when the app goes to the background. No card duel on the phone: fines and seized goods stand, with no hearing. Desktop and web are unchanged.

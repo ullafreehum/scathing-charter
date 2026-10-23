@@ -220,7 +220,7 @@ test('outfitter, codex links, ledger, keyboard, save slot, settings', async ({ p
   await expect(page.getByRole('dialog', { name: 'Codex' })).toHaveCount(0);
   // ledger
   await page.getByRole('tab', { name: 'Journal' }).click();
-  await expect(page.getByText(/You owe Gavas Drelloth/)).toBeVisible();
+  await expect(page.getByText(/I am already in debt: \d+ septims to Gavas Drelloth/)).toBeVisible();
   await expect(page.getByText(/Achievements \d+\/20/)).toBeVisible();
   // keyboard: c opens codex
   await page.getByRole('tab', { name: 'Journal' }).focus();
@@ -266,14 +266,14 @@ test('settings: themes, fonts, text size, motion and sound persist', async ({ pa
   expect(await html.evaluate(e => e.style.getPropertyValue('--ui-scale'))).toBe('1.25');
   await dlg.getByRole('checkbox', { name: 'Falling ash' }).uncheck();
   await expect(page.locator('canvas')).toHaveCount(0);
-  await dlg.getByRole('checkbox', { name: 'Sound on' }).uncheck();
+  await dlg.getByRole('checkbox', { name: 'Sound effects' }).uncheck();
   await expect(dlg.getByLabel('Volume')).toBeDisabled();
   await page.screenshot({ path: 'tests/e2e/__screenshots__/ui-settings.png' });
   await page.reload();
   await expect(html).toHaveAttribute('data-theme', 'west-gash');
   expect(await html.evaluate(e => e.style.getPropertyValue('--ui-scale'))).toBe('1.25');
   await page.getByRole('button', { name: 'Settings' }).click();
-  await expect(page.getByRole('checkbox', { name: 'Sound on' })).not.toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Sound effects' })).not.toBeChecked();
   await page.getByRole('button', { name: 'Reset to defaults' }).click();
   await expect(html).toHaveAttribute('data-theme', 'ashlands');
   await expect(page.getByRole('checkbox', { name: 'Falling ash' })).toBeChecked();

@@ -35,14 +35,14 @@ export function Settings() {
         </div>
 
         <Group title="Sound">
-          <label className="flex items-center gap-2"><input type="checkbox" checked={s.sound} onChange={e => setSettings({ sound: e.target.checked })} />Sound on</label>
-          <label className={`flex items-center gap-3 mt-2 ${s.sound ? '' : 'opacity-50'}`}>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={s.sound} onChange={e => setSettings({ sound: e.target.checked })} />Sound effects</label>
+          <label className="flex items-center gap-2 mt-2"><input type="checkbox" checked={s.music} onChange={e => setSettings({ music: e.target.checked })} />Music</label>
+          <label className={`flex items-center gap-3 mt-2 ${s.sound || s.music ? '' : 'opacity-50'}`}>
             <span className="w-16 text-parchment">Volume</span>
-            <input type="range" min={0} max={100} step={5} className="flex-1" aria-label="Volume" disabled={!s.sound}
+            <input type="range" min={0} max={100} step={5} className="flex-1" aria-label="Volume" disabled={!s.sound && !s.music}
               value={Math.round(s.volume * 100)} onChange={e => setSettings({ volume: Number(e.target.value) / 100 })} />
             <span className="num w-12 text-right">{Math.round(s.volume * 100)}%</span>
           </label>
-          <label className={`flex items-center gap-2 mt-2 ${s.sound ? '' : 'opacity-50'}`}><input type="checkbox" checked={s.music} disabled={!s.sound} onChange={e => setSettings({ music: e.target.checked })} />Music</label>
         </Group>
 
         <Group title="Colour theme" note="Each theme takes its colours from a region of Vvardenfell. All of them are tested for comfortable reading contrast.">
