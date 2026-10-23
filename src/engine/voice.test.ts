@@ -28,7 +28,7 @@ describe('0.10.6 texture', () => {
     s = step({ ...s, day: ev.day - 1 }, { t: 'wait', days: 1 }).state;
     expect(s.world.fired).toContain('red-year-eruption');
     expect(s.stats.lostAtBaarDau?.deposits).toBeGreaterThan(799);
-    const p = knewParagraph(s)!; expect(p).toContain('2 times'); expect(p).toContain('vaults');
+    const p = knewParagraph(s)!; expect(p).toContain('2 times'); expect(p).toContain('Vivec vault');
   });
   it('picks merchant lines by what the town knows of you, and Drelloth by how you paid', () => {
     const s = base(); const bal = C.locs.balmora; const m = bal.merchants.find(x => x.lines)!;
@@ -36,9 +36,10 @@ describe('0.10.6 texture', () => {
     s.player.mercy = 70; expect(merchantLine(s, m, 'balmora')).toBe(m.lines!.saint);
     s.player.profiteering = 4000; expect(merchantLine(s, m, 'balmora')).toBe(m.lines!.famine);
     s.player.mercy = 0; s.player.profiteering = 0; s.stats.visits = { balmora: 4 }; expect(merchantLine(s, m, 'balmora')).toBe(m.lines!.regular);
-    expect(drellothLine(s)).toBe(DRELLOTH.patient);
-    s.note.lastPaymentDay = 5; expect(drellothLine(s)).toBe(DRELLOTH.paying);
-    s.note.cleared = true; expect(drellothLine(s)).toBe(DRELLOTH.cleared);
+    expect(drellothLine(s)).toBe(DRELLOTH['p0.never'].long);
+    s.note.lastPaymentDay = 5; expect(drellothLine(s)).toBe(DRELLOTH['p0.paid'].long);
+    s.note.halved = true; expect(drellothLine(s, true)).toBe(DRELLOTH['p0.half'].short);
+    s.note.cleared = true; expect(drellothLine(s)).toBe(DRELLOTH.cleared.long);
   });
   it('counts repeat arrivals', () => {
     let s = base(); s.player.cash = 5000; const opt = (s0: GameState) => C.routeList.find(r => r.a === s0.player.location || r.b === s0.player.location)!;

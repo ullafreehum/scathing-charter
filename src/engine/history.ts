@@ -3,6 +3,8 @@ import { C } from '../data';
 import type { Effect, GameState, HistoryEvent } from './types';
 import type { Rng } from './rng';
 import { shortDate } from './calendar';
+import { LOG_AFTER } from '../data/voice';
+import { log } from './util';
 
 /** Strongboxes are kept per city (0.10): the house only says who runs the vault there. */
 export function branchKey(_house: string, loc: string) { return loc; }
@@ -31,7 +33,7 @@ export function applyEffect(s: GameState, e: Effect, rng: Rng, ev: HistoryEvent)
     case 'flag': s.world.flags[e.key] = e.value; break;
     case 'rep': s.player.rep[e.faction] = clampRep(s.player.rep[e.faction] + e.delta); break;
     case 'lender':
-      if (!s.note.cleared) s.log.push({ day: s.day, text: `Your note now answers to the Tong at ${C.locs[e.seat].name}.`, tone: 'bad' });
+      if (!s.note.cleared) log(s, LOG_AFTER.noteMoves(C.locs[e.seat].name), 'bad');
       s.note.seat = e.seat; s.note.agents = [...e.agents]; break;
     case 'branch': {
       const key = branchKey(e.house, e.loc);
@@ -40,16 +42,16 @@ export function applyEffect(s: GameState, e: Effect, rng: Rng, ev: HistoryEvent)
       if (amt > 0) {
         if (e.action === 'wipe') {
           s.world.flags.lostDeposits = (s.world.flags.lostDeposits ?? 0) + amt;
-          if (s.stats.lostAtBaarDau) s.stats.lostAtBaarDau.deposits += amt;
-          s.log.push({ day: s.day, text: `The ${houseName(e.house)} vault at ${C.locs[e.loc].name} is gone, and ${amt} septims with it.`, tone: 'bad' });
+          if (s.stats.lostAtBaarDau && ev.id === 'red-year-eruption') { s.stats.lostAtBaarDau.deposits += amt; (s.stats.lostAtBaarDau.depositsAt ??= []).push(e.loc); }
+          log(s, LOG_AFTER.vaultGone(houseName(e.house), C.locs[e.loc].name, Math.round(amt)), 'bad');
         } else if (e.action === 'freeze') {
           s.frozen.push({ amount: amt, ratio: e.ratio ?? 0.1, settleDay: s.day + (e.settleDays ?? 120), settleAt: e.settleAt ?? 'narsis', house: e.house });
           s.world.flags.lostDeposits = (s.world.flags.lostDeposits ?? 0) + amt * (1 - (e.ratio ?? 0.1));
-          s.log.push({ day: s.day, text: `Your ${amt} septims at ${C.locs[e.loc].name} are frozen; the House promises a settlement.`, tone: 'bad' });
+          log(s, LOG_AFTER.depositFrozen(Math.round(amt), C.locs[e.loc].name), 'bad');
         } else {
           const to = branchKey(e.house, e.settleAt ?? e.loc);
           s.deposits[to] = (s.deposits[to] ?? 0) + amt;
-          s.log.push({ day: s.day, text: `Your deposit at ${C.locs[e.loc].name} was carried by writ to ${C.locs[e.settleAt ?? e.loc].name}.`, tone: 'neutral' });
+          log(s, LOG_AFTER.depositCarried(C.locs[e.loc].name, C.locs[e.settleAt ?? e.loc].name), 'neutral');
         }
         s.deposits[key] = 0;
       }
@@ -60,7 +62,7 @@ export function applyEffect(s: GameState, e: Effect, rng: Rng, ev: HistoryEvent)
       for (const [g, lot] of Object.entries(s.player.cargo)) {
         const before = lot.qty;
         lot.qty -= Math.floor(lot.qty * e.cargoLoss + rng.next());
-        if (s.stats.lostAtBaarDau) s.stats.lostAtBaarDau.cargo += Math.round((before - Math.max(0, lot.qty)) * lot.cost);
+        if (s.stats.lostAtBaarDau && ev.id === 'red-year-eruption') { s.stats.lostAtBaarDau.cargo += Math.round((before - Math.max(0, lot.qty)) * lot.cost); s.stats.lostAtBaarDau.cargoAt = s.player.location; }
         if (lot.qty <= 0) delete s.player.cargo[g];
       }
       s.player.health = Math.max(1, s.player.health - Math.round(e.injury * rng.range(0.6, 1.2)));

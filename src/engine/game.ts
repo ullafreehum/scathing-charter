@@ -11,6 +11,7 @@ import { charterPrice, charterReadyDay, checkAchievements, netWorth } from './sc
 import { duelTurn, newDuel } from './duel';
 import { SCHEMA_VERSION } from './save';
 import { here, log, logV, unlock } from './util';
+import { LOG_AFTER, LOG_VOICE } from '../data/voice';
 import { bankAction, depositRate } from './bank';
 import { contractAction, makeOffers } from './contracts';
 import { findBooks } from './books';
@@ -85,7 +86,7 @@ export function newGame(cfg: NewGameConfig): GameState {
   applyHistory(s, rng);
   makeOffers(s, rng, s.player.location);
   recordPrices(s);
-  s.log.push({ day: 0, text: `New Life Festival in Balmora. You owe Gavas Drelloth ${diff.debt} septims.`, tone: 'neutral' });
+  s.log.push({ day: 0, text: LOG_VOICE.newGame.before(diff.debt), tone: 'neutral' });
   s.inbox.push({ kind: 'result', title: 'Your debt', text: `It is the New Life Festival, 4E 4, in Balmora. You owe Gavas Drelloth of the Camonna Tong ${diff.debt} septims, at ${(diff.rate * 100).toFixed(1)}% interest a day. You have ${diff.cash} septims and a pack guar. Pay him back at the Bank tab in Balmora. The Tong will wait about two months before sending collectors. First pay off the Tong. Then buy your way into the Scathing Charter before the end of 4E 6: that is how you win.` });
   s.rng = rng.state();
   findBooks(s);
@@ -168,7 +169,7 @@ export function tickDay(s: GameState, rng: Rng): void {
   for (const f of s.frozen) if (f.settleDay === s.day) {
     const key = branchKey(f.house, f.settleAt); const amt = Math.round(f.amount * f.ratio);
     s.deposits[key] = (s.deposits[key] ?? 0) + amt;
-    log(s, `The ${houseName(f.house)} settles your frozen account: ${amt} septims, payable at ${C.locs[f.settleAt].name}.`, 'neutral');
+    log(s, LOG_AFTER.frozenSettled(houseName(f.house), amt, C.locs[f.settleAt].name), 'neutral');
     s.inbox.push({ kind: 'result', notice: true, title: 'Frozen account settled', text: `The bank pays out part of your frozen money: ${amt} septims, credited at ${C.locs[f.settleAt].name}.` });
   }
   s.frozen = s.frozen.filter(f => f.settleDay > s.day);
@@ -183,7 +184,7 @@ export function tickDay(s: GameState, rng: Rng): void {
     if (ch.renewDue !== null && s.day > ch.renewDue) {
       const lost = C.charter.tiers[ch.tier - 1];
       ch.tier = (ch.tier - 1) as CharterState['tier']; ch.renewDue = null; ch.renewed = true; ch.paid = Math.max(0, ch.paid - lost.price); // a favour discount may have paid less than the list price
-      log(s, `You missed the charter renewal and lost the ${lost.name}.`, 'bad');
+      log(s, LOG_AFTER.missedRenewal(lost.name), 'bad');
       s.inbox.push({ kind: 'result', title: 'Charter tier lost', text: `The council revokes your ${lost.name}.` });
     }
     if (ch.tier === 3 && ch.nextDividend !== null && s.day >= ch.nextDividend) {
@@ -191,7 +192,7 @@ export function tickDay(s: GameState, rng: Rng): void {
       ch.nextDividend += C.charter.dividendEvery;
       if (amt > 0) {
         s.player.cash += amt; ch.dividends += amt;
-        log(s, `Charter dividend: ${amt} septims.`, 'good');
+        logV(s, 'dividend', 'good', amt);
         s.inbox.push({ kind: 'result', notice: true, title: 'Charter dividend', text: `Your share of the rebuilding: ${amt} septims${s.world.flags.war ? ' (halved while the war lasts)' : ''}.` });
       }
     }
@@ -222,7 +223,7 @@ function arrive(s: GameState, rng: Rng, dest: string, afterCard = false) {
   s.player.location = to;
   if (!s.stats.visited.includes(to)) s.stats.visited.push(to);
   (s.stats.visits ??= {})[to] = (s.stats.visits[to] ?? 0) + 1;
-  if (['ruined', 'camp', 'sacked'].includes(s.world.status[to])) logV(s, 'ruinedArrival', 'neutral', C.locs[to].name);
+  if (s.world.flags.erupted && ['ruined', 'camp', 'sacked'].includes(s.world.status[to])) log(s, LOG_AFTER.arriveRuin(C.locs[to].name), 'neutral');
   unlock(s, `loc:${to}`);
   findBooks(s);
   for (const u of C.locs[to].codex ?? []) unlock(s, u);
@@ -284,7 +285,7 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       if (s.player.cash < opt.fare) {
         // Never strand the player: the broke work their passage (no fare, an extra day within the cap, sore hands).
         s.player.health = Math.max(1, s.player.health - 3);
-        log(s, `Unable to pay the ${opt.fare}-septim fare, you work your passage as a ${opt.mode === 'caravan' || opt.mode === 'road' ? 'caravan hand' : 'deckhand'}.`, 'bad');
+        logV(s, 'passage', 'bad', opt.fare, opt.mode === 'caravan' || opt.mode === 'road' ? 'caravan hand' : 'deckhand');
         return journey(s, rng, { ...opt, fare: 0, days: Math.min(MAX_LEG_DAYS, opt.days + 1) });
       }
       s.player.cash -= opt.fare;
@@ -314,7 +315,7 @@ function apply(s: GameState, rng: Rng, a: Action): string | void {
       const pay = jobPay(s, loc, job) * a.days * s.timeScale;
       s.player.health = Math.max(1, s.player.health - job.hurt * a.days);
       s.player.cash += pay;
-      log(s, `You work as a ${job.name.toLowerCase()} for ${a.days * s.timeScale} day${a.days * s.timeScale > 1 ? 's' : ''} and earn ${pay} septims.`, 'good');
+      logV(s, 'job', 'good', job.name.toLowerCase(), `${a.days * s.timeScale} day${a.days * s.timeScale > 1 ? 's' : ''}`, pay);
       tickDays(s, rng, a.days * s.timeScale);
       if (!s.over) makeOffers(s, rng, s.player.location);
       return;
@@ -452,7 +453,7 @@ function charter(s: GameState, kind: 'charter' | 'renew'): string | void {
     const fee = Math.round(ch.paid * C.charter.renewalFee);
     if (s.player.cash < fee) return `The renewal costs ${fee} septims.`;
     s.player.cash -= fee; ch.renewDue = null; ch.renewed = true;
-    log(s, `You renew your charter with the new council (${fee} septims).`, 'neutral');
+    log(s, LOG_AFTER.renew(fee), 'neutral');
     return;
   }
   if (!s.world.flags.relief) return 'No charters are on offer yet.';
@@ -467,7 +468,7 @@ function charter(s: GameState, kind: 'charter' | 'renew'): string | void {
   if (s.world.flags.charterRenewal) ch.renewed = true; // granted by the new council itself
   if (next.tier === 3) ch.nextDividend = s.day + C.charter.dividendEvery;
   unlock(s, 'topic:scathing-charter');
-  log(s, `You buy the ${next.name} for ${price} septims.`, 'good');
+  logV(s, 'buySeat', 'good', next.name, price);
   s.inbox.push({ kind: 'result', title: next.name, text: next.text });
   if (next.tier === 3 && s.mode === 'red-year') win(s);
 }
@@ -516,7 +517,7 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
         const fine = Math.round(total * STING_FINE); total -= fine;
         s.appeal = { loc, goods: {}, fine, until: s.day + APPEAL_DAYS };
         addHeat(s, STING_HEAT);
-        log(s, `An EEC informer was watching. Fine: ${fine} septims.`, 'bad');
+        logV(s, 'informer', 'bad', fine);
         s.inbox.push({ kind: 'result', title: 'An informer', text: `The East Empire Company does not forgive unlicensed ${g.name}. You are fined ${fine} septims. You can contest the fine before a magistrate, here or in a court town, within ${APPEAL_DAYS} days (Market tab).` });
       }
     }
@@ -527,7 +528,7 @@ function trade(s: GameState, rng: Rng, kind: 'buy' | 'sell', good: string, qtyIn
     lot.qty -= qty; if (lot.qty <= 0) delete s.player.cargo[good];
     cell.sat = Math.max(0.45, cell.sat * (1 - qty / depth));
     s.stats.profit += profit;
-    if (total >= 1500) logV(s, 'bigSale', 'good', qty, g.name, Math.round(total));
+    if (total >= 1500) logV(s, 'bigSale', 'good', qty, g.name, Math.round(total), C.locs[loc].name);
   }
   s.stats.trades++;
 }

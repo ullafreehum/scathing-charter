@@ -1,7 +1,7 @@
 // What the game says to you in other people's voices (0.10.6): merchants who remember you, Drelloth, the end-screen
 // look back, and the paragraph for a shut market. Pure readers of GameState; the words live in src/data/voice.ts.
 import { C } from '../data';
-import { CLOSED, DRELLOTH, KNEW } from '../data/voice';
+import { DRELLOTH, HOLIDAY_CLOSED, KNEW, RUIN_GENERIC } from '../data/voice';
 import type { GameState, Merchant } from './types';
 import { shortDate } from './calendar';
 import { holidayAt } from './market';
@@ -20,41 +20,45 @@ export function merchantLine(s: GameState, m: Merchant, loc: string): string {
   return m.line;
 }
 
-/** Gavas Drelloth on the Bank tab, by how hard the Tong presses and how you have paid. */
-export function drellothLine(s: GameState): string {
-  const n = s.note;
-  if (n.cleared) return DRELLOTH.cleared;
-  const pr = pressure(s);
-  if (pr >= 3) return DRELLOTH.killers;
-  if (pr === 2) return DRELLOTH.collectors;
-  if (pr === 1) return n.extended > 0 ? DRELLOTH.lateAgain : DRELLOTH.pressed;
-  if (n.lastPaymentDay > 0) return n.balance < n.original / 2 ? DRELLOTH.halved : DRELLOTH.paying;
-  return DRELLOTH.patient;
+/** Gavas Drelloth on the Bank tab (or `short` for the phone status strip), by how hard the Tong presses and how you have paid. */
+export function drellothLine(s: GameState, short = false): string {
+  const n = s.note, pr = pressure(s), paid = n.lastPaymentDay > 0, half = !!n.halved;
+  const key = n.cleared ? 'cleared' : pr >= 2 ? `p${Math.min(3, pr)}.${paid ? 'paid' : 'never'}`
+    : `p${pr}.${pr === 0 && n.extended > 0 ? 'borrowed' : half ? 'half' : paid ? 'paid' : 'never'}`;
+  const l = DRELLOTH[key];
+  return short ? l.short : l.long;
 }
+
+const WHERE: Record<string, string> = { vivec: 'Vivec', ebonheart: 'Ebonheart' };
+const townName = (id: string) => WHERE[id] ?? C.locs[id]?.name ?? id;
 
 /** The end-screen paragraph about the eruption: what you were told and what you left behind. Null if you were not there. */
 export function knewParagraph(s: GameState): string | null {
   const lost = s.stats.lostAtBaarDau;
   const ev = C.history.find(h => h.id === 'red-year-eruption');
   if (!lost || !ev?.foreshadow) return null;
-  const warned = ev.foreshadow.rumors.filter(id => s.heard.includes(id) && (s.heardDay[id] ?? -1) < ev.day).length;
-  const first = warned > 0 ? KNEW.warned(warned) : KNEW.nobody;
-  const second = lost.deposits > 0 ? KNEW.lost(Math.round(lost.deposits)) : KNEW.kept;
-  return `${first} ${second}${lost.cargo > 0 ? KNEW.cargo(lost.cargo) : ''}`;
+  const n = ev.foreshadow.rumors.filter(id => s.heard.includes(id) && (s.heardDay[id] ?? -1) < ev.day).length;
+  const where = [...new Set(lost.depositsAt ?? [])].map(townName).join(' and ');
+  return `${KNEW.a(n)} ${KNEW.b(n, Math.round(lost.deposits), lost.cargo, where, townName(lost.cargoAt ?? ''))}`;
 }
 
-/** The dated paragraph that replaces the goods list when the stalls are shut, or null if the market is open. */
+/** The dated line for a town in a state that has text (ruin, camp, siege...), or null for an ordinary town. */
+function statusParagraph(s: GameState, loc: string): string | null {
+  const L = C.locs[loc]; if (!L) return null;
+  const st = s.world.status[loc];
+  const t = L.ruinText?.[st] ?? RUIN_GENERIC[st];
+  return t ? `${L.name}, ${shortDate(s.day)}. ${t}` : null;
+}
+
+/** The paragraph that replaces the goods list when the stalls are shut (status closed, or a holiday), else null. */
 export function closedParagraph(s: GameState, loc: string): string | null {
   const L = C.locs[loc]; if (!L) return null;
-  const date = shortDate(s.day), st = s.world.status[loc];
-  if (st === 'closed') return L.ruinText?.closed ?? CLOSED.closed(L.name, date);
+  if (s.world.status[loc] === 'closed') return statusParagraph(s, loc);
   const hol = holidayAt(s, loc);
-  return hol?.marketClosed ? CLOSED.holiday(L.name, date, hol.name) : null;
+  return hol?.marketClosed ? HOLIDAY_CLOSED(L.name, shortDate(s.day), hol.name) : null;
 }
 
-/** A ruined town's own line (when it has one), shown quietly above its market. */
+/** A town's own state in words, shown above its market while trade goes on (not for a closed one). */
 export function ruinLine(s: GameState, loc: string): string | null {
-  const L = C.locs[loc], st = s.world.status[loc];
-  const t = L?.ruinText?.[st];
-  return t ? `${L.name}, ${shortDate(s.day)}. ${t}` : null;
+  return s.world.status[loc] === 'closed' ? null : statusParagraph(s, loc);
 }

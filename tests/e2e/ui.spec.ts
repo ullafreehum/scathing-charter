@@ -220,7 +220,7 @@ test('outfitter, codex links, ledger, keyboard, save slot, settings', async ({ p
   await expect(page.getByRole('dialog', { name: 'Codex' })).toHaveCount(0);
   // ledger
   await page.getByRole('tab', { name: 'Journal' }).click();
-  await expect(page.getByText(/You owe Gavas Drelloth/)).toBeVisible();
+  await expect(page.getByText(/I am already in debt: \d+ septims to Gavas Drelloth/)).toBeVisible();
   await expect(page.getByText(/Achievements \d+\/20/)).toBeVisible();
   // keyboard: c opens codex
   await page.getByRole('tab', { name: 'Journal' }).focus();

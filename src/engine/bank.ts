@@ -73,6 +73,7 @@ export function daysUntil(balance: number, rate: number, limit: number, timeScal
 export function payNote(s: GameState, amt: number): void {
   if (amt >= s.note.balance * s.note.rate * 30 * s.timeScale || amt >= s.note.balance - 1) s.note.lastPaymentDay = s.day;
   s.player.cash -= amt; s.note.balance -= amt;
+  if (s.note.balance < s.note.original / 2) s.note.halved = true;
   if (s.note.balance < 1) { s.note.balance = 0; s.note.cleared = true; logV(s, 'payOff', 'good'); s.inbox.push({ kind: 'result', title: 'Debt paid off', text: 'Gavas Drelloth counts the coin twice, then tears up your note. "Pleasure, outlander." You are free of the Tong.' }); }
   else if (amt >= 1) logV(s, 'payPart', 'good', Math.round(amt));
 }

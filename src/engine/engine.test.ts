@@ -104,7 +104,7 @@ describe('game', () => {
     expect(r.error).toBeUndefined();
     s = r.state;
     expect(s.day).toBeGreaterThanOrEqual(Math.min(3, o.days + 1));
-    expect(s.log.some(l => l.text.includes('work your passage'))).toBe(true);
+    expect(s.log.some(l => l.text.includes('worked my passage'))).toBe(true);
   });
   it('caps every leg at three days', () => {
     const s = drain(newGame(CFG));

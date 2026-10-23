@@ -218,7 +218,7 @@ export interface CharterState {
   favour?: number;
 }
 
-export interface NoteState { original: number; balance: number; rate: number; lastPaymentDay: number; seat: string; agents: string[]; extended: number; cleared: boolean }
+export interface NoteState { original: number; balance: number; rate: number; lastPaymentDay: number; seat: string; agents: string[]; extended: number; cleared: boolean; /** has the note ever been paid below half of what it was (0.10.6) */ halved?: boolean }
 
 export interface WorldState {
   status: Record<string, LocStatus>;
@@ -237,7 +237,7 @@ export interface Stats {
   trades: number; profit: number; maxNetWorth: number; journeys: number; encounters: number;
   fightsWon: number; smuggled: number; visited: string[]; reliefDelivered: number; contractsDone: number;
   /** What the eruption took: vault deposits wiped and cargo lost (septims at cost). Set when it happens in your game (0.10.6). */
-  lostAtBaarDau?: { deposits: number; cargo: number };
+  lostAtBaarDau?: { deposits: number; cargo: number; depositsAt?: string[]; cargoAt?: string };
   /** Arrivals per town, for the merchants who remember you (0.10.6) */
   visits?: Record<string, number>;
   /** [day, net worth] sampled weekly, for the fortune chart */
