@@ -65,6 +65,33 @@ export const DUEL_CARDS: readonly DuelCard[] = [
 ];
 export const DUEL_CARD: Record<string, DuelCard> = Object.fromEntries(DUEL_CARDS.map(x => [x.id, x]));
 
+/** The phone's hand: a short name and a brief rule where the full ones do not fit at phone size (the big card keeps the full ones). */
+export const DUEL_SHORT: Readonly<Record<string, { short?: string; brief?: string }>> = {
+  'foundation': { short: 'Shrine' },
+  'stockade': { short: 'Brick' },
+  'redoran-keep': { short: 'Mazken', brief: 'Tower +8, wall −4' },
+  'masons-guild': { brief: 'Stone +1 a turn' },
+  'dwemer-crane': { brief: 'Tower +8, rival −4' },
+  'ghostfence': { short: 'Ghostfence' },
+  'imperial-fort': { short: 'Ebonheart' },
+  'legion-cohort': { short: 'Cohort' },
+  'fighters-guild': { short: 'Summoning', brief: 'Troops +1 a turn' },
+  'redoran-charge': { short: 'Charge' },
+  'morag-tong': { brief: 'Rival −4 of each' },
+  'thieves-guild': { short: 'Mephala', brief: 'Steal 5 of each' },
+  'dark-brotherhood': { short: 'Brotherhood', brief: 'Rival tower −10, no wall' },
+  'dwemer-centurion': { short: 'Centurion' },
+  'conjure-stone': { short: 'Frost' },
+  'conjure-steel': { short: 'Flame' },
+  'conjure-magicka': { short: 'Star' },
+  'crush-stone': { short: 'Storm' },
+  'crush-magicka': { short: 'Nightmare' },
+  'mages-guild': { short: 'Codex', brief: 'Magic +1 a turn' },
+  'dremora-lord': { short: 'Valkynaz' },
+  'almsivi-grace': { short: 'Dawn' },
+  'daedric-curse': { short: 'Bargain', brief: 'Income +1, rival −1' },
+};
+
 const draw = (rng: Rng) => DUEL_CARDS[rng.int(0, DUEL_CARDS.length - 1)].id;
 function side(rng: Rng, first: boolean): DuelSide {
   // The side that moves first starts one turn's income behind, as in the original.

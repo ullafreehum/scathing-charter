@@ -1,4 +1,4 @@
-// The Android app (any phone held sideways, from 640×360 up; tuned on the Galaxy A26 at 892×412): a phone layout, no card duel, the hardware Back button, and audio that
+// The Android app (any phone held sideways, from 640×360 up; tuned on the Galaxy A26 at 892×412): a phone layout, the hardware Back button, and audio that
 // pauses in the background. Everything here is off on desktop and the web; `?phone` turns it on in a browser for testing.
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
@@ -50,8 +50,6 @@ export const exitApp = () => { if (NATIVE) void CapApp.exitApp(); };
 /** Short buzz for a long-press, where the phone allows it. */
 export const buzz = (pattern: number | number[] = 10) => { try { navigator.vibrate?.(pattern); } catch { /* not allowed */ } };
 
-/** No hearings on the phone: drop the engine's "you can contest it" lines. */
-export const noContest = (t: string) => PHONE ? t.replace(/ ?You can contest[^]*?\(Market tab\)\./g, '').replace(/ \(you can contest it\)/g, '') : t;
 
 /** Which right-hand sheet is open on the phone (one at a time). */
 export type PhoneSheet = 'menu' | 'wallet' | 'town' | 'time' | null;

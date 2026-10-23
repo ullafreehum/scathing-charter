@@ -25,7 +25,7 @@ export function Title() {
       <motion.div className="title-menu flex flex-col gap-2 mt-8 w-72" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
         {auto && <button className="btn btn-ember py-2" onClick={() => continueAuto()}>Continue: {auto.name}, {formatDate(auto.day, false)}</button>}
         <button className="btn py-2" onClick={() => setScreen('new')}>New game</button>
-        {!PHONE && <button className="btn btn-ghost" onClick={() => setScreen('duel')} title="The magistrate's card hearing on its own, with nothing at stake">Card duel (practice)</button>}
+        <button className="btn btn-ghost" onClick={() => setScreen('duel')} title="The magistrate's card hearing on its own, with nothing at stake">Card duel (practice)</button>
         {(['1', '2', '3'] as Slot[]).map(sl => { const i = slotInfo(sl); return i && <button key={sl} className="btn btn-ghost flex-col gap-0" onClick={() => { const g = loadGame(sl); if (g) load(g); }}><span>Slot {sl}: {i.name}, {formatDate(i.day, false)}</span><span className="text-xs text-ash-400 font-body normal-case tracking-normal">{C.locs[i.location]?.name ?? 'on the road'} · saved {savedWhen(i.savedAt)}</span></button>; })}
         {!PHONE && <button className="btn btn-ghost" onClick={() => file.current?.click()}>Import save file…</button>}
         <input ref={file} type="file" accept=".json,application/json" className="hidden" onChange={async e => {
