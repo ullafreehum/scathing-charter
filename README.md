@@ -40,7 +40,7 @@ your money.
   makes a backup you can **Import** on another computer.
 - **⚙ Settings** has colour themes, fonts, text size, falling ash, animations, sound effects and music.
 - **On Windows**, **F11** switches full screen and **Ctrl+Plus / Ctrl+Minus** change the size of everything.
-- **Card duel (practice)** on the title screen plays the magistrate's card hearing on its own (not on phones).
+- **Card duel (practice)** on the title screen plays the magistrate's card hearing on its own.
 - The art book: **[Art of the Red Year](docs/artbook/scathing-charter-artbook.pdf)** (PDF).
 
 <details>

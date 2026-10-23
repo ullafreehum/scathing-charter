@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { DUEL, DUEL_CARD, GEN_FIELD, RES_NAME, Rng, canPlay, duelTurn, hashSeed, newDuel, type DuelSide, type DuelState, type Res } from '../engine';
 import { useGame } from '../store/game';
 import { useAnimationsOn } from './motion';
+import { PHONE, useBack } from './phone';
+import { Sheet } from './Game';
 import type { DuelBoard } from './duelBoard';
 import frame from '../assets/duel/card-frame.svg';
 import spire from '../assets/duel/spire.png';
@@ -43,16 +45,20 @@ export function DuelScreen({ d, play = gamePlay, leave = gameLeave, kicker = 'Be
   const host = useRef<HTMLDivElement>(null);
   const board = useRef<DuelBoard | null>(null);
   const motionAtStart = useRef(motion);
+  const [sel, setSel] = useState<number | null>(null); // the phone: the selected card, and whether a turn is playing
+  const [busy, setBusy] = useState(false);
+  const [rules, setRules] = useState(false);
 
   // The animated board loads on demand; without WebGL (or if it fails) the plain board below stays.
   useEffect(() => {
     let gone = false;
     const el = host.current; if (!el) return;
     import('./duelBoard').then(m => m.DuelBoard.create(el, d, {
-      motion: motionAtStart.current,
+      motion: motionAtStart.current, touch: PHONE,
       pick: (i, discard) => playRef.current(i, discard),
       settled: s => { if (!gone) setShown(s); },
       discardOff: () => { if (!gone) setDiscard(false); },
+      state: (i, b) => { if (!gone) { setSel(i); setBusy(b); } },
     })).then(b => {
       if (gone) { b.destroy(); return; }
       board.current = b; b.setSpeed(SPEEDS[readSpeed()]); setMode('board');
@@ -63,6 +69,68 @@ export function DuelScreen({ d, play = gamePlay, leave = gameLeave, kicker = 'Be
   useEffect(() => { board.current?.setSpeed(SPEEDS[speed]); try { localStorage.setItem(SPEED_KEY, speed); } catch { /* storage blocked */ } }, [speed, mode]);
 
   const now = mode === 'board' ? shown : d;
+  // Android Back: the Rules sheet, then the selected card; a hearing runs to its end, then Back leaves the court.
+  useBack(rules, () => setRules(false));
+  useBack(sel !== null, () => board.current?.highlight(null));
+  useBack(!!now.winner && play === gamePlay, leave);
+  const hand = mode === 'board' && !now.winner && (
+    // The canvas cannot take keyboard focus: these buttons play the same cards and lift the one in focus.
+    <div className="sr-only" role="group" aria-label="Your hand">
+      {now.you.hand.map((id, i) => {
+        const c = DUEL_CARD[id], ok = discard || canPlay(now.you, id);
+        return <button key={i} disabled={!ok} onFocus={() => board.current?.highlight(i)} onBlur={() => board.current?.highlight(null)} onClick={() => board.current?.play(i)}>
+          {discard ? 'Discard' : 'Play'} {c.name} ({c.cost} {RES_NAME[c.res]}): {c.text}</button>;
+      })}
+    </div>
+  );
+  const live = mode === 'board' && <div className="sr-only" aria-live="polite">{shown.last.join(' ')}</div>;
+
+  if (PHONE) {
+    // Full screen: the board as big as fits, its buttons over the two empty columns of the scene (Sorcerer's DUEL-PHONE-SPEC).
+    const k = sel !== null && !now.winner ? DUEL_CARD[now.you.hand[sel]] : null, need = k ? k.cost - now.you[k.res] : 0;
+    const zone = (x: number) => ({ left: `${x / 12.8}%`, top: `${236 / 7.2}%`, width: `${254 / 12.8}%` }); // stage units (1280×720)
+    return (
+      <div className="duel-phone">
+        <div className="duel-gutter" style={{ backgroundImage: `url(${bg})` }} />
+        {mode !== 'plain' && (
+          <div ref={host} data-turn={shown.turn} data-winner={shown.winner ?? ''} className="relative overflow-hidden bg-black" style={{ width: 'min(calc(100vw - 48px), calc(100dvh * 16 / 9))', aspectRatio: '16 / 9' }}>
+            {mode === 'loading' && <div className="absolute inset-0 grid place-items-center text-ash-400 text-sm">Setting up the court…</div>}
+            {mode === 'board' && !now.winner && <div className="duel-zone" style={zone(16)}>
+              {motion && <button className="btn duel-big" onClick={() => setSpeed(x => { const ks = Object.keys(SPEEDS) as Speed[]; return ks[(ks.indexOf(x) + 1) % ks.length]; })}>Speed: {speed}</button>}
+              <button className="btn" onClick={() => setRules(true)}>Rules</button>
+            </div>}
+            {mode === 'board' && !now.winner && !busy && <div className="duel-zone" style={zone(1010)}>
+              <button className="btn btn-ember duel-big flex-col" disabled={!k || need > 0} onClick={() => { if (sel !== null) board.current?.play(sel); }}>
+                {!k ? 'Tap a card' : need > 0 ? `Need ${need} more ${RES_NAME[k.res]}` : <>Play<small>Costs {k.cost} {RES_NAME[k.res]}</small></>}
+              </button>
+              <button className="btn" disabled={!k} onClick={() => { if (sel !== null) board.current?.discardAt(sel); }}>Discard</button>
+            </div>}
+            {now.winner && <div className="duel-end">
+              <button className="btn btn-ember" autoFocus onClick={leave}>{leaveLabel}</button>
+              {extra}
+            </div>}
+          </div>
+        )}
+        {mode === 'plain' && <div className="duel-plain">
+          <PlainBoard d={d} discard={discard} play={play} played={() => setDiscard(false)} />
+          <div className="flex flex-wrap gap-2 mt-2">
+            {now.winner ? <button className="btn btn-ember" onClick={leave}>{leaveLabel}</button>
+              : <button className={`btn ${discard ? 'btn-ember' : ''}`} aria-pressed={discard} onClick={() => setDiscard(x => !x)}>{discard ? 'Discarding: tap a card' : 'Discard a card'}</button>}
+            {extra}
+          </div>
+        </div>}
+        {rules && <Sheet title="Rules" onClose={() => setRules(false)}>
+          <div className="space-y-2 text-sm text-parchment">
+            <p>Build your tower to {DUEL.win}, or knock your rival’s down to 0. Damage hits the wall first. Each turn your income adds stone, troops and magic.</p>
+            <p>Tap a card to see it. Tap Play, or tap the card again. Discard throws a card away and still ends your turn.</p>
+            <p>Tap the board during your rival’s turn to hurry it.</p>
+          </div>
+        </Sheet>}
+        {hand}{live}
+      </div>
+    );
+  }
+
   return (
     <div>
       <h2 className="flex flex-wrap items-baseline gap-x-3"><span className="text-xs h-display uppercase text-ember">{kicker}</span><span className="h-display text-lg text-bone">The hearing{now.winner ? (now.winner === 'you' ? ': you win' : ': you lose') : ''}</span></h2>
@@ -88,17 +156,7 @@ export function DuelScreen({ d, play = gamePlay, leave = gameLeave, kicker = 'Be
         )}
         {mode === 'board' && !now.winner && <span className="text-ash-400 text-xs">Click the board to hurry a turn.</span>}
       </div>
-      {mode === 'board' && !now.winner && (
-        // The canvas cannot take keyboard focus: these buttons play the same cards and lift the one in focus.
-        <div className="sr-only" role="group" aria-label="Your hand">
-          {now.you.hand.map((id, i) => {
-            const c = DUEL_CARD[id], ok = discard || canPlay(now.you, id);
-            return <button key={i} disabled={!ok} onFocus={() => board.current?.highlight(i)} onBlur={() => board.current?.highlight(null)} onClick={() => board.current?.play(i)}>
-              {discard ? 'Discard' : 'Play'} {c.name} ({c.cost} {RES_NAME[c.res]}): {c.text}</button>;
-          })}
-        </div>
-      )}
-      {mode === 'board' && <div className="sr-only" aria-live="polite">{shown.last.join(' ')}</div>}
+      {hand}{live}
     </div>
   );
 }

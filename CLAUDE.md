@@ -3,10 +3,10 @@
 A lore-dense, Dope Wars–style trading game set in the Elder Scrolls universe at the dawn of the
 Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-commercial fan project.
 
-> Version **0.10.8**: the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
+> Version **0.10.9**: the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
 > bump it there and add a `CHANGELOG.md` entry for each release. To publish: write `docs/releases/v<version>.md`,
 > and push it (or push the tag `v<version>`); `.github/workflows/release.yml` creates the
-> tag, publishes the release and a Windows runner attaches the Electron Setup and Portable .exe, and a Linux runner the Android APK (full releases since 0.10.8).
+> tag, publishes the release and a Windows runner attaches the Electron Setup and Portable .exe, and a Linux runner the Android APK (full releases since 0.10.8; a line `<!-- pre-release -->` in the notes makes it a pre-release).
 > Status: **playable** (M1–M7 done). Red Year campaign + Long Chronicle; see README.md to play.
 > Design: `docs/GAME_DESIGN.md` · Lore + sources + dispute register: `docs/LORE_BIBLE.md` · raw notes: `docs/research/`.
 > Renamed from "Ashfall Ledger": internal ids (package name, `ashfall-ledger/` localStorage keys) keep the
@@ -18,7 +18,7 @@ Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-comme
 | Install | `npm install` |
 | Dev server | `npm run dev` (`npm start` also opens the browser) |
 | Desktop app (Electron) | `npm run desktop` (build + open); `npm run package:win` → `release/electron/` Setup + Portable .exe (Windows/CI). `electron/main.cjs` + `preload.cjs`, `electron-builder.yml`. Never change `appId`/`productName`: they fix the save folder. Game-side hooks in `src/ui/desktop.ts` (no-ops in a browser). |
-| Android app (Capacitor, in progress) | `npm run android:sync` (build + copy `dist/` into `android/`), `npm run android:open` (Android Studio). `capacitor.config.ts` + `android/` (landscape only, immersive in `MainActivity.java`; phones from 640×360 to 932×430, narrow/short rules at the end of the phone CSS). Never change `appId`: it fixes the app's identity and saves on phones. Needs the Android SDK; the cloud container can't download it, so APKs come from CI (APK plan step 3). Phone UI: `src/ui/phone.ts` (`PHONE` = native app or `?phone` in a browser; sets `html.phone`, Back button via @capacitor/app, `useBack` for sheets); styles under `.phone`/`.phone-*` in index.css. No duel on the phone. Specs: /mnt/project-files/mobile/ |
+| Android app (Capacitor, in progress) | `npm run android:sync` (build + copy `dist/` into `android/`), `npm run android:open` (Android Studio). `capacitor.config.ts` + `android/` (landscape only, immersive in `MainActivity.java`; phones from 640×360 to 932×430, narrow/short rules at the end of the phone CSS). Never change `appId`: it fixes the app's identity and saves on phones. Needs the Android SDK; the cloud container can't download it, so APKs come from CI (APK plan step 3). Phone UI: `src/ui/phone.ts` (`PHONE` = native app or `?phone` in a browser; sets `html.phone`, Back button via @capacitor/app, `useBack` for sheets); styles under `.phone`/`.phone-*` in index.css. The duel on the phone (since 0.10.9): full-height board with a button column (`.duel-phone`, `.duel-side`), first tap shows a card big, second tap plays it (`touch` in duelBoard). Specs: /mnt/project-files/mobile/ |
 | Type-check + production build (static, offline, relative paths) | `npm run build` → `dist/` |
 | Preview the build | `npm run preview` |
 | Unit tests (engine, data validation) | `npm test` (watch: `npm run test:watch`) |

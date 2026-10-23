@@ -4,6 +4,14 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.10.9 (pre-release): the card duel on phones
+- A new app icon for Android and Windows: a sealed charter, painted for the game.
+- The magistrate's card hearing now works in the Android app: contest fines and seizures from the Market, or play a practice duel from the title screen.
+- On the phone the duel fills the screen. Tap a card to see it big, then tap Play (or the card again) to play it; Discard throws the chosen card away. Speed and Rules sit on the left.
+- Bigger card text on the phone, with short names and rules in your hand.
+- The phone renders the duel at screen resolution, which saves battery.
+- Fixed: on desktop, moving keyboard focus along the hand showed the big card only for the last card.
+
 ## 0.10.8: full release
 - The Android app fits every common phone held sideways, from 640×360 to 932×430: on smaller phones the top strip keeps your date, town, money and cargo (Drelloth's line stays on the Bank tab), the Market bar drops the "Amount" label, and the tab rail fits short screens.
 - The phone buzz now works in the Android app (it was missing the permission to vibrate).

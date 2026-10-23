@@ -52,6 +52,7 @@ export function App() {
     back(() => {
       if (s.screen === 'title') { exitApp(); return; }
       if (s.screen !== 'game') { s.setScreen('title'); return; }
+      if (s.game?.duel) return; // a hearing runs to its end
       const tabs = usePhone.getState().tabs;
       if (tabs.length > 1) { tabs.pop(); s.setTab(tabs.pop() as typeof s.tab); return; }
       void s.confirm({ title: 'Quit to title?', text: 'Your game is saved as you play.', yes: 'Quit to title', no: 'Keep playing' }).then(y => { if (y) { tabs.length = 0; useGame.getState().setScreen('title'); } });

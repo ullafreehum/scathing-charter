@@ -35,6 +35,7 @@ jobs:
           echo "tag=$V" >> "$GITHUB_OUTPUT"
           if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "$V" ]; then echo "::error::Tag $GITHUB_REF_NAME does not match package.json ($V)"; exit 1; fi
           if [ ! -f "docs/releases/$V.md" ]; then echo "No docs/releases/$V.md: nothing to release."; echo "skip=1" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if grep -qx '<!-- pre-release -->' "docs/releases/$V.md"; then echo "pre=true" >> "$GITHUB_OUTPUT"; else echo "pre=false" >> "$GITHUB_OUTPUT"; fi
           if [ "$GITHUB_REF_TYPE" = branch ] && git ls-remote --exit-code --tags origin "refs/tags/$V" >/dev/null; then echo "$V is already released."; echo "skip=1" >> "$GITHUB_OUTPUT"; fi
       - if: steps.v.outputs.skip != '1'
         uses: softprops/action-gh-release@v2
@@ -43,7 +44,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: The Scathing Charter ${{ steps.v.outputs.tag }}
           body_path: docs/releases/${{ steps.v.outputs.tag }}.md
-          prerelease: false # full releases since 0.10.8
+          prerelease: ${{ steps.v.outputs.pre == 'true' }} # a line `<!-- pre-release -->` in the notes marks a pre-release
   windows:
     needs: release
     if: needs.release.outputs.skip != '1'

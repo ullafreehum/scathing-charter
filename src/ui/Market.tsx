@@ -94,11 +94,18 @@ export function Market({ g }: { g: GameState }) {
       {(() => { const r = ruinLine(g, loc); return r && marketOpen(g, loc) ? <Notice id={`${loc}:${g.world.status[loc]}`} className="italic">{r}</Notice> : null; })()}
       {hol && !hol.marketClosed && <Notice id={`${loc}:${hol.name}`}><span className="text-gold h-display">{hol.name}.</span> {hol.text}</Notice>}
       {(loc === 'lilmoth' || loc === 'stormhold') && !g.player.licence && <Notice id={`${loc}:licence`} className="text-ember">Foreigners need a trade licence here. Buy one at the Lilmoth gate (Shop & Temple tab) or from the Argonian agent in Leyawiin.</Notice>}
-      {!PHONE && canContest(g) && g.appeal && (
-        <div className="panel p-3 flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-gold h-display">{Object.keys(g.appeal.goods).length ? 'Seized goods.' : 'A fine to contest.'}</span>
-          <span>You may take it before the magistrate, a card hearing. Win and you get back {Object.keys(g.appeal.goods).length ? 'your goods' : ''}{Object.keys(g.appeal.goods).length && g.appeal.fine ? ' and ' : ''}{g.appeal.fine ? <>the <Money v={g.appeal.fine} /> fine</> : ''}; lose and you pay <Money v={courtCost(g.appeal)} /> more. You can contest it until {formatDate(g.appeal.until ?? g.day)}, in the town where it happened or at the courts of Vivec, Ebonheart, Narsis and Mournhold.</span>
-          <button className="btn btn-ember ml-auto" onClick={() => act({ t: 'appeal' })}>Contest</button>
+      {canContest(g) && g.appeal && (
+        <div className={`panel p-3 flex ${PHONE ? '' : 'flex-wrap'} items-center gap-2 text-sm`}>
+          {PHONE ? (() => { // two lines on the phone (Sorcerer's wording); the full sentence on desktop
+            const goods = Object.keys(g.appeal.goods).length > 0, fine = g.appeal.fine > 0, cost = <Money v={courtCost(g.appeal)} />;
+            return <span className="flex-1 min-w-0"><span className="text-gold h-display">{goods && fine ? 'Seized goods and a fine.' : goods ? 'Seized goods.' : 'A fine to contest.'}</span>{' '}
+              {goods && fine ? <>Win and you get both back, lose and you pay {cost} more.</> : goods ? <>Contest them before the magistrate: win and you get them back, lose and you pay {cost} more.</> : <>Win and the <Money v={g.appeal.fine} /> fine is returned, lose and you pay {cost} more.</>}
+              {' '}Until {formatDate(g.appeal.until ?? g.day)}, here or at Vivec, Ebonheart, Narsis or Mournhold.</span>;
+          })() : <>
+            <span className="text-gold h-display">{Object.keys(g.appeal.goods).length ? 'Seized goods.' : 'A fine to contest.'}</span>
+            <span>You may take it before the magistrate, a card hearing. Win and you get back {Object.keys(g.appeal.goods).length ? 'your goods' : ''}{Object.keys(g.appeal.goods).length && g.appeal.fine ? ' and ' : ''}{g.appeal.fine ? <>the <Money v={g.appeal.fine} /> fine</> : ''}; lose and you pay <Money v={courtCost(g.appeal)} /> more. You can contest it until {formatDate(g.appeal.until ?? g.day)}, in the town where it happened or at the courts of Vivec, Ebonheart, Narsis and Mournhold.</span>
+          </>}
+          <button className={`btn btn-ember ml-auto ${PHONE ? 'shrink-0 min-w-[120px] justify-center' : ''}`} onClick={() => act({ t: 'appeal' })}>Contest</button>
         </div>
       )}
       {deliverable.map(c => { const t = C.contracts.find(x => x.id === c.templateId)!; return (
