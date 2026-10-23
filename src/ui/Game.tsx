@@ -4,7 +4,7 @@ import { nextSteps, type Hint } from './hints';
 import { planRoute } from './route';
 import { AnimatePresence, motion } from 'framer-motion';
 import { C } from '../data';
-import { capacity, cargoWeight, charterPrice, formatDate, merchantLine, shortDate, netWorth, depositsTotal, pressure, type GameState } from '../engine';
+import { capacity, cargoWeight, charterPrice, drellothLine, formatDate, merchantLine, shortDate, netWorth, depositsTotal, pressure, type GameState } from '../engine';
 import { useGame, type Tab } from '../store/game';
 import { exportFile, savedWhen, slotInfo, type Slot } from '../save/storage';
 import { CodexLink, DateWidget, Delta, Meter, Money, RollingMoney, StatusPill } from './widgets';
@@ -15,7 +15,7 @@ import { Tavern } from './Tavern';
 import { Outfitter } from './Outfitter';
 import { MapView } from './MapView';
 import { Ledger } from './Ledger';
-import { PHONE, useBack, usePhone } from './phone';
+import { PHONE, onPause, useBack, usePhone } from './phone';
 
 const SLIDE = {
   enter: (d: number) => ({ opacity: 0, x: 16 * d }),
@@ -162,7 +162,7 @@ function GoalChip({ g, short = false }: { g: GameState; short?: boolean }) {
   const held = g.charter.tier >= 3;
   const text = held ? (g.note.cleared ? 'Charter held: you won' : 'Goal: now clear the debt')
     : !g.note.cleared ? 'Goal: pay off the Tong' : `Goal: Charter ${worth.toLocaleString('en')} / ${price.toLocaleString('en')}`;
-  const shortText = held ? (g.note.cleared ? 'Won' : 'Clear debt') : !g.note.cleared ? 'Pay the Tong' : `Charter ${Math.min(100, Math.floor((100 * worth) / price))}%`;
+  const shortText = held ? (g.note.cleared ? 'Won' : 'Clear debt') : !g.note.cleared ? drellothLine(g, true) : `Charter ${Math.min(100, Math.floor((100 * worth) / price))}%`;
   return (
     <button className="btn btn-ghost py-0.5 flex-col items-start gap-0.5 text-xs" onClick={() => setTab('bank')} title="Win: own the Scathing Charter and owe the Tong nothing. Your net worth against the seat's price; the steps are on the Bank tab.">
       <span>{short ? shortText : text}</span>
@@ -253,7 +253,17 @@ function PhoneGame() {
   const { sheet, setSheet, tabs } = usePhone();
   useEffect(() => { if (tabs[tabs.length - 1] !== tab) tabs.push(tab); if (tabs.length > 20) tabs.splice(0, tabs.length - 20); }, [tab, tabs]);
   const close = () => setSheet(null);
-  const [hintOff, setHintOff] = useState(false); // the Market's hint line goes once dismissed or after the first purchase
+  // Back from the background: the same tab, the same open sheet and the Market list where you left it.
+  useEffect(() => onPause(hidden => {
+    const ph = usePhone.getState(), gs = useGame.getState();
+    if (hidden) { ph.keep({ tab: gs.tab, sheet: ph.sheet, scroll: document.querySelector('.phone-scroll')?.scrollTop ?? 0 }); return; }
+    const r = ph.resume; if (!r) return;
+    ph.keep(null);
+    if (gs.tab !== r.tab) gs.setTab(r.tab as typeof gs.tab);
+    if (ph.sheet !== r.sheet) ph.setSheet(r.sheet);
+    if (r.tab === 'market') requestAnimationFrame(() => { const el = document.querySelector('.phone-scroll'); if (el) el.scrollTop = r.scroll; });
+  }), []);
+  const [hintOff, setHintOff] = useState(false); // the Market's hint line goes once dismissed or after the first sale
   const pr = pressure(g);
   const L = C.locs[g.player.location];
   const road = g.player.location === 'road';
@@ -288,7 +298,7 @@ function PhoneGame() {
           {tab === 'ledger' && <Ledger g={g} />}
         </>}
         </div>
-        {hints && tab === 'market' && !road && !hintOff && !g.actions.some(a => a.t === 'buy') && <div className="relative"><NextSteps g={g} one /><button className="phone-hint-x" aria-label="Hide the hint" onClick={() => setHintOff(true)}>✕</button></div>}
+        {hints && tab === 'market' && !road && !hintOff && !g.actions.some(a => a.t === 'sell') && <div className="relative"><NextSteps g={g} one /><button className="phone-hint-x" aria-label="Hide the hint" onClick={() => setHintOff(true)}>✕</button></div>}
       </main>
       {sheet === 'town' && <Sheet title="Town" onClose={close}>{L ? <LocationPanel g={g} /> : <p className="text-parchment">On the road.</p>}</Sheet>}
       {sheet === 'time' && <Sheet title="Time" onClose={close}><TimeSheet g={g} onTown={() => setSheet('town')} /></Sheet>}

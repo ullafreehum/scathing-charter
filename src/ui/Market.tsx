@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { C } from '../data';
 import { DEPTH, bulkBuyTotal, bulkSellTotal, capacity, cargoWeight, fairValue, maxBuyQty, quotes, routeOptions, FREIGHT, holidayAt, marketOpen, satRecoveryDays, canContest, closedParagraph, courtCost, formatDate, ruinLine, type GameState, type Quote } from '../engine';
 import { useGame } from '../store/game';
@@ -19,6 +19,13 @@ const LEG: Record<string, { label: string; cls: string; tip: string }> = {
 const AMOUNTS = [1, 5, 10, 25];
 type Filter = 'all' | 'cargo' | 'cheap';
 type Sort = 'usual' | 'name' | 'price' | 'gain';
+
+/** A town notice. On the phone it opens in full the first time you see it in a town, then folds to one line (tap to open). */
+function Notice({ id, className = '', children }: { id: string; className?: string; children: ReactNode }) {
+  const [open, setOpen] = useState<boolean>(() => PHONE && !usePhone.getState().seen[id]);
+  useEffect(() => { if (PHONE) usePhone.getState().see(id); }, [id]);
+  return <div className={`market-notice panel p-3 text-sm ${className} ${open ? 'open' : ''}`} onClick={() => setOpen(o => !o)}>{children}</div>;
+}
 
 export function Market({ g }: { g: GameState }) {
   const { act, setTab, tradeQty: amt, setTradeQty: setAmt, undo, undoTrade } = useGame();
@@ -84,9 +91,9 @@ export function Market({ g }: { g: GameState }) {
           </span>
         </div>
       )}
-      {(() => { const r = ruinLine(g, loc); return r && marketOpen(g, loc) ? <div className="market-notice panel p-3 text-sm italic" onClick={e => e.currentTarget.classList.toggle('open')}>{r}</div> : null; })()}
-      {hol && !hol.marketClosed && <div className="market-notice panel p-3 text-sm" onClick={e => e.currentTarget.classList.toggle('open')}><span className="text-gold h-display">{hol.name}.</span> {hol.text}</div>}
-      {(loc === 'lilmoth' || loc === 'stormhold') && !g.player.licence && <div className="market-notice panel p-3 text-sm text-ember" onClick={e => e.currentTarget.classList.toggle('open')}>Foreigners need a trade licence here. Buy one at the Lilmoth gate (Shop & Temple tab) or from the Argonian agent in Leyawiin.</div>}
+      {(() => { const r = ruinLine(g, loc); return r && marketOpen(g, loc) ? <Notice id={`${loc}:${g.world.status[loc]}`} className="italic">{r}</Notice> : null; })()}
+      {hol && !hol.marketClosed && <Notice id={`${loc}:${hol.name}`}><span className="text-gold h-display">{hol.name}.</span> {hol.text}</Notice>}
+      {(loc === 'lilmoth' || loc === 'stormhold') && !g.player.licence && <Notice id={`${loc}:licence`} className="text-ember">Foreigners need a trade licence here. Buy one at the Lilmoth gate (Shop & Temple tab) or from the Argonian agent in Leyawiin.</Notice>}
       {!PHONE && canContest(g) && g.appeal && (
         <div className="panel p-3 flex flex-wrap items-center gap-2 text-sm">
           <span className="text-gold h-display">{Object.keys(g.appeal.goods).length ? 'Seized goods.' : 'A fine to contest.'}</span>
@@ -132,7 +139,7 @@ export function Market({ g }: { g: GameState }) {
                 const maxWord = maxRow === q.good || (PHONE && amt === 'max') ? 'max ' : '';
                 // Phone: a button that can't act says why, in words, instead of a tooltip.
                 const whyBuy = q.buy === null ? 'Not for sale' : g.player.cash < q.buy ? `Need ${Math.ceil(q.buy - g.player.cash)} more` : free < G.weight ? 'Hold full' : 'Saving the fare';
-                const whySell = !lot ? 'Nothing to sell' : 'Nobody buys this';
+                const whySell = 'Nobody buys this'; // a good you don't carry gets no Sell button on the phone at all
                 const margin = lot && q.sell !== null ? Math.round(q.sell - lot.cost) : null;
                 const l = LEG[q.legality];
                 const sat = g.markets[loc]?.[q.good]?.sat ?? 1;
@@ -150,6 +157,8 @@ export function Market({ g }: { g: GameState }) {
                 };
                 // Everything the row's hover tips say, written out for touch and keyboard players.
                 const details = [
+                  PHONE && G.short,
+                  PHONE && tend && `${(C.locs[loc].tendencies[q.good] ?? 1) < 0.9 ? 'Usually cheap here' : (C.locs[loc].tendencies[q.good] ?? 1) > 1.2 ? 'Usually expensive here' : 'The usual price here'}.`,
                   l.tip,
                   sat < 0.85 && `So much has been sold here lately that the price is down. Back to normal in about ${satRecoveryDays(sat)} days.`,
                   sat > 1.2 && `So much has been bought here lately that the price is up. Back to normal in about ${satRecoveryDays(sat)} days.`,
@@ -174,7 +183,7 @@ export function Market({ g }: { g: GameState }) {
                       {sat < 0.85 && <span className="ml-1 text-[.7rem] h-display uppercase text-danger" title={`So much has been sold here lately that the price is down. Back to normal in about ${satRecoveryDays(sat)} days.`}>Flooded · {satRecoveryDays(sat)}d</span>}
                       {sat > 1.2 && <span className="ml-1 text-[.7rem] h-display uppercase text-gold" title={`So much has been bought here lately that the price is up. Back to normal in about ${satRecoveryDays(sat)} days.`}>Bought out · {satRecoveryDays(sat)}d</span>}
                       {!PHONE && <button className="ml-1 px-1 text-ash-400 hover:text-bone" aria-expanded={isOpen} aria-label="Details" title={`${isOpen ? 'Hide' : 'Show'} details`} onClick={() => setOpen(isOpen ? null : q.good)}>{isOpen ? '▾' : '▸'}</button>}
-                      <div className="text-xs text-ash-400">{G.short}{tend && <span className="text-gold"> · {(C.locs[loc].tendencies[q.good] ?? 1) < 0.9 ? 'usually cheap here' : (C.locs[loc].tendencies[q.good] ?? 1) > 1.2 ? 'usually expensive here' : 'usual price here'}</span>}</div>
+                      {!PHONE && <div className="text-xs text-ash-400">{G.short}{tend && <span className="text-gold"> · {(C.locs[loc].tendencies[q.good] ?? 1) < 0.9 ? 'usually cheap here' : (C.locs[loc].tendencies[q.good] ?? 1) > 1.2 ? 'usually expensive here' : 'usual price here'}</span>}</div>}
                     </td>
                     {!PHONE && <td className="num text-ash-400">{G.weight}</td>}
                     <td className="text-right whitespace-nowrap">{q.buy !== null ? <span title={`from ${q.buyFrom}`}><Money v={q.buy} /> {r < 0.8 ? <span className="text-moss" title="Cheap: well below the usual price">▼</span> : r > 1.25 ? <span className="text-danger" title="Expensive: well above the usual price">▲</span> : null}</span> : <span className="text-ash-400 text-xs">{q.stock ? '—' : 'out of stock'}</span>}</td>
@@ -184,7 +193,7 @@ export function Market({ g }: { g: GameState }) {
                     {!PHONE && <td className="text-right pl-3 whitespace-nowrap">{best ? <span title={`Seen in ${C.locs[best.loc].name} ${ago(best.age)}. Prices move, so older figures are less reliable.`}><Money v={best.price} />{edge !== null && edge > 0 && <span className="text-moss text-xs"> (+{Math.round(edge)})</span>}<span className="block text-xs text-ash-400">{C.locs[best.loc].name}, {ago(best.age)}</span></span> : <span className="text-ash-400 text-xs">not seen yet</span>}</td>}
                     <td className="whitespace-nowrap pl-3 text-right space-x-1">
                       <button className="btn" disabled={nBuy < 1} ref={onLongPress(el => buy(maxBuy, el))} onClick={e => buy(nBuy, e.currentTarget)} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} for ${bulkBuyTotal(q.buy!, nBuy, DEPTH[G.category]).toLocaleString('en-US')} septims (the most you can afford and carry: ${maxBuy}). Buying many at once raises the price a little.`}>{PHONE && nBuy < 1 ? whyBuy : <>Buy {maxWord}{nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</>}</button>
-                      <button className="btn" disabled={nSell < 1} ref={onLongPress(el => void sell(lot?.qty ?? 0, el))} onClick={e => void sell(nSell, e.currentTarget)} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>{PHONE && nSell < 1 ? whySell : <>{PHONE && amt === 'max' ? 'Sell all ' : `Sell ${maxWord}`}{nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</>}</button>
+                      {PHONE && !lot ? <span className="phone-nosell" aria-hidden="true" /> : <button className="btn" disabled={nSell < 1} ref={onLongPress(el => void sell(lot?.qty ?? 0, el))} onClick={e => void sell(nSell, e.currentTarget)} title={nSell < 1 ? (lot ? 'Nobody here buys this' : 'You have none') : `Sell ${nSell}`}>{PHONE && nSell < 1 ? whySell : <>{PHONE && amt === 'max' ? 'Sell all ' : `Sell ${maxWord}`}{nSell > 0 ? <span className="font-body num">{nSell}</span> : ''}</>}</button>}
                       {!PHONE && (nBuy > 0 || nSell > 0) && <div className="text-xs text-ash-400 mt-0.5">{nBuy > 0 && <span title="Total cost, and cargo space left after buying">−<span className="num">{buyTotal.toLocaleString('en-US')}</span> · {free - nBuy * G.weight} space left</span>}{nBuy > 0 && nSell > 0 && ' | '}{nSell > 0 && <span title="What this sale brings in">+<span className="num">{sellTotal.toLocaleString('en-US')}</span></span>}</div>}
                     </td>
                   </motion.tr>,
