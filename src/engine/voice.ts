@@ -22,7 +22,7 @@ export function merchantLine(s: GameState, m: Merchant, loc: string): string {
 
 /** Gavas Drelloth on the Bank tab (or `short` for the phone status strip), by how hard the Tong presses and how you have paid. */
 export function drellothLine(s: GameState, short = false): string {
-  const n = s.note, pr = pressure(s), paid = n.lastPaymentDay > 0, half = !!n.halved;
+  const n = s.note, pr = pressure(s), paid = !!n.paid || n.lastPaymentDay > 0, half = !!n.halved;
   const key = n.cleared ? 'cleared' : pr >= 2 ? `p${Math.min(3, pr)}.${paid ? 'paid' : 'never'}`
     : `p${pr}.${pr === 0 && n.extended > 0 ? 'borrowed' : half ? 'half' : paid ? 'paid' : 'never'}`;
   const l = DRELLOTH[key];
@@ -47,6 +47,7 @@ export function knewParagraph(s: GameState): string | null {
 function statusParagraph(s: GameState, loc: string): string | null {
   const L = C.locs[loc]; if (!L) return null;
   const st = s.world.status[loc];
+  if (st === 'rebuilding' && !s.world.flags.erupted) return null; // some towns start out half-built: that is not news
   const t = L.ruinText?.[st] ?? RUIN_GENERIC[st];
   return t ? `${L.name}, ${shortDate(s.day)}. ${t}` : null;
 }

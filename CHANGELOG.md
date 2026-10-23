@@ -4,6 +4,11 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.10.7 (beta)
+- Ald'ruhn no longer shows a "masons are rebuilding" paragraph on day 1 (a town that starts half-built says nothing until the eruption).
+- Drelloth counts a payment made on day 0 (or any small payment) as paid.
+- The end-screen paragraph is checked against cargo burned in Balmora, Ald'ruhn and Sadrith Mora (tests added).
+
 ## 0.10.6 (beta): the trader's voice
 - Your Ledger now speaks in your own voice: hopeful and naive before the eruption, sober after it.
 - The end screen opens with what you knew and when: how often you were warned, and what you left in the vaults when Baar Dau fell.

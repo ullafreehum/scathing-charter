@@ -218,7 +218,7 @@ export interface CharterState {
   favour?: number;
 }
 
-export interface NoteState { original: number; balance: number; rate: number; lastPaymentDay: number; seat: string; agents: string[]; extended: number; cleared: boolean; /** has the note ever been paid below half of what it was (0.10.6) */ halved?: boolean }
+export interface NoteState { original: number; balance: number; rate: number; lastPaymentDay: number; seat: string; agents: string[]; extended: number; cleared: boolean; /** has the note ever been paid below half of what it was (0.10.6) */ halved?: boolean; /** has the note ever been paid at all (0.10.7) */ paid?: boolean }
 
 export interface WorldState {
   status: Record<string, LocStatus>;

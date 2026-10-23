@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { C } from '../data';
-import { drellothLine, knewParagraph, merchantLine, migrate, newGame, serialize, step, type GameState } from './index';
+import { drellothLine, knewParagraph, merchantLine, migrate, ruinLine, newGame, quotes, serialize, step, type GameState } from './index';
 import { DRELLOTH } from '../data/voice';
 import { logV } from './util';
 
@@ -36,6 +36,32 @@ describe('0.10.6 texture', () => {
     s = step({ ...s, day: ev.day - 1 }, { t: 'wait', days: 1 }).state;
     expect(s.stats.lostAtBaarDau?.deposits).toBeGreaterThan(1399);
     const p = knewParagraph(s)!; expect(p).not.toContain('kept nothing'); expect(p).toMatch(/Balmora and Vivec vaults|Vivec and Balmora vaults/);
+  });
+  it('counts cargo burned in Balmora and names the town', () => {
+    let s = base(); const ev = C.history.find(h => h.id === 'red-year-eruption')!;
+    s.player.cargo = { 'kwama-eggs': { qty: 40, cost: 20 } };
+    s = step({ ...s, day: ev.day - 1 }, { t: 'wait', days: 1 }).state;
+    expect(s.stats.lostAtBaarDau?.cargo).toBeGreaterThan(0);
+    expect(knewParagraph(s)).toContain('goods in Balmora');
+  });
+  it('counts cargo bought in Balmora and burned while waiting out the days', () => {
+    let s = base(); const ev = C.history.find(h => h.id === 'red-year-eruption')!;
+    s.player.cash = 5000;
+    const good = quotes(s, 'balmora').find(q => q.buy !== null)!.good;
+    s = step(s, { t: 'buy', good, qty: 30 }).state;
+    expect(s.player.cargo[good]?.qty).toBeGreaterThan(0);
+    s = { ...s, day: ev.day - 3 };
+    for (let i = 0; i < 4; i++) s = step(s, { t: 'wait', days: 1 }).state;
+    expect(s.world.fired).toContain('red-year-eruption');
+    expect(s.stats.lostAtBaarDau?.cargo).toBeGreaterThan(0);
+  });
+  it('counts a day-0 payment as paid, and keeps a town that starts rebuilding quiet before the eruption', () => {
+    let s = base(); s.player.cash = 5000;
+    s = step(s, { t: 'pay', amount: 100 }).state;
+    expect(s.note.paid).toBe(true);
+    expect(drellothLine(s)).toBe(DRELLOTH['p0.paid'].long);
+    expect(ruinLine(s, 'aldruhn')).toBeNull();
+    s.world.flags.erupted = 1; expect(ruinLine(s, 'aldruhn')).toContain('Masons');
   });
   it('picks merchant lines by what the town knows of you, and Drelloth by how you paid', () => {
     const s = base(); const bal = C.locs.balmora; const m = bal.merchants.find(x => x.lines)!;
