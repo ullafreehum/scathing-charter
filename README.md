@@ -15,16 +15,22 @@ Welcome, outlander. There are two ways in, and both are free:
 
 - **In your browser:** **[play The Scathing Charter online](https://ullafreehum.github.io/scathing-charter/)**.
   Nothing to install. It works on any computer with a modern browser, and your saves stay in that browser.
-- **On Windows:** download the game from the **[v0.10.5 release](https://github.com/ullafreehum/scathing-charter/releases/tag/v0.10.5)**.
-  Take **`ScathingCharter-Setup-0.10.5.exe`** to install it, or **`ScathingCharter-Portable-0.10.5.exe`** to run it
+- **On Windows:** download the game from the **[v0.10.7 release](https://github.com/ullafreehum/scathing-charter/releases/tag/v0.10.7)**.
+  Take **`ScathingCharter-Setup-0.10.7.exe`** to install it, or **`ScathingCharter-Portable-0.10.7.exe`** to run it
   from anywhere with no install. The game isn't signed, so Windows may say *"Windows protected your PC"*: click
   **More info**, then **Run anyway**.
-- **On Android (test build):** the same release has **`ScathingCharter-0.10.5-Android-A26-debug.apk`**, made for the
+- **On Android (test build):** the same release has **`ScathingCharter-0.10.7-Android-A26-debug.apk`**, made for the
   Samsung Galaxy A26 in landscape (other phones may work but aren't tested). It has no card duel. Android asks you to
   allow installs from unknown sources.
 
 New here? Pick **Easy (Fair Terms)** for your first game, and read [Your first five minutes](#-your-first-five-minutes)
 below. Want a taste first? **Card duel (practice)** on the title screen plays the magistrate's card hearing on its own.
+
+**New in 0.10.6 and 0.10.7:** your Journal is written in your own voice, hopeful before the Red Year and sober
+after it. Merchants and Gavas Drelloth remember how you have traded and paid, ruined towns tell you what is left
+of them, and the end screen says how often you were warned before Baar Dau fell. Sound effects and music now
+have separate switches, and the Android app fits five goods on a screen. Everything else is in the
+[changelog](CHANGELOG.md).
 
 Curious about the look of the world? Leaf through the art book, **[Art of the Red Year](docs/artbook/scathing-charter-artbook.pdf)** (PDF).
 
@@ -35,7 +41,7 @@ Curious about the look of the world? Leaf through the art book, **[Art of the Re
 
 ## 🕯️ Install on Windows
 
-1. Open the **[latest release](https://github.com/ullafreehum/scathing-charter/releases/tag/v0.10.5)** (or [all releases](https://github.com/ullafreehum/scathing-charter/releases)) and download the newest
+1. Open the **[latest release](https://github.com/ullafreehum/scathing-charter/releases/tag/v0.10.7)** (or [all releases](https://github.com/ullafreehum/scathing-charter/releases)) and download the newest
    **`ScathingCharter-Setup-<version>.exe`**. (Prefer no install? Take **`ScathingCharter-Portable-<version>.exe`**:
    one file that runs from anywhere, such as a USB stick.)
 2. Run it. The game isn't signed, so the first time Windows may say *"Windows protected your PC"*: click
@@ -111,7 +117,7 @@ to pick up where you left off.
 | The game is stuck in a window, or stuck full screen | Press **F11** (or **Alt+Enter**), or use **⚙ Settings → Full screen**. |
 | Everything is too big or too small | **Ctrl+Plus / Ctrl+Minus**, or **⚙ Settings → Text and UI size**. **Ctrl+0** resets it. |
 | My **Continue** button disappeared | Use **Import save file…** with an exported backup. |
-| Text is hard to read, or the falling ash is distracting | Open **⚙ Settings** (top bar or title screen): 5 colour themes, 4 fonts, text and UI size, ash and animations on/off, sound and volume. |
+| Text is hard to read, or the falling ash is distracting | Open **⚙ Settings** (top bar or title screen): 5 colour themes, 4 fonts, text and UI size, ash and animations on/off, sound effects, music and volume. |
 
 ## 🍎 Mac or 🐧 Linux
 
@@ -142,7 +148,8 @@ terminal in that folder run `npm install` and `npm start`.
 - **Goal:** pay off the Camonna Tong, then buy the Scathing Charter before the end of 4E 6 to win. If your
   debt passes six times the note, the Tong puts its mark on you and the game ends. Otherwise, at the end you
   retire, ranked by net worth. The Bank tab shows your progress.
-- **Bank:** each bank city has a strongbox. Money left there stays in that city, earns a little interest and
+- **Journal:** your own account of the journey, in your voice. It reads differently once the Red Year has come.
+- **Bank:** Gavas Drelloth's mood shows how patient the Tong still is. Each bank city has a strongbox. Money left there stays in that city, earns a little interest and
   is safe from robbers, but history can destroy a vault.
 - **Timeline:** the thin bar under the top bar is the whole campaign: how far you are, what has happened (gold),
   and what the rumours say is coming (hollow). Hover it for details.
@@ -167,8 +174,8 @@ terminal in that folder run `npm install` and `npm start`.
   - On the Travel tab, `1`–`9` open a destination's card and `Enter` goes; `Esc` closes the card.
   - `c` opens the Codex; `Esc` closes it (and Settings).
 - **Settings (⚙):** five readable colour themes named after Vvardenfell regions (Ashlands, Bitter Coast,
-  Azura's Coast, Ascadian Isles, West Gash), four fonts, text size, falling ash, animations, sound and
-  volume. Saved on your computer.
+  Azura's Coast, Ascadian Isles, West Gash), four fonts, text size, falling ash, animations, sound effects,
+  music and volume. Saved on your computer.
 - **Lore badges** (in the Codex): *Unverified*, *Historians disagree*, *Extrapolation* and *Invented for
   this game* tell you how sure the lore is. **Codex → Historians disagree** has the arguments, with
   sources.
@@ -180,6 +187,7 @@ terminal in that folder run `npm install` and `npm start`.
 | `npm start` / `npm run dev` | Dev server (`start` also opens the browser) |
 | `npm run desktop` | Build and open the desktop app (Electron) |
 | `npm run package:win` | Build the Windows installer and portable .exe into `release/electron/` (run on Windows; CI does this for releases) |
+| `npm run check` | Typecheck, lint and unit tests (run before every push) |
 | `npm test` | Unit tests: engine, determinism/replay, calendar, saves, data integrity |
 | `npm run test:e2e` | Browser tests: smoke, UI behaviour, critical-moment scenarios, random-click crash test. Run `npx playwright install chromium` once first. |
 | `npm run diagnose -- 4` | Engine stress test: random play across all backgrounds and difficulties with invariant checks |
