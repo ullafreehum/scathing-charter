@@ -7,6 +7,14 @@ import { useMemo } from 'react';
 import { useGame } from '../store/game';
 
 export const EASE: [number, number, number, number] = [0.2, 0, 0, 1];
+/** EASE as a plain function of progress (0 to 1), for tweens outside Framer such as the duel board. */
+export function ease(p: number): number {
+  if (p <= 0) return 0; if (p >= 1) return 1;
+  const [x1, y1, x2, y2] = EASE, b = (s: number, a: number, c: number) => 3 * (1 - s) * (1 - s) * s * a + 3 * (1 - s) * s * s * c + s * s * s;
+  let lo = 0, hi = 1, s = p;
+  for (let i = 0; i < 18; i++) { s = (lo + hi) / 2; if (b(s, x1, x2) < p) lo = s; else hi = s; }
+  return b(s, y1, y2);
+}
 export const DUR = { tap: 0.08, fast: 0.14, base: 0.22, slow: 0.32 } as const; // Sorcerer's values (handoff/0.11-motion.md)
 
 const prefersReduced = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
