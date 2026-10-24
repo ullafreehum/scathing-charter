@@ -238,12 +238,14 @@ export class DuelBoard {
     this.app.ticker.add(d => { for (const { g, v } of drift) { g.y += v * d; g.x += Math.sin((g.y + v * 999) / 60) * 0.3 * d; if (g.y > GROUND) { g.y = -5; g.x = Math.random() * W; } } });
   }
   // Floating change labels ("Tower −6"); labels on the same spot stack downwards.
-  private floatText(x: number, y: number, label: string, good: boolean) {
+  /** A popping label; `row` = a resource row's label, which on the phone is smaller and stays put, clear of the panel above. */
+  private floatText(x: number, y: number, label: string, good: boolean, row = false) {
     this.live = this.live.filter(f => !f.t.destroyed);
     // Floats that would overlap stack downwards; on the phone (rows closer, buttons below) a float on the same row goes beside the last one, towards the middle.
     const touch = !!this.opts.touch, near = this.live.filter(f => Math.abs(f.x - x) < 70 && Math.abs(f.y0 - y) < (touch ? 13 : 60));
     const x0 = x; if (!touch) y += 30 * near.length;
-    const t = txt(label, { fontSize: 27, fontWeight: '700', fill: good ? C.good : C.bad, stroke: 0x0f0c0b, strokeThickness: 7, dropShadow: true, dropShadowColor: 0x000000, dropShadowBlur: 4, dropShadowDistance: 2, dropShadowAlpha: 0.9 });
+    const still = row && !!this.opts.touch;
+    const t = txt(label, { fontSize: still ? 22 : 27, fontWeight: '700', fill: good ? C.good : C.bad, stroke: 0x0f0c0b, strokeThickness: 7, dropShadow: true, dropShadowColor: 0x000000, dropShadowBlur: 4, dropShadowDistance: 2, dropShadowAlpha: 0.9 });
     const last = touch ? near.at(-1) : undefined;
     if (last) x = last.t.x + (x0 < W / 2 ? 1 : -1) * (last.t.width / 2 + 12 + t.width / 2);
     t.anchor.set(0.5); t.x = x; t.y = y; this.floats.addChild(t); this.live.push({ t, x: x0, y0: y });
@@ -252,7 +254,7 @@ export class DuelBoard {
     const tick = () => {
       const e = performance.now() - start, q = Math.max(0, (e - 140) / 700);
       if (move) t.scale.set(1.3 - 0.3 * ease(Math.min(1, e / 140)));
-      t.y = y - (move ? 30 * ease(Math.min(1, q)) : 0); t.alpha = q < 0.5 ? 1 : Math.max(0, 1 - (q - 0.5) / 0.5);
+      t.y = y - (move && !still ? 30 * ease(Math.min(1, q)) : 0); t.alpha = q < 0.5 ? 1 : Math.max(0, 1 - (q - 0.5) / 0.5);
       if (q >= 1) { this.app.ticker.remove(tick); t.destroy(); }
     };
     this.app.ticker.add(tick);
@@ -530,7 +532,7 @@ export class DuelBoard {
   }
   private async playEvent(ev: DuelEvent, from: PIXI.Container | null, ready?: PIXI.Container) {
     if (ev.type === 'income') { // every row counts together, in one beat, with no sound
-      for (const [k, v] of Object.entries(ev.changes[ev.who])) { const p = this.panel(ev.who).rowPos(k as Res); this.floatText(p.x, p.y, `+${v} ${RES_NAME[k as Res]}`, true); }
+      for (const [k, v] of Object.entries(ev.changes[ev.who])) { const p = this.panel(ev.who).rowPos(k as Res); this.floatText(p.x, p.y, `+${v} ${RES_NAME[k as Res]}`, true, true); }
       this.panel(ev.who).update(ev.after[ev.who]); await this.wait(BEAT.income); return;
     }
     const k = DUEL_CARD[ev.id], other: Who = ev.who === 'you' ? 'foe' : 'you';
@@ -574,15 +576,17 @@ export class DuelBoard {
             })());
           } else {
             const r = (RES as readonly string[]).includes(f) ? f as Res : RES.find(x => GEN[x] === f)!;
-            const p = this.panel(who).rowPos(r); this.floatText(p.x, p.y, `${RES_NAME[f as Res] ?? GEN_NAME[f]} ${v > 0 ? '+' : '−'}${Math.abs(v)}`, v > 0);
+            const p = this.panel(who).rowPos(r); this.floatText(p.x, p.y, `${RES_NAME[f as Res] ?? GEN_NAME[f]} ${v > 0 ? '+' : '−'}${Math.abs(v)}`, v > 0, true);
           }
         }
         this.panel(who).update(ev.after[who]);
       }
-      await Promise.all(jobs);
+      // the card fades as the effect lands (1040 ms at Normal) while the towers finish their counts
+      const done = Promise.all(jobs); await Promise.race([done, this.wait(BEAT.tower)]);
+      await Promise.all([this.tween(card, { alpha: 0, y: card.y - 30 }, BEAT.out), done]); card.destroy(); return;
     }
-    // the card fades and rises; a discard drops away
-    await this.tween(card, { alpha: 0, y: card.y + (ev.discard ? 50 : -30) }, BEAT.out); card.destroy();
+    // a discard drops away
+    await this.tween(card, { alpha: 0, y: card.y + 50 }, BEAT.out); card.destroy();
   }
   private async onCard(i: number, node: PIXI.Container) {
     if (this.busy || this.duel.winner) return;
@@ -602,11 +606,12 @@ export class DuelBoard {
       const ready = ev.type === 'move' && ev.who === 'foe' ? await this.rivalCard(ev) : undefined;
       await this.playEvent(ev, ev.type === 'move' && ev.who === 'you' ? node : null, ready);
       if (ev.winner) break;
+      if (ev.type === 'move' && ev.who === 'you') { this.duel = { ...this.duel, you: clone(ev.after.you) }; this.layoutHand(i); } // the new card rises in now
     }
     this.duel = { ...next, you: clone(next.you), foe: clone(next.foe) };
     this.syncAll(this.duel);
     if (this.duel.winner) await this.ending(this.duel.winner, true); else this.setTurn('you');
-    this.layoutHand(this.duel.winner ? undefined : i); this.busy = false; this.rush = false; this.opts.state?.(null, false);
+    this.layoutHand(); this.busy = false; this.rush = false; this.opts.state?.(null, false);
     this.opts.settled(this.duel);
   }
   /** The end: a held breath, the verdict on the banner with its bells, and the board dims around the winner's tower. */
