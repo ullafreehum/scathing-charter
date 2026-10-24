@@ -31,7 +31,9 @@ test('hearing: the board plays cards by mouse and keyboard, and the duel ends', 
   await page.mouse.click(box.x + (39.5 + i * 151 + 72) * k, box.y + 610 * k);
   await expect(board).toHaveAttribute('data-turn', '2');
 
-  // Keyboard: the hidden hand buttons play the same cards; Discard lets you throw one away.
+  // Keyboard: the hidden hand buttons play the same cards; Discard lets you throw one away. Skip keeps the rest quick
+  // (under Reduce motion the reading pauses stay at Normal).
+  await page.getByRole('button', { name: 'Skip', exact: true }).click();
   for (let turn = 2; turn < 260; turn++) {
     if ((await board.getAttribute('data-winner')) !== '') break;
     let j = await firstPlayable(page);

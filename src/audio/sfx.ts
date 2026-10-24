@@ -1,7 +1,7 @@
 // Tiny procedural Web Audio effects: no audio files, works offline.
 import { createScore, type Score } from './score';
 import { createScore as createSong } from './songs';
-import { createFeelSfx } from './feel';
+import { createDuelSfx, createFeelSfx } from './feel';
 let ctx: AudioContext | null = null;
 let enabled = true;
 let volume = 0.8;
@@ -85,6 +85,8 @@ export const sfx = {
   heal() { bell(523, 1.2, 0.05); bell(659, 1.2, 0.045, 0.12); bell(784, 1.6, 0.04, 0.24); bell(1568, 1.4, 0.012, 0.3); },
   ...createFeelSfx(ac, () => volume),
 };
+/** The duel's sounds (draw, play, hit, build, win, lose). */
+export const duelSfx = createDuelSfx(ac, () => volume);
 export function startWind(intensity: number) {
   const a = ac(); if (!a) return;
   const level = 0.015 + intensity * 0.05;

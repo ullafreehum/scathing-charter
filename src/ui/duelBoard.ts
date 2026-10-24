@@ -5,7 +5,7 @@
 // Particles use Math.random: they are decoration, never game state.
 import * as PIXI from 'pixi.js';
 import { DUEL, DUEL_CARD, DUEL_SHORT, RES_NAME, canPlay, type DuelEvent, type DuelSide, type DuelState, type Res } from '../engine';
-import { sfx } from '../audio/sfx';
+import { duelSfx, sfx } from '../audio/sfx';
 import { buzz } from './phone';
 import { DUR, ease } from './motion';
 
@@ -17,26 +17,28 @@ const ART = {
 };
 const keyOf = (path: string) => (path.includes('/cards-painted/') ? 'paint-' : path.includes('/cards/') ? 'art-' : '') + path.split('/').pop()!.replace(/\.(svg|jpg|png)$/, '');
 
-// The duel's beat in ms, on the 0.11 motion language (EASE; DUR for the short moves). The Speed setting scales all of it.
+// The duel's beat in ms at Normal speed (Sorcerer's 0.11 duel plan, handoff/0.11-motion.md section 5). Fast halves it,
+// Skip makes it instant. Under Reduce motion every move is instant but the reading pauses stay.
 const BEAT = {
-  think: 650,          // "Rival's turn" shows, then the rival's card comes
-  fly: 340,            // a card travels from the hand (or the rival's side) to the middle, growing as it goes
-  readYou: 380,        // your card holds in the middle before it lands
-  readFoe: 760,        // the rival's card holds longer: you need to read it
-  out: DUR.fast * 1000, // the card leaves
+  think: 600,           // the rival's card back waits beside their panel (never under 300 ms)
+  backIn: 220,          // the card back slides in
+  flip: 110,            // each half of the flip
+  arc: 320,             // a card arcs to the centre stage
+  settle: 80,           // and lands
+  readYou: 260,         // your card holds there before its effect travels
+  readFoe: 400,         // the rival's holds longer: you didn't choose it
+  streak: 140,          // the ember streak from the card to the target
+  wallFirst: 80,        // damage through the wall reaches the tower this much later
+  flash: 220, sink: 140, rim: 220,
+  tower: DUR.slow * 1000, // a tower or wall grows or shrinks to its new height (its number counts with it)
   count: DUR.slow * 1000, // resource numbers count to their new value
-  tower: 560,          // a tower or wall grows or shrinks to its new height (its number counts with it)
-  income: 420,         // the start-of-turn income floats
+  glow: 220,            // the resource row glows behind a change
+  out: DUR.fast * 1000, // the card leaves
+  hand: 220,            // the hand closes the gap, then opens it for the new card
+  lift: DUR.fast * 1000, // a card lifts or settles
+  income: 420,
+  end: 400, dim: DUR.slow * 1000,
 } as const;
-// The duel's sounds and buzzes, in one place.
-const SOUND = {
-  card: () => sfx.page(),
-  hit: (you: boolean, touch: boolean) => { sfx.step(); if (you && touch) buzz(20); },
-  build: () => sfx.confirm(),
-  fall: (touch: boolean) => { sfx.boom(); if (touch) buzz([60, 40, 120]); },
-  win: () => sfx.heal(),
-  lose: () => sfx.sting(),
-};
 const W = 1280, H = 720, GROUND = 462, TRAY = 500, CARD_W = 240, CARD_H = 340;
 /** The picture window in card-frame.svg (the paintings are twice this size). */
 const ART_WIN = { x: 12, y: 44, w: 216, h: 176 } as const;
@@ -45,9 +47,22 @@ const RES: readonly Res[] = ['stone', 'steel', 'magicka'];
 const GEN = { stone: 'masons', steel: 'soldiers', magicka: 'mages' } as const;
 const GEN_NAME: Record<string, string> = { masons: 'Stone income', soldiers: 'Troop income', mages: 'Magic income' };
 const ICON: Record<Res, string> = { stone: 'cost-ebony', steel: 'cost-bindings', magicka: 'cost-magicka' };
+/** The panels' and banner's frame: a 2 px bronze line, a faint light on the top half, a thin inner line in `inner`. */
+function frame(g: PIXI.Graphics, x: number, y: number, w: number, h: number, r: number, inner: number, alpha = 0.35) {
+  g.beginFill(0x0f0c0b, 0.8).lineStyle(2, 0x6b5636, 1).drawRoundedRect(x, y, w, h, r).endFill();
+  g.lineStyle(0).beginFill(0xffffff, 0.045).drawRoundedRect(x + 3, y + 3, w - 6, h * 0.45, Math.max(2, r - 3)).endFill();
+  g.lineStyle(1, inner, alpha).drawRoundedRect(x + 3, y + 3, w - 6, h - 6, Math.max(2, r - 3));
+}
+/** A vertical gradient as a sprite (Pixi 7 has no gradient fills). */
+function vgrad(w: number, h: number, stops: [number, string][]) {
+  const c = document.createElement('canvas'); c.width = 2; c.height = Math.max(2, Math.round(h));
+  const x = c.getContext('2d'); if (x) { const g = x.createLinearGradient(0, 0, 0, c.height); for (const [o, col] of stops) g.addColorStop(o, col); x.fillStyle = g; x.fillRect(0, 0, 2, c.height); }
+  const s = new PIXI.Sprite(PIXI.Texture.from(c)); s.width = w; s.height = h; return s;
+}
 const BODY = "'Atkinson Hyperlegible', 'Segoe UI', Verdana, sans-serif", DISPLAY = 'Cinzel, Georgia, serif';
 type Who = 'you' | 'foe';
 type Field = 'tower' | 'wall';
+type Move = Extract<DuelEvent, { type: 'move' }>;
 
 // Textures are made once and kept for later hearings: SVG icons rasterised at twice their size (sharp at 4K); the paintings
 // and the tower and wall PNGs are already at display size and load as they are.
@@ -104,14 +119,15 @@ export class DuelBoard {
   private history: string[] = [];
   private duel!: DuelState;
   private busy = false; private rush = false; private discard = false;
-  private speed: number;
+  private speed = 1; private still: boolean; // still = Reduce motion: moves are instant, reading pauses stay
+  private shadowTex!: PIXI.Texture; private turnShown = '';
   private lift: ((on: boolean) => void)[] = [];
   private picked: number | null = null; private pickedAt = 0;
   private ro: ResizeObserver;
-  private v!: { yS: Tower; yW: Tower; fS: Tower; fW: Tower; yP: Panel; fP: Panel; circle: PIXI.Container; hand: PIXI.Container; preview: PIXI.Container; stageCard: PIXI.Container; bannerBg: PIXI.Graphics; bannerText: PIXI.Text; log: PIXI.Text; logBg: PIXI.Graphics };
+  private v!: { yS: Tower; yW: Tower; fS: Tower; fW: Tower; yP: Panel; fP: Panel; circle: PIXI.Container; hand: PIXI.Container; preview: PIXI.Container; stageCard: PIXI.Container; banner: PIXI.Container; bannerGlow: PIXI.Graphics; bannerBg: PIXI.Graphics; bannerText: PIXI.Text; log: PIXI.Text; logBg: PIXI.Graphics };
 
   private constructor(host: HTMLElement, private opts: BoardOptions) {
-    this.speed = opts.motion ? 0.4 : 0;
+    this.still = !opts.motion;
     this.app = new PIXI.Application({ width: W, height: H, backgroundColor: 0x0f0c0b, antialias: true, resolution: Math.min(window.devicePixelRatio || 1, 2), autoDensity: true });
     const view = this.app.view as HTMLCanvasElement;
     view.style.width = '100%'; view.style.height = '100%'; view.style.display = 'block';
@@ -140,7 +156,7 @@ export class DuelBoard {
   }
 
   destroy() { this.ro.disconnect(); this.app.destroy(true, { children: true }); }
-  setSpeed(x: number) { this.speed = this.opts.motion ? x : 0; }
+  setSpeed(x: number) { this.speed = x; }
   setDiscard(on: boolean) { this.discard = on; if (!this.busy) this.layoutHand(); }
   /** Keyboard and screen-reader players pick through buttons outside the canvas. */
   play(i: number) { const c = this.v.hand.children[i]; if (c) void this.onCard(i, c as PIXI.Container); }
@@ -161,15 +177,34 @@ export class DuelBoard {
       if (p >= 1) { this.tweens.delete(tw); tw.res(); }
     }
   }
-  private tween(o: object, to: Record<string, number>, ms: number, e: (t: number) => number = ease): Promise<void> {
+  /** A move (instant under Reduce motion) or, with `pause`, reading time (kept under Reduce motion). Both follow Speed. */
+  private tween(o: object, to: Record<string, number>, ms: number, e: (t: number) => number = ease, pause = false): Promise<void> {
     const obj = o as Record<string, number>;
     return new Promise(res => {
       const from: Record<string, number> = {}; for (const k in to) from[k] = obj[k];
-      const dur = ms * (this.rush ? 0 : this.speed); if (dur <= 0) { Object.assign(obj, to); return res(); }
+      const dur = this.rush || (this.still && !pause) ? 0 : ms * this.speed; if (dur <= 0) { Object.assign(obj, to); return res(); }
       this.tweens.add({ o: obj, from, to, dur, t: 0, e, res });
     });
   }
-  private wait(ms: number) { return this.tween({ v: 0 }, { v: 1 }, ms); }
+  private wait(ms: number) { return this.tween({ v: 0 }, { v: 1 }, ms, ease, true); }
+  /** The rival's think pause: 600 ms at Normal, never under 300 (300 under Reduce motion), none at Skip. */
+  private think() { const ms = this.speed === 0 ? 0 : this.still ? 300 : Math.max(300, BEAT.think * this.speed); return this.wait(this.speed ? ms / this.speed : 0); }
+  /** Stops the tweens moving these keys of `o` where they are (a new one takes over). */
+  private stop(o: object, keys: string[]) { for (const tw of this.tweens) if (tw.o === o && keys.some(k => k in tw.to)) { this.tweens.delete(tw); tw.res(); } }
+  /** A card travels on a shallow arc (60 units above the straight line), scaling and straightening as it goes. */
+  private arc(o: PIXI.Container, x1: number, y1: number, s1: number, ms: number) {
+    const x0 = o.x, y0 = o.y, s0 = o.scale.x, r0 = o.rotation, p = { v: 0 };
+    const tick = () => { const t = p.v; o.position.set(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t - 240 * t * (1 - t)); o.scale.set(s0 + (s1 - s0) * t); o.rotation = r0 * (1 - t); };
+    this.app.ticker.add(tick);
+    return this.tween(p, { v: 1 }, ms).then(() => { this.app.ticker.remove(tick); p.v = 1; tick(); });
+  }
+  /** Damage on its way: a short line of embers from the card to the target. */
+  private streak(x0: number, y0: number, x1: number, y1: number, ms: number) {
+    const p = { v: 0 }; let last = 0;
+    const tick = () => { if (p.v - last < 0.12) return; last = p.v; this.burst(x0 + (x1 - x0) * p.v, y0 + (y1 - y0) * p.v, 3, 'spark'); };
+    this.app.ticker.add(tick);
+    return this.tween(p, { v: 1 }, ms).then(() => { this.app.ticker.remove(tick); });
+  }
   private burst(x: number, y: number, n: number, kind: 'spark' | 'debris' | 'ash') {
     if (!this.opts.motion) n = Math.min(n, 6);
     for (let i = 0; i < n; i++) {
@@ -212,11 +247,13 @@ export class DuelBoard {
     const last = touch ? near.at(-1) : undefined;
     if (last) x = last.t.x + (x0 < W / 2 ? 1 : -1) * (last.t.width / 2 + 12 + t.width / 2);
     t.anchor.set(0.5); t.x = x; t.y = y; this.floats.addChild(t); this.live.push({ t, x: x0, y0: y });
-    const ms = 1400, start = performance.now(), move = this.opts.motion;
+    // The number pops (1.3 to 1 in 140 ms), then rises 30 and fades over 700 ms.
+    const start = performance.now(), move = this.opts.motion; if (move) t.scale.set(1.3);
     const tick = () => {
-      const p = (performance.now() - start) / ms;
-      t.y = y - (move ? 36 * Math.min(1, p) : 0); t.alpha = p < 0.7 ? 1 : Math.max(0, 1 - (p - 0.7) / 0.3);
-      if (p >= 1) { this.app.ticker.remove(tick); t.destroy(); }
+      const e = performance.now() - start, q = Math.max(0, (e - 140) / 700);
+      if (move) t.scale.set(1.3 - 0.3 * ease(Math.min(1, e / 140)));
+      t.y = y - (move ? 30 * ease(Math.min(1, q)) : 0); t.alpha = q < 0.5 ? 1 : Math.max(0, 1 - (q - 0.5) / 0.5);
+      if (q >= 1) { this.app.ticker.remove(tick); t.destroy(); }
     };
     this.app.ticker.add(tick);
   }
@@ -270,12 +307,14 @@ export class DuelBoard {
       t.cracks.lineStyle(1, 0xff6a1a, 0.7).moveTo(pts[0][0] + 1, pts[0][1]); for (const p of pts.slice(1)) t.cracks.lineTo(p[0] + 1, p[1]);
     }
   }
-  private async shake(node: PIXI.Container, power: number) {
-    if (!this.opts.motion) return;
-    const x0 = node.x; for (let i = 0; i < 6; i++) { node.x = x0 + (i % 2 ? -1 : 1) * power * (1 - i / 6); await this.wait(28); } node.x = x0;
+  /** A hit: the tower sinks 6 units and settles back (no shake: the only shake in the game is the eruption's). */
+  private async sink(t: Tower) { await this.tween(t.box, { y: 6 }, BEAT.sink / 2); await this.tween(t.box, { y: 0 }, BEAT.sink / 2); }
+  /** A build: a gold glow on the top edge that fades. */
+  private rim(t: Tower) {
+    const g = new PIXI.Graphics(); g.beginFill(C.gold, 1).drawEllipse(0, t.name === 'Tower' ? 14 : 4, t.tw / 2 + 6, 9).endFill(); g.blendMode = PIXI.BLEND_MODES.ADD; g.alpha = 0.6;
+    t.body.addChild(g); return this.tween(g, { alpha: 0 }, BEAT.rim).then(() => g.destroy());
   }
   private async collapse(t: Tower) {
-    SOUND.fall(!!this.opts.touch);
     this.burst(t.box.x, GROUND - 80, 40, 'debris'); this.burst(t.box.x, GROUND - 40, 30, 'ash'); this.burst(t.box.x, GROUND - 120, 24, 'spark');
     await Promise.all([this.tween(t.body, { rotation: (t.box.x < W / 2 ? -1 : 1) * 0.25 }, 900), this.towerTo(t, 0)]);
     this.burst(t.box.x, GROUND - 10, 30, 'ash');
@@ -287,7 +326,7 @@ export class DuelBoard {
     const art = sprite(artKey(id), ART_WIN.w, ART_WIN.h); art.position.set(ART_WIN.x, ART_WIN.y); g.addChild(art);
     g.addChild(sprite('card-frame', CARD_W, CARD_H));
     // The name: one line in the title band (y 10–40), shrunk to fit beside the cost badge.
-    const name = txt(sh?.short ?? k.name, { fontSize: ph ? (compact ? 32 : 24) : compact ? 24 : 22, fontWeight: '700', fill: 0xfbe7b0, stroke: 0x1a0705, strokeThickness: 4 });
+    const name = txt(sh?.short ?? k.name, { fontFamily: compact ? DISPLAY : BODY, fontSize: ph ? (compact ? 32 : 24) : compact ? 24 : 22, fontWeight: '700', fill: 0xfbe7b0, stroke: 0x1a0705, strokeThickness: 4 });
     name.anchor.set(0.5, 0.5); name.position.set(140, 25);
     if (name.width > 168) name.scale.set(168 / name.width); g.addChild(name);
     const icon = sprite(ICON[k.res], 64, 64); icon.position.set(-10, -10); g.addChild(icon);
@@ -319,21 +358,24 @@ export class DuelBoard {
   // ---------------------------------------------------------------- scene
   private resPanel(x: number, who: Who): Panel {
     const p = new PIXI.Container(); p.x = x; p.y = 16;
-    const bg = new PIXI.Graphics(); bg.beginFill(0x0f0c0b, 0.72).lineStyle(1, 0x6b5636).drawRoundedRect(0, 0, 250, 132, 6).endFill(); p.addChild(bg);
+    const bg = new PIXI.Graphics(); frame(bg, 0, 0, 250, 132, 8, C.gold); p.addChild(bg);
     const title = txt(who === 'you' ? 'You' : 'Rival', { fontFamily: DISPLAY, fontSize: 18, fontWeight: '700', fill: who === 'you' ? C.gold : 0xe8644c }); title.position.set(14, 7); p.addChild(title);
     const rule = new PIXI.Graphics(); rule.lineStyle(1, 0x6b5636).moveTo(14, 33).lineTo(236, 33); p.addChild(rule);
     const rows = {} as Record<Res, { n: PIXI.Text; lbl: PIXI.Text }>;
-    const shown = {} as Record<Res, number>, run = { stone: 0, steel: 0, magicka: 0 } as Record<Res, number>;
+    const shown = {} as Record<Res, number>, run = { stone: 0, steel: 0, magicka: 0 } as Record<Res, number>, glows = {} as Record<Res, { g: PIXI.Graphics; y: number }>;
     const setN = (r: Res, v: number) => { shown[r] = v; rows[r].n.text = String(Math.round(v)); };
     const countTo = (r: Res, v: number, instant?: boolean) => { // the number counts to its new value; a newer count takes over
       const id = ++run[r];
       if (instant || shown[r] === undefined || !this.opts.motion || shown[r] === v) { setN(r, v); return; }
+      const gl = glows[r]; gl.g.clear().beginFill(v > shown[r] ? C.good : C.bad, 1).drawRoundedRect(8, gl.y - 3, 234, 30, 5).endFill(); gl.g.alpha = 0.25;
+      this.stop(gl.g, ['alpha']); void this.tween(gl.g, { alpha: 0 }, BEAT.glow);
       const o = { v: shown[r] }, tick = () => { if (run[r] === id) setN(r, o.v); };
       this.app.ticker.add(tick);
       void this.tween(o, { v }, BEAT.count).then(() => { this.app.ticker.remove(tick); if (run[r] === id) setN(r, v); });
     };
     RES.forEach((r, i) => {
-      const y = 41 + i * 29; const ic = sprite(ICON[r], 24, 24); ic.position.set(14, y); p.addChild(ic);
+      const y = 41 + i * 29; const glow = new PIXI.Graphics(); glow.alpha = 0; p.addChild(glow); glows[r] = { g: glow, y };
+      const ic = sprite(ICON[r], 24, 24); ic.position.set(14, y); p.addChild(ic);
       const n = txt('', { fontSize: this.opts.touch ? 26 : 22, fontWeight: '700' }); n.anchor.set(1, 0); n.position.set(76, y - (this.opts.touch ? 3 : 1)); p.addChild(n);
       const lbl = txt('', { fontSize: this.opts.touch ? 20 : 17, fill: C.muted }); lbl.position.set(88, y + (this.opts.touch ? 1 : 2)); p.addChild(lbl);
       rows[r] = { n, lbl };
@@ -349,28 +391,38 @@ export class DuelBoard {
     const bg = sprite('background', W, H); bg.y = -62; root.addChild(bg); // lift the horizon to the towers' ground line
     root.addChild(this.ambient);
     const ground = new PIXI.Graphics(); ground.beginFill(0x0a0706, 0.55).drawRect(0, GROUND, W, TRAY - GROUND).endFill();
-    ground.beginFill(0x0c0908, 0.95).drawRect(0, TRAY, W, H - TRAY).endFill().lineStyle(2, 0x8f704a, 0.9).moveTo(0, TRAY).lineTo(W, TRAY).lineStyle(1, 0x6b5636, 0.5).moveTo(0, TRAY + 4).lineTo(W, TRAY + 4);
-    root.addChild(ground);
+    const tray = vgrad(W, H - TRAY, [[0, '#1d1511'], [1, '#0a0706']]); tray.y = TRAY;
+    const lines = new PIXI.Graphics(); lines.lineStyle(2, 0x8f704a, 0.9).moveTo(0, TRAY).lineTo(W, TRAY).lineStyle(1, 0x6b5636, 0.5).moveTo(0, TRAY + 4).lineTo(W, TRAY + 4);
+    const inset = vgrad(W, 10, [[0, 'rgba(0,0,0,0.6)'], [1, 'rgba(0,0,0,0)']]); inset.y = TRAY + 5;
+    root.addChild(ground, tray, inset, lines);
+    if (!this.shadowTex) { // one soft card shadow, drawn once and shared by every card in the hand
+      const sh = new PIXI.Graphics(); sh.beginFill(0x000000, 1).drawRoundedRect(0, 0, CARD_W, CARD_H, 18).endFill(); sh.filters = [new PIXI.BlurFilter(13)];
+      this.shadowTex = this.app.renderer.generateTexture(sh, { region: new PIXI.Rectangle(-40, -40, CARD_W + 80, CARD_H + 80) }); sh.destroy();
+    }
     const circle = new PIXI.Container(); circle.position.set(W / 2, 330); circle.alpha = 0;
     const cg = new PIXI.Graphics(); cg.lineStyle(3, 0xff7a2a, 0.9).drawEllipse(0, 70, 120, 30).lineStyle(1.5, 0xf0d68a, 0.8).drawEllipse(0, 70, 96, 22);
     cg.beginFill(0xff5a14, 0.25).drawEllipse(0, 70, 120, 30).endFill(); circle.addChild(cg);
     const banner = new PIXI.Container(); banner.position.set(W / 2, 22);
-    const bannerBg = new PIXI.Graphics(); banner.addChild(bannerBg);
+    const bannerGlow = new PIXI.Graphics(); bannerGlow.alpha = 0; const bannerBg = new PIXI.Graphics(); banner.addChild(bannerGlow, bannerBg);
     const bannerText = txt('', { fontFamily: DISPLAY, fontSize: 23, fontWeight: '700' }); bannerText.anchor.set(0.5, 0.5); bannerText.y = 20; banner.addChild(bannerText);
     const log = txt('', { fontSize: this.opts.touch ? 22 : 19, align: 'center', wordWrap: true, wordWrapWidth: 520, lineHeight: this.opts.touch ? 27 : 24, stroke: 0x0f0c0b, strokeThickness: 4 }); log.anchor.set(0.5, 0); log.y = 50;
     const logBg = new PIXI.Graphics(); banner.addChild(logBg, log);
     this.v = {
       yS: this.makeTower('spire', 340, 'you'), yW: this.makeTower('ward', 462, 'you'), fS: this.makeTower('spire', W - 340, 'foe'), fW: this.makeTower('ward', W - 462, 'foe'),
-      yP: this.resPanel(16, 'you'), fP: this.resPanel(W - 266, 'foe'), circle, hand: new PIXI.Container(), preview: Object.assign(new PIXI.Container(), { eventMode: this.opts.touch ? 'passive' as const : 'none' as const }), stageCard: new PIXI.Container(), bannerBg, bannerText, log, logBg,
+      yP: this.resPanel(16, 'you'), fP: this.resPanel(W - 266, 'foe'), circle, hand: new PIXI.Container(), preview: Object.assign(new PIXI.Container(), { eventMode: this.opts.touch ? 'passive' as const : 'none' as const }), stageCard: new PIXI.Container(), banner, bannerGlow, bannerBg, bannerText, log, logBg,
     };
     for (const t of [this.v.yS, this.v.yW, this.v.fS, this.v.fW]) root.addChild(t.box);
     root.addChild(circle, this.v.yP.node, this.v.fP.node, banner, this.v.stageCard, this.v.hand, this.v.preview, this.fx, this.floats);
   }
   private setTurn(who: Who | 'end', line?: string) {
-    const t = this.v.bannerText, col = who === 'end' ? C.gold : who === 'you' ? C.good : C.bad;
-    t.text = who === 'end' ? line ?? '' : who === 'you' ? 'Your turn' : 'Rival’s turn';
-    t.style.fill = col;
-    this.v.bannerBg.clear().beginFill(0x0f0c0b, 0.8).lineStyle(1, col).drawRoundedRect(-t.width / 2 - 20, 0, t.width + 40, 40, 20).endFill();
+    const t = this.v.bannerText, col = who === 'end' ? (this.duel.winner === 'foe' ? C.bad : C.gold) : who === 'you' ? C.good : C.bad;
+    const label = who === 'end' ? line ?? '' : who === 'you' ? 'Your turn' : 'Rival’s turn';
+    t.text = label; t.style.fill = col;
+    const bw = t.width + 40; frame(this.v.bannerBg.clear(), -bw / 2, 0, bw, 40, 20, col, 0.6);
+    if (label !== this.turnShown) { // a new turn: the label fades in and the border glows in its colour
+      this.turnShown = label; t.alpha = 0; this.stop(t, ['alpha']); void this.tween(t, { alpha: 1 }, BEAT.lift);
+      const g = this.v.bannerGlow; g.clear().lineStyle(5, col, 1).drawRoundedRect(-bw / 2 - 2, -2, bw + 4, 44, 22); g.alpha = 0.8; this.stop(g, ['alpha']); void this.tween(g, { alpha: 0 }, BEAT.glow);
+    }
     if (line !== undefined && who !== 'end') { this.history.unshift(line); this.history.length = Math.min(this.history.length, 3); }
     this.setLog();
   }
@@ -385,17 +437,35 @@ export class DuelBoard {
     this.v.yP.update(s.you, true); this.v.fP.update(s.foe, true);
   }
   private clearPreview() { for (const c of this.v.preview.removeChildren()) c.destroy({ children: true }); this.v.log.visible = this.v.logBg.visible = true; }
-  private layoutHand() {
+  /** Card k of n in the fan: the foot centre of its slot, on a shallow curve (edge cards 8 lower), tilted -3° to +3°. */
+  private slot(k: number, n: number) {
+    const sc = 0.6, gap = 7, w = CARD_W * sc, x0 = (W - (n * w + (n - 1) * gap)) / 2, u = n > 1 ? (k / (n - 1)) * 2 - 1 : 0;
+    return { x: x0 + k * (w + gap) + w / 2, y: H - 12 + 8 * u * u, r: (u * 3 * Math.PI) / 180 };
+  }
+  /** A card left the hand: the others slide together. */
+  private closeHand(gone: number) {
+    const cards = this.v.hand.children as PIXI.Container[], n = cards.length - 1;
+    cards.forEach((c, j) => { if (j === gone) return; const s = this.slot(j < gone ? j : j - 1, n); this.stop(c, ['x', 'y', 'rotation']); void this.tween(c, { x: s.x, y: s.y, rotation: s.r }, BEAT.hand); });
+  }
+  /** Lays out the hand as a fan. `enter`: the slot of a newly drawn card, which rises in while the others open the gap. */
+  private layoutHand(enter?: number) {
     const hand = this.v.hand; hand.removeChildren(); this.lift = []; this.picked = null; this.clearPreview();
-    const touch = !!this.opts.touch;
-    const sc = 0.6, gap = 7, w = CARD_W * sc, x0 = (W - (DUEL.hand * w + (DUEL.hand - 1) * gap)) / 2;
+    const touch = !!this.opts.touch, n = this.duel.you.hand.length, sc = 0.6;
     this.duel.you.hand.forEach((id, i) => {
-      const card = this.makeCard(id, true); card.scale.set(sc); card.x = x0 + i * (w + gap); card.y = H - CARD_H * sc - 8;
-      const baseY = card.y;
+      const card = this.makeCard(id, true), at = this.slot(i, n);
+      card.scale.set(sc); card.pivot.set(CARD_W / 2, CARD_H); card.position.set(at.x, at.y); card.rotation = at.r;
       card.eventMode = 'static'; card.cursor = 'pointer';
+      const ok = !!this.duel.winner || this.discard || canPlay(this.duel.you, id);
       const glow = new PIXI.Graphics(); glow.lineStyle(6, C.gold, 0.9).drawRoundedRect(-2, -2, CARD_W + 4, CARD_H + 4, 14); glow.visible = false; card.addChild(glow);
+      // A soft shadow under each card (offset 6, alpha 0.35); the lifted card's grows (offset 16, alpha 0.5).
+      const shadow = new PIXI.Sprite(this.shadowTex); shadow.anchor.set(0.5); shadow.position.set(CARD_W / 2, CARD_H / 2 + 6 / sc); shadow.alpha = 0.35;
       const lift = (on: boolean) => {
-        on = on && !this.busy; card.y = on ? baseY - (touch ? 22 : 14) : baseY; glow.visible = on;
+        on = on && !this.busy; glow.visible = on;
+        const up = on ? (ok ? 22 : 10) : 0; // an unaffordable card lifts only a little
+        this.stop(card, ['y', 'rotation']); this.stop(shadow, ['y', 'alpha']); this.stop(shadow.scale, ['x', 'y']);
+        void this.tween(card, { y: at.y - up, rotation: on ? 0 : at.r }, BEAT.lift);
+        void this.tween(shadow, { y: CARD_H / 2 + (on ? 16 : 6) / sc, alpha: on ? 0.5 : 0.35 }, BEAT.lift);
+        void this.tween(shadow.scale, { x: on ? 1.06 : 1, y: on ? 1.06 : 1 }, BEAT.lift);
         // The card big, where a played card shows (between the towers, so both sides stay in view); on the phone bigger, over the log.
         const pv = this.v.preview; this.clearPreview();
         if (!on) return;
@@ -415,9 +485,14 @@ export class DuelBoard {
         card.on('pointerout', () => lift(false));
         card.on('pointertap', () => { void this.onCard(i, card); });
       }
-      if (!this.duel.winner && !canPlay(this.duel.you, id) && !this.discard) {
+      if (!ok) {
         const dim = new PIXI.ColorMatrixFilter(); dim.desaturate(); dim.brightness(0.55, true);
         card.children[0].filters = [dim]; (card.children[1] as PIXI.Sprite).tint = 0x9a9a9a; card.addChild(this.needBadge(id));
+      }
+      card.addChildAt(shadow, 0);
+      if (enter !== undefined) {
+        if (i === enter) { card.y = at.y + 230; card.alpha = 0; void this.tween(card, { y: at.y, alpha: 1 }, BEAT.hand); duelSfx.draw(); }
+        else { const c = this.slot(i < enter ? i : i - 1, n - 1); card.position.set(c.x, c.y); card.rotation = c.r; void this.tween(card, { x: at.x, y: at.y, rotation: at.r }, BEAT.hand); }
       }
       hand.addChild(card);
     });
@@ -426,25 +501,43 @@ export class DuelBoard {
   // ---------------------------------------------------------------- playback
   private tower(who: Who, f: Field) { return this.v[`${who === 'you' ? 'y' : 'f'}${f === 'tower' ? 'S' : 'W'}` as 'yS']; }
   private panel(who: Who) { return who === 'you' ? this.v.yP : this.v.fP; }
-  private async showCard(ev: Extract<DuelEvent, { type: 'move' }>, from: PIXI.Container | null) {
-    const card = this.makeCard(ev.id); card.pivot.set(CARD_W / 2, CARD_H / 2);
-    if (from) { const b = from.getGlobalPosition(); card.position.set(b.x + 72, b.y + 102); card.scale.set(0.6); }
-    else { card.position.set(W - 140, 250); card.scale.set(0.3); }
-    this.v.stageCard.addChild(card); SOUND.card();
-    await Promise.all([this.tween(card, { x: W / 2, y: 262, rotation: 0 }, BEAT.fly), this.tween(card.scale, { x: 0.68, y: 0.68 }, BEAT.fly)]);
+  /** The rival's turn: their card back slides in beside their panel and waits (the think), then flips to show the card. */
+  private async rivalCard(ev: Move): Promise<PIXI.Container> {
+    this.setTurn('foe');
+    const card = new PIXI.Container(), back = sprite('card-back', CARD_W, CARD_H); card.addChild(back);
+    card.pivot.set(CARD_W / 2, CARD_H / 2); card.scale.set(0.45); card.position.set(W + 90, 300);
+    this.v.stageCard.addChild(card);
+    await Promise.all([this.tween(card, { x: 1140 }, BEAT.backIn), this.think()]);
+    await this.tween(card.scale, { x: 0 }, BEAT.flip);
+    back.destroy(); card.addChild(this.makeCard(ev.id));
+    await this.tween(card.scale, { x: 0.45 }, BEAT.flip);
+    return card;
+  }
+  /** A played card arcs to the centre stage and lands; `ready` is the rival's card, already turned over. */
+  private async showCard(ev: Move, from: PIXI.Container | null, ready?: PIXI.Container) {
+    let card = ready;
+    if (!card) {
+      card = this.makeCard(ev.id); card.pivot.set(CARD_W / 2, CARD_H / 2);
+      if (from) { const c = from.toGlobal(new PIXI.Point(CARD_W / 2, CARD_H / 2)); card.position.set(c.x, c.y); card.scale.set(0.6); card.rotation = from.rotation; }
+      else { card.position.set(W - 140, 250); card.scale.set(0.3); }
+      this.v.stageCard.addChild(card);
+    }
+    duelSfx.play(DUEL_CARD[ev.id].res);
+    await this.arc(card, W / 2, 262, 0.71, BEAT.arc);
+    await this.tween(card.scale, { x: 0.68, y: 0.68 }, BEAT.settle);
     if (ev.discard) { card.alpha = 0.6; const t = txt('Discarded', { fontSize: 44, fontWeight: '700', fill: C.muted, stroke: 0, strokeThickness: 6 }); t.anchor.set(0.5); t.position.set(CARD_W / 2, CARD_H / 2); t.rotation = -0.3; card.addChild(t); }
     return card;
   }
-  private async playEvent(ev: DuelEvent, from: PIXI.Container | null) {
-    if (ev.type === 'income') {
+  private async playEvent(ev: DuelEvent, from: PIXI.Container | null, ready?: PIXI.Container) {
+    if (ev.type === 'income') { // every row counts together, in one beat, with no sound
       for (const [k, v] of Object.entries(ev.changes[ev.who])) { const p = this.panel(ev.who).rowPos(k as Res); this.floatText(p.x, p.y, `+${v} ${RES_NAME[k as Res]}`, true); }
       this.panel(ev.who).update(ev.after[ev.who]); await this.wait(BEAT.income); return;
     }
     const k = DUEL_CARD[ev.id], other: Who = ev.who === 'you' ? 'foe' : 'you';
-    this.setTurn(ev.who, `${ev.who === 'you' ? 'You' : 'Rival'} ${ev.discard ? 'discarded' : 'played'} ${k.name}${ev.discard ? '' : `: ${k.text}`}.`);
     this.panel(ev.who).update(ev.after[ev.who]);
-    const card = await this.showCard(ev, from);
-    await this.wait(ev.discard ? BEAT.readYou : ev.who === 'foe' ? BEAT.readFoe : BEAT.readYou);
+    const card = await this.showCard(ev, from, ready);
+    this.setTurn(ev.who, `${ev.who === 'you' ? 'You' : 'Rival'} ${ev.discard ? 'discarded' : 'played'} ${k.name}${ev.discard ? '' : `: ${k.text}`}.`);
+    await this.wait(ev.who === 'foe' ? BEAT.readFoe : BEAT.readYou);
     if (!ev.discard) {
       const hurt = ev.changes[other];
       if (k.kind === 'summon') {
@@ -457,16 +550,28 @@ export class DuelBoard {
         if (hurt.tower || hurt.wall) await this.tween(d, { x: this.tower(other, hurt.wall ? 'wall' : 'tower').box.x, y: GROUND - 120 }, 360, t => t * t);
         else await this.tween(d, { x: other === 'you' ? 170 : W - 170, y: 90 }, 360, t => t * t);
         void this.tween(circle, { alpha: 0 }, 300); d.destroy();
+      } else if ((hurt.wall ?? 0) < 0 || (hurt.tower ?? 0) < 0) { // damage travels from the card and lands a beat after it
+        const t = this.tower(other, (hurt.wall ?? 0) < 0 ? 'wall' : 'tower');
+        await this.streak(card.x, card.y, t.box.x, GROUND - t.hFor(Math.max(t.shown, 4)), BEAT.streak);
       }
       const jobs: Promise<void>[] = [];
       for (const who of [ev.who, other]) {
-        for (const [f, v] of Object.entries(ev.changes[who]) as [keyof DuelSide, number][]) {
+        const ch = ev.changes[who];
+        // the wall takes a hit first; damage that gets through reaches the tower 80 ms later
+        for (const [f, v] of (Object.entries(ch) as [keyof DuelSide, number][]).sort(([a], [b]) => Number(b === 'wall') - Number(a === 'wall'))) {
           if (f === 'tower' || f === 'wall') {
-            const t = this.tower(who, f), top = GROUND - t.hFor(Math.max(t.shown, 4)) - 20;
-            this.floatText(t.box.x, top, `${t.name} ${v > 0 ? '+' : '−'}${Math.abs(v)}`, v > 0);
-            if (v < 0) { SOUND.hit(who === 'you', !!this.opts.touch); this.burst(t.box.x, top + 30, 22, 'spark'); this.burst(t.box.x, top + 30, 10, 'debris'); this.addCracks(t, -v); t.flash.alpha = 0.55; void this.tween(t.flash, { alpha: 0 }, 400); jobs.push(this.shake(t.box, 7)); }
-            else { SOUND.build(); this.burst(t.box.x, top + 20, 10, 'ash'); t.crackList.splice(0, Math.ceil(v / 4)); this.drawCracks(t); }
-            jobs.push(ev.after[who][f] <= 0 && f === 'tower' ? this.collapse(t) : this.towerTo(t, ev.after[who][f]));
+            const t = this.tower(who, f), after = ev.after[who][f], falls = f === 'tower' && after <= 0, late = f === 'tower' && v < 0 && (ch.wall ?? 0) < 0;
+            jobs.push((async () => {
+              if (late) await this.wait(BEAT.wallFirst);
+              const top = GROUND - t.hFor(Math.max(t.shown, 4)) - 20;
+              this.floatText(t.box.x, top, `${t.name} ${v > 0 ? '+' : '−'}${Math.abs(v)}`, v > 0);
+              if (v < 0) {
+                duelSfx.hit(falls ? 20 : -v);
+                this.burst(t.box.x, top + 30, 22, 'spark'); this.burst(t.box.x, top + 30, 10, 'debris'); this.addCracks(t, -v);
+                t.flash.alpha = 0.55; void this.tween(t.flash, { alpha: 0 }, BEAT.flash); void this.sink(t);
+              } else { duelSfx.build(); this.burst(t.box.x, top + 20, 10, 'ash'); t.crackList.splice(0, Math.ceil(v / 4)); this.drawCracks(t); void this.rim(t); }
+              await (falls ? this.collapse(t) : this.towerTo(t, after));
+            })());
           } else {
             const r = (RES as readonly string[]).includes(f) ? f as Res : RES.find(x => GEN[x] === f)!;
             const p = this.panel(who).rowPos(r); this.floatText(p.x, p.y, `${RES_NAME[f as Res] ?? GEN_NAME[f]} ${v > 0 ? '+' : '−'}${Math.abs(v)}`, v > 0);
@@ -476,7 +581,8 @@ export class DuelBoard {
       }
       await Promise.all(jobs);
     }
-    await this.tween(card, { alpha: 0, y: card.y - 30 }, BEAT.out); card.destroy();
+    // the card fades and rises; a discard drops away
+    await this.tween(card, { alpha: 0, y: card.y + (ev.discard ? 50 : -30) }, BEAT.out); card.destroy();
   }
   private async onCard(i: number, node: PIXI.Container) {
     if (this.busy || this.duel.winner) return;
@@ -484,29 +590,39 @@ export class DuelBoard {
     if (!this.discard && !canPlay(this.duel.you, id)) {
       const k = DUEL_CARD[id]; this.setLog(`${k.name} costs ${k.cost} ${RES_NAME[k.res]}; you have ${this.duel.you[k.res]}.`);
       sfx.deny(); if (this.opts.touch) buzz([15, 30, 15]);
-      void this.shake(node, 5); return;
+      return;
     }
-    this.busy = true; node.visible = false; this.clearPreview(); this.opts.state?.(null, true);
+    this.busy = true; this.clearPreview(); this.opts.state?.(null, true);
     const discard = this.discard;
     if (discard) { this.discard = false; this.opts.discardOff(); }
     const next = this.opts.pick(i, discard); // the engine decides; the board only plays it back
     if (!next) { this.busy = false; this.layoutHand(); this.opts.state?.(null, false); return; }
+    node.visible = false; this.closeHand(i);
     for (const ev of next.events ?? []) {
-      if (ev.type === 'move' && ev.who === 'foe') { this.setTurn('foe'); await this.wait(BEAT.think); }
-      await this.playEvent(ev, ev.type === 'move' && ev.who === 'you' ? node : null);
+      const ready = ev.type === 'move' && ev.who === 'foe' ? await this.rivalCard(ev) : undefined;
+      await this.playEvent(ev, ev.type === 'move' && ev.who === 'you' ? node : null, ready);
       if (ev.winner) break;
     }
     this.duel = { ...next, you: clone(next.you), foe: clone(next.foe) };
     this.syncAll(this.duel);
-    if (this.duel.winner) this.setTurn('end', this.duel.winner === 'you' ? 'You win the duel' : 'Your rival wins the duel'); else this.setTurn('you');
-    this.layoutHand(); this.busy = false; this.rush = false; this.opts.state?.(null, false);
-    if (this.duel.winner) (this.duel.winner === 'you' ? SOUND.win : SOUND.lose)();
+    if (this.duel.winner) await this.ending(this.duel.winner, true); else this.setTurn('you');
+    this.layoutHand(this.duel.winner ? undefined : i); this.busy = false; this.rush = false; this.opts.state?.(null, false);
     this.opts.settled(this.duel);
+  }
+  /** The end: a held breath, the verdict on the banner with its bells, and the board dims around the winner's tower. */
+  private async ending(w: Who, live: boolean) {
+    if (live) await this.wait(BEAT.end);
+    this.setTurn('end', w === 'you' ? 'You win the duel' : 'Your rival wins the duel');
+    if (live) { (w === 'you' ? duelSfx.win : duelSfx.lose)(); if (this.opts.touch) buzz(w === 'you' ? [30, 40, 30] : 120); }
+    const root = this.root, dim = new PIXI.Graphics(); dim.beginFill(0x000000, 1).drawRect(0, 0, W, H).endFill(); dim.alpha = 0;
+    root.addChildAt(dim, root.getChildIndex(this.fx));
+    for (const n of [this.tower(w, 'tower').box, this.v.banner]) { root.removeChild(n); root.addChildAt(n, root.getChildIndex(this.fx)); }
+    if (live) void this.tween(dim, { alpha: 0.4 }, BEAT.dim); else dim.alpha = 0.4;
   }
   private start(d: DuelState) {
     this.duel = { ...d, you: clone(d.you), foe: clone(d.foe) };
     this.buildScene(); this.history = []; this.syncAll(this.duel);
-    if (this.duel.winner) this.setTurn('end', this.duel.winner === 'you' ? 'You win the duel' : 'Your rival wins the duel');
+    if (this.duel.winner) void this.ending(this.duel.winner, false);
     else { this.setTurn('you'); this.setLog('Build your tower to 100, or knock your rival’s down to 0.'); }
     this.layoutHand();
   }

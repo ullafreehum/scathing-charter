@@ -477,7 +477,9 @@ armour, scrolls, reputations, Mercy, Lilmoth licence, codex unlocks, achievement
   deny) with a phone buzz on confirm and deny. Set pieces: a day passing (veil, page turn, then the numbers
   count) and the fall of Baar Dau (black cut, boom, a 2 px shake, then the Chronicle card). The Animations
   setting became **Reduce motion** (same stored key, inverted); browser tells (text cursor, selection, scrollbars,
-  focus rings after clicks, overscroll) are off.
+  focus rings after clicks, overscroll) are off. The duel: Normal is real speed; a card arcs to the stage and
+  its damage lands a beat later (flash and sink, no shake); the rival's card back waits, flips and holds; fanned
+  hand with shadows; resource numbers count; a held verdict with bells and a dimmed board; its own six sounds.
 - **Audio**: procedural Web Audio (coins, wind drone, strider bell, encounter sting) with mute and volume;
   it starts only after the first interaction.
 - **Accessibility**: status shown by shape and colour, all actions keyboard-reachable, contrast-tested

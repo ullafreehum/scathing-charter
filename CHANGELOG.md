@@ -14,6 +14,16 @@ and the Long Chronicle.
 - Buttons, tabs, links, phone Market rows and map towns sink when pressed.
 - The game no longer looks like a web page: no text cursor or text selection outside the Journal and Codex, thin scrollbars, no focus rings after a click, no rubber-band scrolling.
 - Settings: "Animations" is now "Reduce motion" (your choice carries over).
+- The card duel, on the phone and the desktop:
+  - Normal speed is now the real pace. Fast halves it, and Skip is instant.
+  - Your card arcs from your hand to the middle, and its damage lands on the tower a beat later. Hit towers flash and sink; built ones glow at the top.
+  - The rival's card back waits beside their panel, then turns over and holds long enough to read.
+  - Numbers pop and count.
+  - The hand is fanned, with shadows. A new card rises into the gap.
+  - The end holds a moment, then the verdict comes with bells and the board dims around the winner's tower.
+  - Carved buttons in the game font sit over a framed board, with richer panels and banner.
+  - The duel has its own sounds: drawing, playing (by card type), hits, builds, winning and losing. On the phone the result buzzes.
+  - Speed is always shown. Under Reduce motion the moves are instant, but the reading pauses stay.
 
 ## 0.10.9 (pre-release): the card duel on phones
 - A new app icon for Android and Windows: a sealed charter, painted for the game.

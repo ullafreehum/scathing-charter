@@ -56,7 +56,9 @@ src/
             the day-passing beat (beat(), NightDip, useHeld holds the date/cash/debt until the beat shows them).
             widgets.tsx CountUp counts numbers without relayout. Interface sounds (tap/tab/open/close/confirm/deny) in
             audio/feel.ts; the eruption set piece (black cut, boom, shake) is useEruption in Modals.tsx.
-            duelBoard.ts = the hearing's Pixi.js board (lazy chunk), playing back DuelState.events from the engine.
+            duelBoard.ts = the hearing's Pixi.js board (lazy chunk), playing back DuelState.events from the engine; its
+            pacing is the BEAT table (Sorcerer's 0.11-motion.md section 5; Speed: Normal 1, Fast 0.5, Skip 0) and its sounds
+            are duelSfx (audio/feel.ts createDuelSfx).
   audio/    Procedural Web Audio (no audio files needed): sfx.ts (effects, wind, music switch); score.js = the
             "Ash & Ebony" score (moods: calm, after Baar Dau, duel; mood set in App.tsx).
 tests/e2e/  Playwright specs; screenshots go to tests/e2e/__screenshots__/.
