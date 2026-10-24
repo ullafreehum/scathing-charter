@@ -1,6 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { PHONE, buzz } from './phone';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { animationsOn, useMotion } from './motion';
+import { duck, sfx } from '../audio/sfx';
 import { C } from '../data';
 import { cardOptions, conductTitles, depositsTotal, cargoValue, formatDate, knewParagraph, netWorth, wealthTitle, type GameState } from '../engine';
 import { useGame } from '../store/game';
@@ -19,19 +21,45 @@ function ContinueButton({ className, onClick }: { className: string; onClick: ()
 /** Event pictures: src/assets/events/<event-id>.jpg, shown 16:9 at the top of that event's chronicle card. */
 const EVENT_ART = import.meta.glob<string>('../assets/events/*.jpg', { eager: true, query: '?url', import: 'default' });
 
-function Card({ children, wide = false, board = false, parchment = false, label }: { children: React.ReactNode; wide?: boolean; board?: boolean; parchment?: boolean; label?: string }) {
+function Card({ children, wide = false, board = false, parchment = false, label, slow = false }: { children: React.ReactNode; wide?: boolean; board?: boolean; parchment?: boolean; label?: string; slow?: boolean }) {
+  const m = useMotion();
+  const pop = slow ? { ...m.pop, animate: { ...m.pop.animate, transition: m.t('slow') } } : m.pop; // the Chronicle card lands at `slow`
   return (
-    <motion.div className="fixed inset-0 z-40 scrim flex items-center justify-center p-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-      <motion.div role="dialog" aria-modal="true" aria-label={label} className={`${parchment ? 'parchment' : 'panel-solid'} ${board ? 'max-w-[min(98vw,2400px)] max-h-[98dvh] p-3' : `${wide ? 'max-w-3xl' : 'max-w-xl'} p-5 max-h-[90dvh]`} w-full overflow-auto scroll-thin`} initial={{ y: 24, scale: 0.97 }} animate={{ y: 0, scale: 1 }} exit={{ y: 14, opacity: 0 }} transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}>
+    <motion.div className="fixed inset-0 z-40 scrim flex items-center justify-center p-3" {...m.fade}>
+      <motion.div role="dialog" aria-modal="true" aria-label={label} className={`${parchment ? 'parchment' : 'panel-solid'} ${board ? 'max-w-[min(98vw,2400px)] max-h-[98dvh] p-3' : `${wide ? 'max-w-3xl' : 'max-w-xl'} p-5 max-h-[90dvh]`} w-full overflow-auto scroll-thin`} {...pop}>
         {children}
       </motion.div>
     </motion.div>
   );
 }
 
+/** Baar Dau falls (Sorcerer's set piece 2), the one place the game shakes: a cut to black with the music and wind
+ *  silenced, the boom, the black lifts on a 2 px shake, then the Chronicle card. Under Reduce motion the cut and the
+ *  boom stay, without the shake. Returns whether the card may show yet. */
+function useEruption(on: boolean): boolean {
+  const [phase, setPhase] = useState<'black' | 'shake' | 'card'>('black');
+  useEffect(() => {
+    if (!on) return;
+    setPhase('black'); duck(true);
+    const moving = animationsOn(), root = document.getElementById('root');
+    const ts = [
+      setTimeout(() => { sfx.boom(); if (PHONE) buzz([60, 40, 120]); }, 150),
+      setTimeout(() => { setPhase('shake'); if (moving) root?.classList.add('shake'); }, 400),
+      setTimeout(() => { root?.classList.remove('shake'); setPhase('card'); }, moving ? 900 : 400),
+    ];
+    return () => { ts.forEach(clearTimeout); root?.classList.remove('shake'); duck(false); };
+  }, [on]);
+  return !on || phase === 'card';
+}
+function BlackCut({ on }: { on: boolean }) {
+  const t = useMotion().t;
+  return <AnimatePresence>{on && <motion.div key="cut" className="fixed inset-0 z-[80] bg-black" aria-hidden="true" initial={{ opacity: 1 }} exit={{ opacity: 0, transition: t('fast') }} />}</AnimatePresence>;
+}
+
 /** The game's own yes/no dialog: Cancel has focus, Escape cancels, Enter confirms. */
 export function ConfirmDialog() {
   const ask = useGame(s => s.ask);
+  const m = useMotion();
   const answer = useGame(s => s.answer);
   const no = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -46,8 +74,8 @@ export function ConfirmDialog() {
   return (
     <AnimatePresence>
       {ask && (
-        <motion.div key="ask" className="fixed inset-0 z-[70] scrim flex items-center justify-center p-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-          <motion.div role="alertdialog" aria-modal="true" aria-labelledby="ask-title" aria-describedby="ask-text" className="panel-solid max-w-md w-full p-5" initial={{ y: 16, scale: 0.97 }} animate={{ y: 0, scale: 1 }} transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
+        <motion.div key="ask" className="fixed inset-0 z-[70] scrim flex items-center justify-center p-3" {...m.fade}>
+          <motion.div role="alertdialog" aria-modal="true" aria-labelledby="ask-title" aria-describedby="ask-text" className="panel-solid max-w-md w-full p-5" {...m.pop}>
             <h2 id="ask-title" className="h-display text-xl text-bone">{ask.title}</h2>
             <p id="ask-text" className="mt-2 text-sm text-parchment">{ask.text}</p>
             <div className="flex flex-wrap justify-end gap-2 mt-4">
@@ -65,14 +93,19 @@ export function Overlays() {
   const g = useGame(s => s.game);
   const act = useGame(s => s.act);
   const item = g?.inbox[0];
-  // Phone: one buzz when a card's outcome appears, a longer one for the fall of Baar Dau.
+  // Phone: one buzz when a card's outcome appears (the fall of Baar Dau buzzes with its boom, in useEruption).
   const buzzKey = !PHONE || !g || g.duel || g.pending || !item ? '' : item.kind === 'chronicle' ? `c:${item.eventId}` : item.kind === 'result' && !item.notice ? `r:${item.title}:${g.actions.length}` : '';
-  useEffect(() => { if (buzzKey) buzz(buzzKey === 'c:red-year-eruption' ? [60, 40, 120] : 10); }, [buzzKey]);
+  useEffect(() => { if (buzzKey && buzzKey !== 'c:red-year-eruption') buzz(10); }, [buzzKey]);
+  const erupting = !!g && !g.duel && !g.pending && item?.kind === 'chronicle' && item.eventId === 'red-year-eruption';
+  const cardIn = useEruption(erupting);
+  const m = useMotion();
+  const inDuel = !!g?.duel; // into and out of the hearing: a page turns
+  useEffect(() => { if (!inDuel) return; sfx.page(); return () => sfx.page(); }, [inDuel]);
   if (!g) return null;
   let node: React.ReactNode = null;
   if (g.duel) node = PHONE // full screen on the phone (a transform on the card would pin the board to it)
-    ? <motion.div key="duel" role="dialog" aria-modal="true" aria-label="Magistrate’s hearing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><DuelScreen d={g.duel} /></motion.div>
-    : <Card key="duel" board label="Magistrate’s hearing"><DuelScreen d={g.duel} /></Card>;
+    ? <motion.div key="duel" role="dialog" aria-modal="true" aria-label="Magistrate’s hearing" {...m.dark}><DuelScreen d={g.duel} /></motion.div>
+    : <Card key="duel" board slow label="Magistrate’s hearing"><DuelScreen d={g.duel} /></Card>;
   else if (g.pending) {
     const p = g.pending;
     node = (
@@ -95,8 +128,8 @@ export function Overlays() {
     );
   } else if (item?.kind === 'chronicle') {
     const ev = C.history.find(h => h.id === item.eventId)!;
-    node = (
-      <Card key={`chr-${ev.id}`} wide parchment>
+    node = !cardIn ? null : (
+      <Card key={`chr-${ev.id}`} wide parchment slow={erupting}>
         {EVENT_ART[`../assets/events/${ev.id}.jpg`] && <img src={EVENT_ART[`../assets/events/${ev.id}.jpg`]} alt="" className="w-full aspect-video max-h-[40dvh] object-cover object-[50%_40%] rounded mb-3" />}
         <div className="fell italic text-[#6b4a2b]">{formatDate(ev.day)}</div>
         <h2 className="h-display text-3xl text-[#3a1a0c] mb-1">{ev.title}</h2>
@@ -136,7 +169,7 @@ export function Overlays() {
       </Card>
     );
   } else if (g.over) node = <EndScreen key="end" g={g} />;
-  return <AnimatePresence mode="wait">{node}</AnimatePresence>;
+  return <><AnimatePresence mode="wait">{node}</AnimatePresence><BlackCut on={erupting && !cardIn} /></>;
 }
 
 /** A short epilogue from how the game was played. */

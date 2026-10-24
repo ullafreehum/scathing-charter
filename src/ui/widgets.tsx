@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AnimatePresence, animate, motion } from 'framer-motion';
-import { useAnimationsOn } from './motion';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { DUR, useAnimationsOn, useMotion } from './motion';
+import { useHeld } from './fx';
 import { C } from '../data';
 import { dateOf, moons, PHASES, holidayAt, type Canon, type GameState, type LocStatus } from '../engine';
 import { useGame } from '../store/game';
@@ -11,17 +12,34 @@ export function Money({ v, className = '' }: { v: number; className?: string }) 
 }
 
 // Lore-status badges are shown in the Codex only.
-/** Money with a small springy bump when it changes (top-bar counters). */
-export function RollingMoney({ v, className = '' }: { v: number; className?: string }) {
-  // The number jumps straight to its new value: a rolling count re-laid out the page every frame and made trading feel laggy.
-  const on = useAnimationsOn();
-  const [bump, setBump] = useState(0); const last = useRef(Math.round(v));
-  useEffect(() => { if (Math.round(v) !== last.current) { last.current = Math.round(v); setBump(b => b + 1); } }, [v]);
-  return (
-    <motion.span key={bump} className="inline-block origin-center" initial={bump && on ? { scale: 1.12 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 520, damping: 16 }}>
-      <Money v={v} className={className} />
-    </motion.span>
-  );
+/** A number that counts to its new value without moving anything around it: tabular figures in a box as wide as the
+ *  longer of the old and new value, written straight to the DOM (no re-render a frame). Changes under 1% of the old
+ *  value and under `snap` snap; so does everything under Reduce motion. */
+export function CountUp({ v, ms = DUR.slow * 1000, snap = 50, className = '' }: { v: number; ms?: number; snap?: number; className?: string }) {
+  const n = Math.round(v), on = useAnimationsOn();
+  const ref = useRef<HTMLSpanElement>(null), shown = useRef(n);
+  const [width, setWidth] = useState(() => fmt(n).length);
+  useLayoutEffect(() => {
+    const el = ref.current; if (!el) return;
+    const from = shown.current, d = Math.abs(n - from);
+    setWidth(Math.max(fmt(from).length, fmt(n).length));
+    if (!on || d === 0 || (d < snap && d < Math.abs(from) * 0.01)) { shown.current = n; el.textContent = fmt(n); return; }
+    let raf = 0; const t0 = performance.now();
+    const step = (t: number) => {
+      const p = Math.min(1, (t - t0) / ms), k = 1 - (1 - p) * (1 - p) * (1 - p);
+      shown.current = Math.round(from + (n - from) * k); el.textContent = fmt(shown.current);
+      if (p < 1) raf = requestAnimationFrame(step); else setWidth(fmt(n).length);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf); // a new value mid-count carries on from where the count is
+  }, [n, on, ms, snap]);
+  return <span ref={ref} className={`num count ${className}`} style={{ minWidth: `${width}ch` }} />;
+}
+const fmt = (n: number) => n.toLocaleString('en-US');
+
+/** Money that counts to its new value (the top-bar counters); debt counts a little slower after a day passes. */
+export function RollingMoney({ v, className = '', ms }: { v: number; className?: string; ms?: number }) {
+  return <span className={`num ${Math.round(v) < 0 ? 'text-danger' : ''} ${className}`}><CountUp v={v} ms={ms} /><span className="coin" aria-hidden="true" /></span>;
 }
 
 const BADGE: Record<Exclude<Canon, 'canon'>, { label: string; cls: string; tip: string }> = {
@@ -69,16 +87,8 @@ export function MoonIcon({ phase, size = 18, color }: { phase: number; size?: nu
 }
 
 export function DateWidget({ g }: { g: GameState }) {
-  // The date counts through each day that passes; the moons turn with it.
-  const on = useAnimationsOn();
-  const [shown, setShown] = useState(g.day); const prev = useRef(g.day);
-  useEffect(() => {
-    const a = prev.current, b = g.day; prev.current = b;
-    if (!on || b <= a || b - a > 800) { setShown(b); return; }
-    const ctl = animate(a, b, { duration: Math.min(1.1, 0.35 + (b - a) * 0.07), ease: 'easeInOut', onUpdate: v => setShown(Math.round(v)) });
-    return () => ctl.stop();
-  }, [g.day, on]);
-  const ticking = shown !== g.day;
+  // The date flips once, at the darkest point of the night veil (the beat in fx.tsx); the moons turn with it.
+  const shown = useHeld(g.day); const t = useMotion().t;
   const d = dateOf(shown); const m = moons(shown); const left = Math.max(0, g.endDay - g.day);
   const hol = g.player.location !== 'road' ? holidayAt(g, g.player.location) : undefined;
   return (
@@ -87,7 +97,7 @@ export function DateWidget({ g }: { g: GameState }) {
         <MoonIcon phase={m.masser} color="#e8b98a" size={22} /><MoonIcon phase={m.secunda} color="#c9d4dc" size={15} />
       </div>
       <div className="leading-tight">
-        <div className={`h-display text-[.95rem] transition-colors duration-500 ${ticking ? 'text-ember' : 'text-bone'}`}>{d.dom} {d.monthName}, 4E {d.year}</div>
+        <motion.div key={shown} className="h-display text-[.95rem] text-bone" initial={{ opacity: 0 }} animate={{ opacity: 1, transition: t('fast') }}>{d.dom} {d.monthName}, 4E {d.year}</motion.div>
         <div className="text-xs text-ash-400"><span className="italic">{d.weekday}</span>
           {hol && <> · <CodexLink id={`holiday:${hol.id}`} className="text-gold">{hol.name}</CodexLink></>}
           {g.mode === 'long-chronicle' && <span className="text-lilac"> · Long Chronicle</span>}
@@ -103,6 +113,7 @@ let popSeq = 0;
 export function Delta({ value, upIsGood = true }: { value: number; upIsGood?: boolean }) {
   const prev = useRef(value);
   const [pops, setPops] = useState<{ id: number; d: number }[]>([]);
+  const t = useMotion().t;
   useEffect(() => {
     const d = Math.round(value - prev.current); prev.current = value;
     if (Math.abs(d) < 1) return;
@@ -114,7 +125,7 @@ export function Delta({ value, upIsGood = true }: { value: number; upIsGood?: bo
     <span className="relative inline-block w-0 h-0 align-top" aria-hidden="true">
       <AnimatePresence>{pops.map(p => (
         <motion.span key={p.id} className={`absolute left-1 -top-1 text-xs num font-semibold whitespace-nowrap pointer-events-none ${(p.d > 0) === upIsGood ? 'text-moss' : 'text-danger'}`}
-          initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: -14 }} exit={{ opacity: 0 }} transition={{ duration: 0.9 }}>
+          initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: -14, transition: t('slow') }} exit={{ opacity: 0, transition: t('fast') }}>
           {p.d > 0 ? '+' : '−'}{Math.abs(p.d).toLocaleString('en-US')}
         </motion.span>
       ))}</AnimatePresence>

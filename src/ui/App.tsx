@@ -17,16 +17,15 @@ import { Toasts } from './Toasts';
 import { TravelBanner } from './TravelBanner';
 import { FxLayer, NightDip } from './fx';
 import { applyAppearance, themeById } from './themes';
-import { pauseAudio, setMusicMood, startWind, stopWind } from '../audio/sfx';
-import { PHONE, back, exitApp, onBackButton, onPause, usePhone } from './phone';
+import { pauseAudio, setMusicMood, sfx, startWind, stopWind } from '../audio/sfx';
+import { applyMotionVars, useAnimationsOn, useMotion } from './motion';
+import { PHONE, back, buzz, exitApp, onBackButton, onPause, usePhone } from './phone';
 
 function ashIntensity(day: number, region: string | undefined): number {
   let i = day < ERUPTION_DAY ? 0.12 + 0.75 * (day / ERUPTION_DAY) ** 2 : Math.max(0.55, 1.4 - (day - ERUPTION_DAY) / 400);
   if (region && !['vvardenfell', 'mainland', 'solstheim'].includes(region)) i *= 0.35;
   return i;
 }
-
-const EASE = [0.22, 1, 0.36, 1] as const;
 
 export function App() {
   const { screen, game, error, errorTick, clearError, meta, codex, closeCodex, settingsOpen, closeSettings } = useGame();
@@ -37,7 +36,23 @@ export function App() {
   const codexOpen = codex !== undefined;
   useDesktopBridge();
   useLayoutEffect(() => { applyAppearance(st.theme, st.font, st.textScale); }, [st.theme, st.font, st.textScale]);
-  useLayoutEffect(() => { document.documentElement.dataset.anim = st.animations ? 'on' : 'off'; }, [st.animations]);
+  const animOn = useAnimationsOn();
+  const m = useMotion();
+  // into and out of the duel: a page turns
+  useEffect(() => { if (screen !== 'duel') return; sfx.page(); return () => sfx.page(); }, [screen]);
+  useLayoutEffect(() => { document.documentElement.dataset.anim = st.animations ? 'on' : 'off'; applyMotionVars(!animOn); }, [st.animations, animOn]);
+  // Every button answers a press with a sound, set once here: a click for a button, a dull knock for a disabled one
+  // (tabs make their own sound when the tab changes).
+  useEffect(() => {
+    const down = (e: PointerEvent) => {
+      const el = (e.target as Element | null)?.closest?.('.btn, .tab, .phone-tab, button, [role=button]');
+      if (!el) return;
+      if ((el as HTMLButtonElement).disabled || el.getAttribute('aria-disabled') === 'true') { sfx.deny(); if (PHONE) buzz([15, 30, 15]); }
+      else if (!el.matches('.tab, .phone-tab, [role=tab]')) sfx.tap();
+    };
+    document.addEventListener('pointerdown', down, true);
+    return () => document.removeEventListener('pointerdown', down, true);
+  }, []);
   useEffect(() => {
     if (screen === 'game' && st.sound) startWind(intensity); else stopWind();
   }, [screen, intensity, st.sound]);
@@ -74,11 +89,15 @@ export function App() {
       <div className="vignette" /><div className="grain" />
       {/* The dashboard eases back while the codex or settings sit on top of it. */}
       <motion.div className="relative min-h-full" style={{ transformOrigin: '50% 20%' }} initial={false}
-        animate={codexOpen || settingsOpen ? { scale: 0.985 } : { scale: 1 }} transition={{ duration: 0.28, ease: EASE }}>
-        {screen === 'title' && <Title />}
-        {screen === 'new' && <NewGame />}
-        {screen === 'duel' && <PracticeDuel />}
-        {screen === 'game' && game && <GameScreen />}
+        animate={codexOpen || settingsOpen ? { scale: 0.985 } : { scale: 1 }} transition={m.t('base')}>
+        <AnimatePresence mode="wait">
+          <motion.div key={screen} className="relative min-h-full" {...(screen === 'duel' ? m.dark : m.fade)}>
+            {screen === 'title' && <Title />}
+            {screen === 'new' && <NewGame />}
+            {screen === 'duel' && <PracticeDuel />}
+            {screen === 'game' && game && <GameScreen />}
+          </motion.div>
+        </AnimatePresence>
       </motion.div>
       {screen === 'game' && game && <Overlays />}
       <AnimatePresence>{codexOpen && <Codex key="codex" />}</AnimatePresence>
@@ -90,7 +109,7 @@ export function App() {
       <ConfirmDialog />
       <TooltipLayer />
       <AnimatePresence>
-        {error && <motion.div key={errorTick} role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] panel px-4 py-2 text-danger shake" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>{error}</motion.div>}
+        {error && <motion.div key={errorTick} role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] panel px-4 py-2 text-danger" {...m.pop}>{error}</motion.div>}
       </AnimatePresence>
     </div>
     </MotionConfig>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useMotion } from './motion';
 import { C } from '../data';
 import type { CodexEntry } from '../engine';
 import { useGame } from '../store/game';
@@ -14,7 +15,6 @@ const CATS: { id: CodexEntry['category']; label: string }[] = [
   { id: 'event', label: 'Events' }, { id: 'calendar', label: 'Calendar & holidays' }, { id: 'travel', label: 'Travel, magic & perils' },
   { id: 'dispute', label: 'Historians disagree' }, { id: 'book', label: 'Books' }, { id: 'lore', label: 'Tavern tales' }, { id: 'invented', label: 'Invented for this game' },
 ];
-const EASE = [0.22, 1, 0.36, 1] as const;
 
 /** Rendered inside <AnimatePresence> by App, so it can slide in and out. */
 export function Codex() {
@@ -36,12 +36,13 @@ export function Codex() {
   const list = all.filter(e => e.category === cat && (!q || e.title.toLowerCase().includes(q.toLowerCase())));
   const known = list.filter(isOpen);
   const entry = sel && (isOpen(sel) || id === sel.id) ? sel : undefined;
+  const m = useMotion();
   return (
     <motion.div className="fixed inset-0 z-50 scrim flex items-center justify-center p-2 sm:p-6" onClick={closeCodex}
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }}>
+      {...m.fade}>
       <motion.div role="dialog" aria-label="Codex" onClick={e => e.stopPropagation()}
         className="panel-solid w-full max-w-6xl h-[88dvh] grid grid-cols-1 md:grid-cols-[13.75rem_16.25rem_1fr] overflow-hidden"
-        initial={{ opacity: 0, y: 18, scale: 0.975 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.98 }} transition={{ duration: 0.26, ease: EASE }}>
+        {...m.slide('bottom')}>
         <nav className="border-r border-ash-700 p-3 overflow-auto scroll-thin">
           <div className="h-display text-ember mb-2">Codex</div>
           <div className="text-xs text-ash-400 mb-2">{all.filter(isOpen).length}/{all.length} entries known</div>
@@ -53,9 +54,9 @@ export function Codex() {
           {known.map(e => <button key={e.id} className={`block w-full text-left px-2 py-1 rounded text-sm transition-colors ${id === e.id ? 'bg-ash-700 text-bone border-l-2 border-ember' : 'hover:bg-ash-800 text-parchment'}`} onClick={() => openCodex(e.id)}>{e.title}</button>)}
           {list.length - known.length > 0 && <div className="text-xs text-ash-400 mt-2 italic">{list.length - known.length} more to discover…</div>}
         </div>
-        <article ref={article} className="p-5 overflow-auto scroll-thin">
+        <article ref={article} className="selectable p-5 overflow-auto scroll-thin">
           <AnimatePresence mode="wait" initial={false}>
-            <motion.div key={entry?.id ?? 'none'} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} transition={{ duration: 0.16, ease: EASE }}>
+            <motion.div key={entry?.id ?? 'none'} {...m.fade}>
               {entry ? (
                 <>
                   {BANNER[entry.id] && <img src={BANNER[entry.id]} alt="" className="w-full aspect-[2/1] object-cover rounded mb-3" />}

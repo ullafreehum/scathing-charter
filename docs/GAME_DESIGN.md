@@ -470,6 +470,14 @@ armour, scrolls, reputations, Mercy, Lilmoth licence, codex unlocks, achievement
   `html[data-anim=off]`.
 - **Transitions**: the Codex and Settings slide and fade in over a blurred scrim while the dashboard eases
   back slightly; codex entries crossfade. All of it respects the Animations setting.
+- **Game feel (v0.11)**: one motion language in `ui/motion.ts` (one ease, four durations: 0.08/0.14/0.22/0.32 s;
+  presets pop, fade, dark, slide; no springs, exits shorter than entries, nothing over 0.35 s except the coin
+  flight and two set pieces). Tabs and screens fade; the duel fades through the dark with a page sound. Cash,
+  debt and cargo count without moving the layout. Six quiet interface sounds (tap, tab, open, close, confirm,
+  deny) with a phone buzz on confirm and deny. Set pieces: a day passing (veil, page turn, then the numbers
+  count) and the fall of Baar Dau (black cut, boom, a 2 px shake, then the Chronicle card). The Animations
+  setting became **Reduce motion** (same stored key, inverted); browser tells (text cursor, selection, scrollbars,
+  focus rings after clicks, overscroll) are off.
 - **Audio**: procedural Web Audio (coins, wind drone, strider bell, encounter sting) with mute and volume;
   it starts only after the first interaction.
 - **Accessibility**: status shown by shape and colour, all actions keyboard-reachable, contrast-tested

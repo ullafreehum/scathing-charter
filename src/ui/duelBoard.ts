@@ -5,6 +5,8 @@
 // Particles use Math.random: they are decoration, never game state.
 import * as PIXI from 'pixi.js';
 import { DUEL, DUEL_CARD, DUEL_SHORT, RES_NAME, canPlay, type DuelEvent, type DuelSide, type DuelState, type Res } from '../engine';
+import { sfx } from '../audio/sfx';
+import { buzz } from './phone';
 
 const ART = {
   ...import.meta.glob<string>('../assets/duel/*.svg', { eager: true, query: '?url', import: 'default' }),
@@ -450,6 +452,7 @@ export class DuelBoard {
     const id = this.duel.you.hand[i];
     if (!this.discard && !canPlay(this.duel.you, id)) {
       const k = DUEL_CARD[id]; this.setLog(`${k.name} costs ${k.cost} ${RES_NAME[k.res]}; you have ${this.duel.you[k.res]}.`);
+      sfx.deny(); if (this.opts.touch) buzz([15, 30, 15]);
       void this.shake(node, 5); return;
     }
     this.busy = true; node.visible = false; this.clearPreview(); this.opts.state?.(null, true);

@@ -4,6 +4,17 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.11.0 (beta): game feel
+- One motion language everywhere: short, quick moves with one easing; tabs and screens fade instead of sliding, sheets come in from their edge, dialogs rise into place. No more springy bounces.
+- Cash, debt and cargo count to their new values without the top bar jumping.
+- A day passing has a beat: the screen dims, the date turns like a page, then debt and cash count. Longer waits and trips hold the dark a little longer.
+- The fall of Baar Dau: the screen cuts to black, the boom lands, the game shakes once, then the Chronicle card appears. The music and wind go quiet for it.
+- Six quiet interface sounds: a click on presses, a flick on tab changes, a swish when sheets and dialogs open and close, a soft two-note "done" on trades and payments, and a dull knock when something is refused (also on an unaffordable duel card). On the phone, confirm and refusal buzz.
+- Into and out of the duel: a slower fade through the dark and a page sound.
+- Buttons, tabs, links, phone Market rows and map towns sink when pressed.
+- The game no longer looks like a web page: no text cursor or text selection outside the Journal and Codex, thin scrollbars, no focus rings after a click, no rubber-band scrolling.
+- Settings: "Animations" is now "Reduce motion" (your choice carries over).
+
 ## 0.10.9 (pre-release): the card duel on phones
 - A new app icon for Android and Windows: a sealed charter, painted for the game.
 - The magistrate's card hearing now works in the Android app: contest fines and seizures from the Market, or play a practice duel from the title screen.
