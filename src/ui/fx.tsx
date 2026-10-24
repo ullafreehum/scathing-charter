@@ -73,13 +73,15 @@ export function useHeld<T>(v: T, at: 'flip' | 'count' = 'flip'): T {
 export function NightDip() {
   const tick = useGame(s => s.tick); const clearTick = useGame(s => s.clearTick);
   const on = useAnimationsOn();
+  // the fall of Baar Dau has its own set piece (black cut, boom): no veil under it
+  const erupt = useGame(s => { const i = s.game?.inbox[0]; return i?.kind === 'chronicle' && i.eventId === 'red-year-eruption'; });
   useEffect(() => {
     if (!tick) return;
-    if (!on) { sfx.page(); clearTick(); return; }
+    if (!on || erupt) { if (!erupt) sfx.page(); clearTick(); return; }
     const t = setTimeout(() => sfx.page(), beat(tick.days).flipS * 1000);
     return () => clearTimeout(t);
-  }, [tick, on, clearTick]);
-  if (!on || !tick) return null;
+  }, [tick, on, erupt, clearTick]);
+  if (!on || erupt || !tick) return null;
   const b = beat(tick.days);
   return (
     <motion.div key={tick.id} className="fixed inset-0 z-[33] pointer-events-none" aria-hidden="true"

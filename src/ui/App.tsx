@@ -42,16 +42,22 @@ export function App() {
   useEffect(() => { if (screen !== 'duel') return; sfx.page(); return () => sfx.page(); }, [screen]);
   useLayoutEffect(() => { document.documentElement.dataset.anim = st.animations ? 'on' : 'off'; applyMotionVars(!animOn); }, [st.animations, animOn]);
   // Every button answers a press with a sound, set once here: a click for a button, a dull knock for a disabled one
-  // (tabs make their own sound when the tab changes).
+  // (tabs make their own sound when the tab changes). It plays on release, and not when the press became a scroll.
   useEffect(() => {
-    const down = (e: PointerEvent) => {
-      const el = (e.target as Element | null)?.closest?.('.btn, .tab, .phone-tab, button, [role=button]');
-      if (!el) return;
-      if ((el as HTMLButtonElement).disabled || el.getAttribute('aria-disabled') === 'true') { sfx.deny(); if (PHONE) buzz([15, 30, 15]); }
-      else if (!el.matches('.tab, .phone-tab, [role=tab]')) sfx.tap();
+    const hit = (e: PointerEvent) => (e.target as Element | null)?.closest?.('.btn, .tab, .phone-tab, button, [role=button]') ?? null;
+    let press: { el: Element; x: number; y: number } | null = null;
+    const down = (e: PointerEvent) => { const el = hit(e); press = el ? { el, x: e.clientX, y: e.clientY } : null; };
+    const up = (e: PointerEvent) => {
+      const p = press; press = null;
+      if (!p || hit(e) !== p.el || Math.abs(e.clientX - p.x) > 8 || Math.abs(e.clientY - p.y) > 8) return;
+      if ((p.el as HTMLButtonElement).disabled || p.el.getAttribute('aria-disabled') === 'true') { sfx.deny(); if (PHONE) buzz([15, 30, 15]); }
+      else if (!p.el.matches('.tab, .phone-tab, [role=tab]')) sfx.tap();
     };
+    const cancel = () => { press = null; };
     document.addEventListener('pointerdown', down, true);
-    return () => document.removeEventListener('pointerdown', down, true);
+    document.addEventListener('pointerup', up, true);
+    document.addEventListener('pointercancel', cancel, true);
+    return () => { document.removeEventListener('pointerdown', down, true); document.removeEventListener('pointerup', up, true); document.removeEventListener('pointercancel', cancel, true); };
   }, []);
   useEffect(() => {
     if (screen === 'game' && st.sound) startWind(intensity); else stopWind();

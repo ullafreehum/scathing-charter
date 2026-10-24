@@ -41,6 +41,12 @@ export function motionPresets(reduced: boolean) {
       animate: { opacity: 1, transition: tr(DUR.fast, reduced) },
       exit: { opacity: 0, transition: tr(DUR.fast, reduced) },
     },
+    /** Tab changes under mode="wait": out and in at tap length each (0.16 s in all); instant under Reduce motion. */
+    swap: {
+      initial: { opacity: 0 },
+      animate: { opacity: 1, transition: { duration: reduced ? 0 : DUR.tap, ease: EASE } },
+      exit: { opacity: 0, transition: { duration: reduced ? 0 : DUR.tap, ease: EASE } },
+    },
     /** Into and out of the duel: a slower fade through the dark background, both ways. */
     dark: {
       initial: { opacity: 0 },

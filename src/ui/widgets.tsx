@@ -15,7 +15,7 @@ export function Money({ v, className = '' }: { v: number; className?: string }) 
 /** A number that counts to its new value without moving anything around it: tabular figures in a box as wide as the
  *  longer of the old and new value, written straight to the DOM (no re-render a frame). Changes under 1% of the old
  *  value and under `snap` snap; so does everything under Reduce motion. */
-export function CountUp({ v, ms = DUR.slow * 1000, snap = 50, className = '' }: { v: number; ms?: number; snap?: number; className?: string }) {
+export function CountUp({ v, ms = DUR.slow * 1000, snap = 50, digits = 0, className = '' }: { v: number; ms?: number; snap?: number; digits?: number; className?: string }) {
   const n = Math.round(v), on = useAnimationsOn();
   const ref = useRef<HTMLSpanElement>(null), shown = useRef(n);
   const [width, setWidth] = useState(() => fmt(n).length);
@@ -33,7 +33,7 @@ export function CountUp({ v, ms = DUR.slow * 1000, snap = 50, className = '' }: 
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf); // a new value mid-count carries on from where the count is
   }, [n, on, ms, snap]);
-  return <span ref={ref} className={`num count ${className}`} style={{ minWidth: `${width}ch` }} />;
+  return <span ref={ref} className={`num count ${className}`} style={{ minWidth: `${Math.max(width, digits)}ch` }} />;
 }
 const fmt = (n: number) => n.toLocaleString('en-US');
 

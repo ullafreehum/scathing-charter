@@ -69,7 +69,7 @@ function TopBar({ g }: { g: GameState }) {
         <span title="Cash on hand" id="cash-counter">Cash <RollingMoney v={cash} className="text-bone" /><Delta value={cash} /></span>
         <span title={`Your debt to the Camonna Tong${g.note.cleared ? '' : ` (interest about ${Math.round(g.note.balance * g.note.rate)} a day)`}`}><CodexLink id="topic:the-note">Debt</CodexLink> {g.note.cleared ? <span className="text-moss">cleared</span> : <><span id="debt-counter"><RollingMoney v={debt} ms={slowDebt} className={pr >= 2 ? 'text-danger' : 'text-ember'} /></span><Delta value={g.note.balance} upIsGood={false} /></>}{pr > 0 && !g.note.cleared && <span className="text-danger ml-1" title="The Camonna Tong is losing patience">{'⚠'.repeat(pr)}</span>}</span>
         <span title={bankTip(g)}>Bank <RollingMoney v={depositsTotal(g)} /></span>
-        <span title="Cargo weight / capacity">Cargo <span className="num"><CountUp v={cargoWeight(g)} />/{capacity(g)}</span></span>
+        <span title="Cargo weight / capacity">Cargo <span className="num"><CountUp v={cargoWeight(g)} digits={String(capacity(g)).length} />/{capacity(g)}</span></span>
         <span className="flex items-center gap-1" title="Health">♥ <Meter v={g.player.health} color={g.player.health < 35 ? 'var(--c-bad)' : 'var(--c-good)'} /></span>
         <span title="Cash + bank deposits + cargo value − debt">Net worth <RollingMoney v={netWorth(g)} className="text-gold" /></span>
         <GoalChip g={g} />
@@ -199,7 +199,7 @@ function DesktopGame() {
           {g.player.location === 'road' ? (
             <div className="panel p-6 fell text-lg text-parchment">On the road{g.pending ? ` to ${C.locs[g.pending.dest]?.name ?? '…'}` : ''}. Something blocks the way: make your choice to continue.</div>
           ) : <AnimatePresence mode="wait">
-            <motion.div key={tab} {...m.fade}>
+            <motion.div key={tab} {...m.swap}>
               {tab === 'market' && <Market g={g} />}
               {tab === 'map' && <MapView g={g} side={side} />}
               {tab === 'bank' && <Bank g={g} />}
@@ -264,9 +264,9 @@ function PhoneGame() {
   }), []);
   const [hintOff, setHintOff] = useState(false); // the Market's hint line goes once dismissed or after the first sale
   const pr = pressure(g);
-  const L = C.locs[g.player.location];
   const road = g.player.location === 'road';
   const tick = useGame(s => s.tick);
+  const L = C.locs[useHeld(g.player.location)]; // the town changes with the date, when the day turns
   const day = useHeld(g.day), cash = useHeld(g.player.cash, 'count'), debt = useHeld(g.note.balance, 'count'), slowDebt = tick && tick.days > 1 ? 600 : undefined;
   return (
     <div className="phone-shell">
@@ -275,7 +275,7 @@ function PhoneGame() {
         <button className="btn btn-ghost gap-3" onClick={() => setSheet('wallet')} title="Your money: cash, debt, bank and net worth">
           <span id="cash-counter">Cash <RollingMoney v={cash} className="text-bone" /></span>
           <span>Debt {g.note.cleared ? <span className="text-moss">cleared</span> : <span id="debt-counter"><RollingMoney v={debt} ms={slowDebt} className={pr >= 2 ? 'text-danger' : 'text-ember'} /></span>}{pr > 0 && !g.note.cleared && <span className="text-danger ml-0.5">{'⚠'.repeat(pr)}</span>}</span>
-          <span>Cargo <span className="num"><CountUp v={cargoWeight(g)} />/{capacity(g)}</span></span>
+          <span>Cargo <span className="num"><CountUp v={cargoWeight(g)} digits={String(capacity(g)).length} />/{capacity(g)}</span></span>
         </button>
         <span className="flex items-center gap-1" title="Health">♥ <Meter v={g.player.health} color={g.player.health < 35 ? 'var(--c-bad)' : 'var(--c-good)'} /></span>
         <GoalChip g={g} short />
