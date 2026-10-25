@@ -4,7 +4,7 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
-## 0.11.0 (beta): game feel
+## 0.11.0: game feel
 - One motion language everywhere: short, quick moves with one easing; tabs and screens fade instead of sliding, sheets come in from their edge, dialogs rise into place. No more springy bounces.
 - Cash, debt and cargo count to their new values without the top bar jumping.
 - A day passing has a beat: the screen dims, the date turns like a page, then debt and cash count. Longer waits and trips hold the dark a little longer.
