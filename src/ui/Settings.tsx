@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
+import { useMotion } from './motion';
 import { useGame } from '../store/game';
 import { FONTS, TEXT_SCALES, THEMES } from './themes';
 import { desktop } from './desktop';
@@ -22,13 +23,14 @@ export function Settings() {
   const [credits, setCredits] = useState(false);
   useEffect(() => { const d = desktop(); if (!d) return; d.isFullScreen().then(setFull); return d.onFullScreenChange(setFull); }, []);
   const s = meta.settings;
+  const m = useMotion();
   const pick = (on: boolean) => `rounded-lg border-2 text-left transition-colors ${on ? 'border-ember' : 'border-ash-600 hover:border-ash-400'}`;
   return (
     <motion.div className="fixed inset-0 z-[55] scrim flex items-center justify-center p-3" onClick={closeSettings}
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+      {...m.fade}>
       <motion.div role="dialog" aria-modal="true" aria-label="Settings" onClick={e => e.stopPropagation()}
         className="panel-solid w-full max-w-3xl max-h-[90dvh] overflow-auto scroll-thin p-5"
-        initial={{ y: 16, scale: 0.98 }} animate={{ y: 0, scale: 1 }} exit={{ y: 10, scale: 0.98 }} transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}>
+        {...m.slide('bottom')}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="h-display text-2xl text-bone">Settings</h2>
           <button className="btn btn-ember" onClick={closeSettings} autoFocus>Done</button>
@@ -88,7 +90,7 @@ export function Settings() {
 
         <Group title="Motion">
           <label className="flex items-center gap-2"><input type="checkbox" checked={s.ash} onChange={e => setSettings({ ash: e.target.checked })} />Falling ash</label>
-          <label className="flex items-center gap-2 mt-1"><input type="checkbox" checked={s.animations} onChange={e => setSettings({ animations: e.target.checked })} />Animations (sliding panels and cards)</label>
+          <label className="flex items-center gap-2 mt-1" title="Everything changes at once: no counting numbers, no night veil, no shake. Also on when your system asks for less motion."><input type="checkbox" checked={!s.animations} onChange={e => setSettings({ animations: !e.target.checked })} />Reduce motion</label>
         </Group>
 
         <Group title="Help">

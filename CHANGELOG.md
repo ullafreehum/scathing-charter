@@ -4,6 +4,27 @@ The Scathing Charter (formerly *Ashfall Ledger*). Versions follow `major.minor.p
 goes up for new features, the last one for fixes. 1.0 comes after full human playthroughs of the Red Year
 and the Long Chronicle.
 
+## 0.11.0: game feel
+- One motion language everywhere: short, quick moves with one easing; tabs and screens fade instead of sliding, sheets come in from their edge, dialogs rise into place. No more springy bounces.
+- Cash, debt and cargo count to their new values without the top bar jumping.
+- A day passing has a beat: the screen dims, the date turns like a page, then debt and cash count. Longer waits and trips hold the dark a little longer.
+- The fall of Baar Dau: the screen cuts to black, the boom lands, the game shakes once, then the Chronicle card appears. The music and wind go quiet for it.
+- Six quiet interface sounds: a click on presses, a flick on tab changes, a swish when sheets and dialogs open and close, a soft two-note "done" on trades and payments, and a dull knock when something is refused (also on an unaffordable duel card). On the phone, confirm and refusal buzz.
+- Into and out of the duel: a slower fade through the dark and a page sound.
+- Buttons, tabs, links, phone Market rows and map towns sink when pressed.
+- The game no longer looks like a web page: no text cursor or text selection outside the Journal and Codex, thin scrollbars, no focus rings after a click, no rubber-band scrolling.
+- Settings: "Animations" is now "Reduce motion" (your choice carries over).
+- The card duel, on the phone and the desktop:
+  - Normal speed is now the real pace. Fast halves it, and Skip is instant.
+  - Your card arcs from your hand to the middle, and its damage lands on the tower a beat later. Hit towers flash and sink; built ones glow at the top.
+  - The rival's card back waits beside their panel, then turns over and holds long enough to read.
+  - Numbers pop and count.
+  - The hand is fanned, with shadows. A new card rises into the gap.
+  - The end holds a moment, then the verdict comes with bells and the board dims around the winner's tower.
+  - Carved buttons in the game font sit over a framed board, with richer panels and banner.
+  - The duel has its own sounds: drawing, playing (by card type), hits, builds, winning and losing. On the phone the result buzzes.
+  - Speed is always shown. Under Reduce motion the moves are instant, but the reading pauses stay.
+
 ## 0.10.9 (pre-release): the card duel on phones
 - A new app icon for Android and Windows: a sealed charter, painted for the game.
 - The magistrate's card hearing now works in the Android app: contest fines and seizures from the Market, or play a practice duel from the title screen.

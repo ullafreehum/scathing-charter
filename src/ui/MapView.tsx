@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { animate, motion } from 'framer-motion';
+import { DUR, EASE, useAnimationsOn, useMotion } from './motion';
 import { C } from '../data';
 import { routeOptions, MODE_LABEL, type GameState, type RouteOption, type TravelMode } from '../engine';
 import { useGame } from '../store/game';
@@ -80,7 +81,7 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
   const act = useGame(s => s.act);
   const plan = useGame(s => s.plan); const setPlan = useGame(s => s.setPlan);
   const light = themeById(useGame(s => s.meta.settings.theme)).kind === 'light';
-  const animOn = useGame(s => s.meta.settings.animations);
+  const animOn = useAnimationsOn(), { fade } = useMotion();
   const [sel, setSel] = useState<string | null>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [markers, setMarkers] = useState<Set<Marker>>(readMarkers);
@@ -134,7 +135,7 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
     setView(id); anim.current?.stop();
     const from = camRef.current;
     if (!from || !animOn) { setCam(target); return; }
-    anim.current = animate(0, 1, { duration: 0.45, ease: [0.22, 1, 0.36, 1], onUpdate: t => setCam({ cx: from.cx + (target.cx - from.cx) * t, cy: from.cy + (target.cy - from.cy) * t, w: from.w + (target.w - from.w) * t }) });
+    anim.current = animate(0, 1, { duration: DUR.slow, ease: EASE, onUpdate: t => setCam({ cx: from.cx + (target.cx - from.cx) * t, cy: from.cy + (target.cy - from.cy) * t, w: from.w + (target.w - from.w) * t }) });
   }, [animOn]);
   const zoomAt = useCallback((f: number, fx = 0.5, fy = 0.5) => {
     const cur = camRef.current; if (!cur || !box.current) return;
@@ -450,7 +451,7 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
               const marks = !wide || isHere || sel === L.id;
               const left = LEFT.has(L.id); const gain = cargoGain(L.id); const bs = badges(L.id);
               return (
-                <g key={L.id} ref={PHONE ? onLongPress<SVGGElement>(() => useGame.getState().openCodex(`loc:${L.id}`)) : undefined} transform={`translate(${L.x},${L.y})`} opacity={isHere || can || focus ? 1 : 0.62} style={{ cursor: 'pointer' }}
+                <g key={L.id} ref={PHONE ? onLongPress<SVGGElement>(() => useGame.getState().openCodex(`loc:${L.id}`)) : undefined} transform={`translate(${L.x},${L.y})`} opacity={isHere || can || focus ? 1 : 0.62} className="map-town" style={{ cursor: 'pointer' }}
                   role="button" tabIndex={0} aria-label={`${L.name}${isHere ? ', you are here' : can ? ', reachable' : ''}`} aria-pressed={sel === L.id}
                   onClick={() => pick(L.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(s => (s === L.id ? null : L.id)); } }}
                   onMouseEnter={() => setHover(L.id)} onMouseLeave={() => setHover(h => (h === L.id ? null : h))}>
@@ -513,7 +514,7 @@ export function MapView({ g, side }: { g: GameState; side?: HTMLElement | null }
         </div>
         {!PHONE && <>{markerRow}<div className="flex flex-wrap gap-3 text-xs text-ash-400 px-1 pb-1">{legend}</div></>}
       </div>
-      {PHONE ? null : side ? createPortal(<motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>{destinations}</motion.div>, side) : <div className="mt-3">{destinations}</div>}
+      {PHONE ? null : side ? createPortal(<motion.div {...fade}>{destinations}</motion.div>, side) : <div className="mt-3">{destinations}</div>}
     </>
   );
 }

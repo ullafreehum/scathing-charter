@@ -29,9 +29,11 @@ test('hearing: the board plays cards by mouse and keyboard, and the duel ends', 
   expect(i).toBeGreaterThanOrEqual(0);
   const box = (await board.boundingBox())!, k = box.width / 1280;
   await page.mouse.click(box.x + (39.5 + i * 151 + 72) * k, box.y + 610 * k);
-  await expect(board).toHaveAttribute('data-turn', '2');
+  await expect(board).toHaveAttribute('data-turn', '2', { timeout: 15_000 }); // a whole turn at Normal pace: the reading pauses stay under Reduce motion
 
-  // Keyboard: the hidden hand buttons play the same cards; Discard lets you throw one away.
+  // Keyboard: the hidden hand buttons play the same cards; Discard lets you throw one away. Skip keeps the rest quick
+  // (under Reduce motion the reading pauses stay at Normal).
+  await page.getByRole('button', { name: 'Skip', exact: true }).click();
   for (let turn = 2; turn < 260; turn++) {
     if ((await board.getAttribute('data-winner')) !== '') break;
     let j = await firstPlayable(page);
@@ -51,7 +53,7 @@ test('hearing: the board plays cards by mouse and keyboard, and the duel ends', 
 test.describe('with animations on', () => {
   test.use({ contextOptions: { reducedMotion: 'no-preference' } });
   test('hearing: Fast plays a turn with effects, Skip finishes at once', async ({ page }) => {
-    test.setTimeout(240_000); // plays the rest of the duel turn by turn: slow under software WebGL with the bigger board
+    test.setTimeout(300_000); // plays the rest of the duel turn by turn: slow under software WebGL with the bigger board
     const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
     await boot(page);
     const board = page.locator('[data-turn]');

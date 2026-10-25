@@ -1,9 +1,10 @@
 // Decorative, non-blocking effects: coins flying between the thing you clicked and your purse,
-// and a brief dusk whenever days pass. Both are skipped when animations are off.
+// and the night veil whenever days pass (the beat that the date, debt and cash wait for). Both are skipped under Reduce motion.
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '../store/game';
-import { animationsOn, useAnimationsOn } from './motion';
+import { DUR, EASE, animationsOn, useAnimationsOn } from './motion';
+import { sfx } from '../audio/sfx';
 
 type Target = Element | 'cash' | 'debt' | null;
 type Pt = { x: number; y: number };
@@ -48,16 +49,45 @@ export function FxLayer() {
   );
 }
 
-/** A soft dusk over the screen while days pass: longer rests, deeper and longer nights. */
+/** One beat for days passing (Sorcerer's set piece 1): the veil comes in over `slow`, the date flips at its darkest
+ *  point, debt and cash count from just after, the veil lifts over `slow`. One day takes 1.04 s; each further day holds
+ *  the dark 50 ms longer, up to 1.6 s in all. */
+export function beat(days: number) {
+  const inS = DUR.slow, outS = DUR.slow, hold = Math.min(1.6 - inS - outS, 0.4 + 0.05 * (Math.max(1, days) - 1));
+  return { inS, hold, outS, total: inS + hold + outS, flipS: inS, countS: inS + 0.08, countMs: days > 1 ? 600 : DUR.slow * 1000, depth: Math.min(0.45, 0.3 + 0.02 * (Math.max(1, days) - 1)) };
+}
+/** A value that changes when days pass (the date, debt, cash) holds its old value until the beat reaches it. */
+export function useHeld<T>(v: T, at: 'flip' | 'count' = 'flip'): T {
+  const tick = useGame(s => s.tick); const on = useAnimationsOn();
+  const [shown, setShown] = useState(v);
+  const id = tick?.id, days = tick?.days ?? 1;
+  useEffect(() => {
+    if (!on || id === undefined) { setShown(v); return; }
+    const b = beat(days), t = setTimeout(() => setShown(v), (at === 'flip' ? b.flipS : b.countS) * 1000);
+    return () => clearTimeout(t);
+  }, [v, id, days, on, at]);
+  return on && id !== undefined ? shown : v;
+}
+
+/** The veil while days pass: the spine of the beat. Under Reduce motion there is no veil, only the page sound. */
 export function NightDip() {
   const tick = useGame(s => s.tick); const clearTick = useGame(s => s.clearTick);
   const on = useAnimationsOn();
-  if (!on || !tick) return null;
-  const depth = Math.min(0.5, 0.22 + tick.days * 0.03), dur = Math.min(1.5, 0.75 + tick.days * 0.07);
+  // the fall of Baar Dau has its own set piece (black cut, boom): no veil under it
+  const erupt = useGame(s => { const i = s.game?.inbox[0]; return i?.kind === 'chronicle' && i.eventId === 'red-year-eruption'; });
+  useEffect(() => {
+    if (!tick) return;
+    if (!on || erupt) { if (!erupt) sfx.page(); clearTick(); return; }
+    const t = setTimeout(() => sfx.page(), beat(tick.days).flipS * 1000);
+    return () => clearTimeout(t);
+  }, [tick, on, erupt, clearTick]);
+  if (!on || erupt || !tick) return null;
+  const b = beat(tick.days);
   return (
     <motion.div key={tick.id} className="fixed inset-0 z-[33] pointer-events-none" aria-hidden="true"
       style={{ background: 'radial-gradient(ellipse at 50% 20%, rgba(18,24,52,.55), rgba(4,6,16,.9))' }}
-      initial={{ opacity: 0 }} animate={{ opacity: [0, depth, depth, 0] }} transition={{ duration: dur, times: [0, 0.35, 0.55, 1], ease: 'easeInOut' }}
+      initial={{ opacity: 0 }} animate={{ opacity: [0, b.depth, b.depth, 0] }}
+      transition={{ duration: b.total, times: [0, b.inS / b.total, (b.inS + b.hold) / b.total, 1], ease: EASE }}
       onAnimationComplete={clearTick} />
   );
 }

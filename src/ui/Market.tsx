@@ -9,6 +9,7 @@ import { onLongPress } from './Tooltip';
 import { PHONE, usePhone } from './phone';
 import { Sheet } from './Game';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useMotion } from './motion';
 import { ago, bestSeenSell } from './prices';
 
 const LEG: Record<string, { label: string; cls: string; tip: string }> = {
@@ -30,7 +31,7 @@ function Notice({ id, className = '', children }: { id: string; className?: stri
 export function Market({ g }: { g: GameState }) {
   const { act, setTab, tradeQty: amt, setTradeQty: setAmt, undo, undoTrade } = useGame();
   const [open, setOpen] = useState<string | null>(null);
-  const arriving = useGame(s => s.trip !== null);
+  const m = useMotion();
   const [glow, setGlow] = useState<{ good: string; n: number } | null>(null);
   const traded = (good: string) => setGlow(x => ({ good, n: (x?.n ?? 0) + 1 }));
   const [filter, setFilter] = useState<Filter>('all');
@@ -136,7 +137,7 @@ export function Market({ g }: { g: GameState }) {
             </tr></thead>
             <tbody>
               <AnimatePresence initial={false}>
-              {rows.map((q, i) => {
+              {rows.map(q => {
                 const G = C.goods[q.good]; const lot = g.player.cargo[q.good];
                 const r = ratio(q);
                 const maxBuy = maxBuyQty(q.buy, DEPTH[G.category], keepFare ? Math.max(0, g.player.cash - fareWith(free)) : g.player.cash, free, G.weight);
@@ -181,8 +182,7 @@ export function Market({ g }: { g: GameState }) {
                   <motion.tr key={q.good} onPointerEnter={e => enterRow(q.good, e)}
                     onClick={PHONE ? e => { if (!(e.target as Element).closest('button, a')) setOpen(isOpen ? null : q.good); } : undefined}
                     ref={PHONE ? onLongPress<HTMLTableRowElement>(() => useGame.getState().openCodex(`good:${q.good}`)) : undefined} className={`relative border-t border-ash-700 hover:bg-ash-800 ${lot ? 'bg-ash-800/60' : ''}`}
-                    initial={arriving ? { opacity: 0, x: -10 } : { opacity: 0 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                    transition={{ duration: 0.28, delay: arriving ? Math.min(i, 15) * 0.028 : 0, ease: [0.22, 1, 0.36, 1] }}>
+                    {...m.fade}>
                     <td className="py-1.5 pr-2">
                       {glow?.good === q.good && <span key={glow.n} className="row-glow" aria-hidden="true" />}
                       <GoodIcon id={q.good} category={G.category} /> <CodexLink id={`good:${q.good}`} className="text-bone">{G.name}</CodexLink>
@@ -196,7 +196,7 @@ export function Market({ g }: { g: GameState }) {
                     <td className="text-right whitespace-nowrap">{q.buy !== null ? <span title={`from ${q.buyFrom}`}><Money v={q.buy} /> {r < 0.8 ? <span className="text-moss" title="Cheap: well below the usual price">▼</span> : r > 1.25 ? <span className="text-danger" title="Expensive: well above the usual price">▲</span> : null}</span> : <span className="text-ash-400 text-xs">{q.stock ? '—' : 'out of stock'}</span>}</td>
                     <td className="text-right whitespace-nowrap">{q.sell !== null ? <span title={`to ${q.sellTo}${q.sellNote ? ` (${q.sellNote})` : ''}`}><Money v={q.sell} />{q.sellNote && <span className="text-ice text-xs">*</span>}</span> : <span className="text-ash-400 text-xs">no buyer</span>}
                       {margin !== null && <div className={`text-xs ${margin >= 0 ? 'text-moss' : 'text-danger'}`} title={`You paid ${Math.round(lot!.cost)} each`}>{margin >= 0 ? '+' : ''}{margin} each</div>}</td>
-                    <td className="text-right num pl-3">{lot ? <motion.span key={lot.qty} className="inline-block" initial={{ scale: 1.4 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 600, damping: 15 }} title={`You paid ${Math.round(lot.cost)} each on average`}>{lot.qty}</motion.span> : <span className="text-ash-400">0</span>}</td>
+                    <td className="text-right num pl-3">{lot ? <motion.span key={lot.qty} className="inline-block" initial={{ scale: 1.2 }} animate={{ scale: 1 }} transition={m.t('fast')} title={`You paid ${Math.round(lot.cost)} each on average`}>{lot.qty}</motion.span> : <span className="text-ash-400">0</span>}</td>
                     {!PHONE && <td className="text-right pl-3 whitespace-nowrap">{best ? <span title={`Seen in ${C.locs[best.loc].name} ${ago(best.age)}. Prices move, so older figures are less reliable.`}><Money v={best.price} />{edge !== null && edge > 0 && <span className="text-moss text-xs"> (+{Math.round(edge)})</span>}<span className="block text-xs text-ash-400">{C.locs[best.loc].name}, {ago(best.age)}</span></span> : <span className="text-ash-400 text-xs">not seen yet</span>}</td>}
                     <td className="whitespace-nowrap pl-3 text-right space-x-1">
                       <button className="btn" disabled={nBuy < 1} ref={onLongPress(el => buy(maxBuy, el))} onClick={e => buy(nBuy, e.currentTarget)} title={nBuy < 1 ? (q.buy === null ? 'Not for sale here' : 'No money or cargo space for this') : `Buy ${nBuy} for ${bulkBuyTotal(q.buy!, nBuy, DEPTH[G.category]).toLocaleString('en-US')} septims (the most you can afford and carry: ${maxBuy}). Buying many at once raises the price a little.`}>{PHONE && nBuy < 1 ? whyBuy : <>Buy {maxWord}{nBuy > 0 ? <span className="font-body num">{nBuy}</span> : ''}</>}</button>
@@ -221,7 +221,7 @@ export function Market({ g }: { g: GameState }) {
       )}
       {filters && <Sheet title="Filter & more" onClose={() => setFilters(false)}><div className="flex flex-col items-start gap-3 text-sm">{showSort}<p className="text-xs text-ash-400">{help}</p></div></Sheet>}
       <AnimatePresence>{done && (
-        <motion.div key={done.n} role="status" className="phone-undo panel-solid" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>
+        <motion.div key={done.n} role="status" className="phone-undo panel-solid" {...m.slide('bottom')}>
           <span className="min-w-0 truncate">{done.text}</span>
           <button className="btn ml-auto" disabled={!undo.length} onClick={() => { undoTrade(); setDone(null); }}>Undo</button>
         </motion.div>

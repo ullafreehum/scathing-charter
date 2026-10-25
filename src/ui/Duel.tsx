@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { DUEL, DUEL_CARD, GEN_FIELD, RES_NAME, Rng, canPlay, duelTurn, hashSeed, newDuel, type DuelSide, type DuelState, type Res } from '../engine';
 import { useGame } from '../store/game';
-import { useAnimationsOn } from './motion';
+import { motion } from 'framer-motion';
+import { useAnimationsOn, useMotion } from './motion';
 import { PHONE, useBack } from './phone';
 import { Sheet } from './Game';
 import type { DuelBoard } from './duelBoard';
@@ -23,7 +24,7 @@ const RES_STYLE: Record<Res, { cls: string; icon: string }> = {
   stone: { cls: 'text-ember', icon: ebony }, steel: { cls: 'text-moss', icon: bindings }, magicka: { cls: 'text-ice', icon: magicka },
 };
 
-const SPEEDS = { Normal: 0.4, Fast: 0.2, Skip: 0 } as const;
+const SPEEDS = { Normal: 1, Fast: 0.5, Skip: 0 } as const; // Normal is the board's real pace (0.11)
 type Speed = keyof typeof SPEEDS;
 const SPEED_KEY = 'ashfall-ledger/ui/duel-speed';
 function readSpeed(): Speed { try { const v = localStorage.getItem(SPEED_KEY); if (v && v in SPEEDS) return v as Speed; } catch { /* storage blocked */ } return 'Normal'; }
@@ -37,14 +38,15 @@ const gameLeave = () => { useGame.getState().act({ t: 'duel', card: 0 }); };
  *  In a game it plays through the engine; on its own (from the title screen) `play` and `leave` drive a practice duel. */
 export function DuelScreen({ d, play = gamePlay, leave = gameLeave, kicker = 'Before the magistrate', leaveLabel = 'Leave the court', extra }: { d: DuelState; play?: Play; leave?: () => void; kicker?: string; leaveLabel?: string; extra?: React.ReactNode }) {
   const playRef = useRef(play); playRef.current = play;
-  const motion = useAnimationsOn();
+  const anim = useAnimationsOn();
+  const m = useMotion(), endPop = { initial: m.pop.initial, animate: { ...m.pop.animate, transition: m.t('slow') } }; // Leave pops in after the verdict
   const [discard, setDiscard] = useState(false);
   const [speed, setSpeed] = useState<Speed>(readSpeed);
   const [mode, setMode] = useState<'loading' | 'board' | 'plain'>('loading');
   const [shown, setShown] = useState(d); // what the animated board has finished showing
   const host = useRef<HTMLDivElement>(null);
   const board = useRef<DuelBoard | null>(null);
-  const motionAtStart = useRef(motion);
+  const motionAtStart = useRef(anim);
   const [sel, setSel] = useState<number | null>(null); // the phone: the selected card, and whether a turn is playing
   const [busy, setBusy] = useState(false);
   const [rules, setRules] = useState(false);
@@ -93,10 +95,10 @@ export function DuelScreen({ d, play = gamePlay, leave = gameLeave, kicker = 'Be
       <div className="duel-phone">
         <div className="duel-gutter" style={{ backgroundImage: `url(${bg})` }} />
         {mode !== 'plain' && (
-          <div ref={host} data-turn={shown.turn} data-winner={shown.winner ?? ''} className="relative overflow-hidden bg-black" style={{ width: 'min(calc(100vw - 48px), calc(100dvh * 16 / 9))', aspectRatio: '16 / 9' }}>
+          <div ref={host} data-turn={shown.turn} data-winner={shown.winner ?? ''} className="duel-board relative overflow-hidden bg-black" style={{ width: 'min(calc(100vw - 48px), calc(100dvh * 16 / 9))', aspectRatio: '16 / 9' }}>
             {mode === 'loading' && <div className="absolute inset-0 grid place-items-center text-ash-400 text-sm">Setting up the court…</div>}
             {mode === 'board' && !now.winner && <div className="duel-zone" style={zone(16)}>
-              {motion && <button className="btn duel-big" onClick={() => setSpeed(x => { const ks = Object.keys(SPEEDS) as Speed[]; return ks[(ks.indexOf(x) + 1) % ks.length]; })}>Speed: {speed}</button>}
+              <button className="btn duel-big" onClick={() => setSpeed(x => { const ks = Object.keys(SPEEDS) as Speed[]; return ks[(ks.indexOf(x) + 1) % ks.length]; })}>Speed: {speed}</button>
               <button className="btn" onClick={() => setRules(true)}>Rules</button>
             </div>}
             {mode === 'board' && !now.winner && !busy && <div className="duel-zone" style={zone(1010)}>
@@ -106,8 +108,10 @@ export function DuelScreen({ d, play = gamePlay, leave = gameLeave, kicker = 'Be
               <button className="btn" disabled={!k} onClick={() => { if (sel !== null) board.current?.discardAt(sel); }}>Discard</button>
             </div>}
             {now.winner && <div className="duel-end">
-              <button className="btn btn-ember" autoFocus onClick={leave}>{leaveLabel}</button>
-              {extra}
+              <motion.div className="flex flex-col items-center gap-2" {...endPop}>
+                <button className="btn btn-ember" autoFocus onClick={leave}>{leaveLabel}</button>
+                {extra}
+              </motion.div>
             </div>}
           </div>
         )}
@@ -135,20 +139,20 @@ export function DuelScreen({ d, play = gamePlay, leave = gameLeave, kicker = 'Be
     <div>
       <h2 className="flex flex-wrap items-baseline gap-x-3"><span className="text-xs h-display uppercase text-ember">{kicker}</span><span className="h-display text-lg text-bone">The hearing{now.winner ? (now.winner === 'you' ? ': you win' : ': you lose') : ''}</span></h2>
       {mode !== 'plain' && (
-        <div ref={host} data-turn={shown.turn} data-winner={shown.winner ?? ''} className="relative mx-auto mt-1 rounded overflow-hidden bg-black" style={{ width: 'min(100%, calc((100dvh - 6.25rem) * 16 / 9))', aspectRatio: '16 / 9' }}>
+        <div ref={host} data-turn={shown.turn} data-winner={shown.winner ?? ''} className="duel-board relative mx-auto mt-1 rounded overflow-hidden bg-black" style={{ width: 'min(100%, calc((100dvh - 6.25rem) * 16 / 9))', aspectRatio: '16 / 9' }}>
           {mode === 'loading' && <div className="absolute inset-0 grid place-items-center text-ash-400 text-sm">Setting up the court…</div>}
         </div>
       )}
       {mode === 'plain' && <PlainBoard d={d} discard={discard} play={play} played={() => setDiscard(false)} />}
       <div className="flex flex-wrap items-center gap-3 mt-2 text-sm">
         {now.winner ? (
-          <button className="btn btn-ember" autoFocus onClick={leave}>{leaveLabel}</button>
+          <motion.button className="btn btn-ember" autoFocus onClick={leave} {...endPop}>{leaveLabel}</motion.button>
         ) : (
           <button className={`btn ${discard ? 'btn-ember' : ''}`} aria-pressed={discard} onClick={() => setDiscard(x => !x)}
             title="Throw a card away instead of playing it (you still lose the turn)">{discard ? 'Discarding: pick a card' : 'Discard a card'}</button>
         )}
         {extra}
-        {mode === 'board' && motion && (
+        {mode === 'board' && (
           <div role="group" aria-label="Speed" className="flex items-center gap-1 ml-auto">
             <span className="text-ash-400 text-xs mr-1">Speed</span>
             {(Object.keys(SPEEDS) as Speed[]).map(k => <button key={k} className={`btn ${speed === k ? 'btn-ember' : ''}`} aria-pressed={speed === k} onClick={() => setSpeed(k)}>{k}</button>)}

@@ -7,7 +7,7 @@ import { C } from '../data';
 import { capacity, cargoWeight, charterPrice, drellothLine, formatDate, merchantLine, shortDate, netWorth, depositsTotal, pressure, type GameState } from '../engine';
 import { useGame, type Tab } from '../store/game';
 import { exportFile, savedWhen, slotInfo, type Slot } from '../save/storage';
-import { CodexLink, DateWidget, Delta, Meter, Money, RollingMoney, StatusPill } from './widgets';
+import { CodexLink, CountUp, DateWidget, Delta, Meter, Money, RollingMoney, StatusPill } from './widgets';
 import { TimeRibbon } from './TimeRibbon';
 import { Market } from './Market';
 import { Bank, bankTip } from './Bank';
@@ -16,12 +16,9 @@ import { Outfitter } from './Outfitter';
 import { MapView } from './MapView';
 import { Ledger } from './Ledger';
 import { PHONE, onPause, useBack, usePhone } from './phone';
-
-const SLIDE = {
-  enter: (d: number) => ({ opacity: 0, x: 16 * d }),
-  center: { opacity: 1, x: 0 },
-  exit: (d: number) => ({ opacity: 0, x: -12 * d }),
-};
+import { useHeld } from './fx';
+import { useMotion } from './motion';
+import { sfx } from '../audio/sfx';
 
 const TABS: { id: Tab; label: string; key: string; icon?: string }[] = [
   { id: 'market', label: 'Market', key: 'm', icon: '⚖' }, { id: 'map', label: 'Travel', key: 't', icon: '➶' }, { id: 'bank', label: 'Bank', key: 'b', icon: '¤' },
@@ -62,15 +59,17 @@ function TopBar({ g }: { g: GameState }) {
     return () => { document.removeEventListener('pointerdown', out); document.removeEventListener('focusin', out); document.removeEventListener('keydown', key); };
   }, [menu]);
   const pr = pressure(g);
+  const tick = useGame(s => s.tick); // days passing: cash and debt wait for the night veil's beat
+  const cash = useHeld(g.player.cash, 'count'), debt = useHeld(g.note.balance, 'count'), slowDebt = tick && tick.days > 1 ? 600 : undefined;
   return (
     <header className="panel sticky top-0 z-30 flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2">
       <div className="h-display text-ember text-lg mr-2 hidden md:block">THE SCATHING CHARTER</div>
       <DateWidget g={g} />
       <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm ml-auto items-center">
-        <span title="Cash on hand" id="cash-counter">Cash <RollingMoney v={g.player.cash} className="text-bone" /><Delta value={g.player.cash} /></span>
-        <span title={`Your debt to the Camonna Tong${g.note.cleared ? '' : ` (interest about ${Math.round(g.note.balance * g.note.rate)} a day)`}`}><CodexLink id="topic:the-note">Debt</CodexLink> {g.note.cleared ? <span className="text-moss">cleared</span> : <><span id="debt-counter"><RollingMoney v={g.note.balance} className={pr >= 2 ? 'text-danger' : 'text-ember'} /></span><Delta value={g.note.balance} upIsGood={false} /></>}{pr > 0 && !g.note.cleared && <span className="text-danger ml-1" title="The Camonna Tong is losing patience">{'⚠'.repeat(pr)}</span>}</span>
+        <span title="Cash on hand" id="cash-counter">Cash <RollingMoney v={cash} className="text-bone" /><Delta value={cash} /></span>
+        <span title={`Your debt to the Camonna Tong${g.note.cleared ? '' : ` (interest about ${Math.round(g.note.balance * g.note.rate)} a day)`}`}><CodexLink id="topic:the-note">Debt</CodexLink> {g.note.cleared ? <span className="text-moss">cleared</span> : <><span id="debt-counter"><RollingMoney v={debt} ms={slowDebt} className={pr >= 2 ? 'text-danger' : 'text-ember'} /></span><Delta value={g.note.balance} upIsGood={false} /></>}{pr > 0 && !g.note.cleared && <span className="text-danger ml-1" title="The Camonna Tong is losing patience">{'⚠'.repeat(pr)}</span>}</span>
         <span title={bankTip(g)}>Bank <RollingMoney v={depositsTotal(g)} /></span>
-        <span title="Cargo weight / capacity">Cargo <span className="num">{cargoWeight(g)}/{capacity(g)}</span></span>
+        <span title="Cargo weight / capacity">Cargo <span className="num"><CountUp v={cargoWeight(g)} digits={String(capacity(g)).length} />/{capacity(g)}</span></span>
         <span className="flex items-center gap-1" title="Health">♥ <Meter v={g.player.health} color={g.player.health < 35 ? 'var(--c-bad)' : 'var(--c-good)'} /></span>
         <span title="Cash + bank deposits + cargo value − debt">Net worth <RollingMoney v={netWorth(g)} className="text-gold" /></span>
         <GoalChip g={g} />
@@ -122,6 +121,7 @@ function NextSteps({ g, one = false }: { g: GameState; one?: boolean }) {
 function LocationPanel({ g }: { g: GameState }) {
   const [about, setAbout] = useState(readAbout);
   const L = C.locs[g.player.location];
+  const m = useMotion();
   if (!L) return null;
   const news = g.world.news.filter(n => n.loc === L.id && g.day - n.day < 12).slice(-3).reverse();
   const elsewhere = g.world.news.filter(n => n.loc !== L.id && g.day - n.day < 4).slice(-2).reverse();
@@ -130,7 +130,7 @@ function LocationPanel({ g }: { g: GameState }) {
       <div>
         <div className="flex items-baseline justify-between gap-2">
           {/* arriving somewhere: the name comes into focus */}
-          <motion.h2 key={L.id} className="h-display text-2xl text-bone" initial={{ opacity: 0, y: 6, filter: 'blur(5px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}><CodexLink id={`loc:${L.id}`}>{L.name}</CodexLink></motion.h2>
+          <motion.h2 key={L.id} className="h-display text-2xl text-bone" initial={{ opacity: 0, y: 6, filter: 'blur(5px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={m.t('slow')}><CodexLink id={`loc:${L.id}`}>{L.name}</CodexLink></motion.h2>
           <StatusPill status={g.world.status[L.id]} />
         </div>
         <div className="text-sm text-gold">{g.world.faction[L.id]}</div>
@@ -176,10 +176,7 @@ export function GameScreen() { return PHONE ? <PhoneGame /> : <DesktopGame />; }
 function DesktopGame() {
   const g = useGame(s => s.game)!;
   const { tab, setTab } = useGame();
-  // content slides in from the side of the tab you moved toward
-  const order = TABS.findIndex(t => t.id === tab); const prevOrder = useRef(order);
-  const dir = order >= prevOrder.current ? 1 : -1;
-  useEffect(() => { prevOrder.current = order; }, [order]);
+  const m = useMotion();
   const hints = useGame(s => s.meta.settings.hints);
   // the Travel tab puts its destination list where the town panel sits, so the map lines up with the price list
   const [side, setSide] = useState<HTMLDivElement | null>(null);
@@ -195,14 +192,14 @@ function DesktopGame() {
             {TABS.map(t => (
               <button key={t.id} role="tab" aria-selected={tab === t.id} className="tab relative" onClick={() => setTab(t.id)} title={`Shortcut: ${t.key}`}>
                 {t.label}
-                {tab === t.id && <motion.span layoutId="tab-underline" className="absolute left-2 right-2 -bottom-px h-[2px] rounded-full bg-ember" transition={{ type: 'spring', stiffness: 520, damping: 40 }} />}
+                {tab === t.id && <motion.span layoutId="tab-underline" className="absolute left-2 right-2 -bottom-px h-[2px] rounded-full bg-ember" transition={m.t('fast')} />}
               </button>
             ))}
           </nav>
           {g.player.location === 'road' ? (
             <div className="panel p-6 fell text-lg text-parchment">On the road{g.pending ? ` to ${C.locs[g.pending.dest]?.name ?? '…'}` : ''}. Something blocks the way: make your choice to continue.</div>
-          ) : <AnimatePresence mode="wait" custom={dir}>
-            <motion.div key={tab} custom={dir} variants={SLIDE} initial="enter" animate="center" exit="exit" transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}>
+          ) : <AnimatePresence mode="wait">
+            <motion.div key={tab} {...m.swap}>
               {tab === 'market' && <Market g={g} />}
               {tab === 'map' && <MapView g={g} side={side} />}
               {tab === 'bank' && <Bank g={g} />}
@@ -220,10 +217,12 @@ function DesktopGame() {
 /** A sheet sliding in from the right edge of the phone screen; a tap outside, ✕ or Back closes it. */
 export function Sheet({ title, onClose, children, side = 'right' }: { title: React.ReactNode; onClose: () => void; children: React.ReactNode; side?: 'left' | 'right' }) {
   useBack(true, onClose);
+  useEffect(() => { sfx.open(); return () => sfx.close(); }, []);
+  const m = useMotion();
   return (
     <div className="fixed inset-0 z-40 phone-scrim" onClick={onClose}>
       <motion.aside role="dialog" aria-label={typeof title === 'string' ? title : undefined} className={`phone-sheet phone-sheet-${side} panel-solid`} onClick={e => e.stopPropagation()}
-        initial={{ x: side === 'right' ? 40 : -40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 0.18 }}>
+        {...m.slide(side)}>
         <div className="flex items-center gap-2 mb-2"><h2 className="h-display text-gold text-lg min-w-0">{title}</h2><button className="btn btn-ghost ml-auto" aria-label="Close" onClick={onClose}>✕</button></div>
         {children}
       </motion.aside>
@@ -265,16 +264,18 @@ function PhoneGame() {
   }), []);
   const [hintOff, setHintOff] = useState(false); // the Market's hint line goes once dismissed or after the first sale
   const pr = pressure(g);
-  const L = C.locs[g.player.location];
   const road = g.player.location === 'road';
+  const tick = useGame(s => s.tick);
+  const L = C.locs[useHeld(g.player.location)]; // the town changes with the date, when the day turns
+  const day = useHeld(g.day), cash = useHeld(g.player.cash, 'count'), debt = useHeld(g.note.balance, 'count'), slowDebt = tick && tick.days > 1 ? 600 : undefined;
   return (
     <div className="phone-shell">
       <header className="phone-strip panel">
-        <button className="btn btn-ghost" onClick={() => setSheet('time')} title="The time, and the date in the game"><span className="num">{shortDate(g.day).replace(/ 4E \d+$/, '')}</span> · <span className="text-bone">{L?.name ?? 'Road'}</span></button>
+        <button className="btn btn-ghost" onClick={() => setSheet('time')} title="The time, and the date in the game"><span className="num">{shortDate(day).replace(/ 4E \d+$/, '')}</span> · <span className="text-bone">{L?.name ?? 'Road'}</span></button>
         <button className="btn btn-ghost gap-3" onClick={() => setSheet('wallet')} title="Your money: cash, debt, bank and net worth">
-          <span id="cash-counter">Cash <RollingMoney v={g.player.cash} className="text-bone" /></span>
-          <span>Debt {g.note.cleared ? <span className="text-moss">cleared</span> : <span id="debt-counter"><RollingMoney v={g.note.balance} className={pr >= 2 ? 'text-danger' : 'text-ember'} /></span>}{pr > 0 && !g.note.cleared && <span className="text-danger ml-0.5">{'⚠'.repeat(pr)}</span>}</span>
-          <span>Cargo <span className="num">{cargoWeight(g)}/{capacity(g)}</span></span>
+          <span id="cash-counter">Cash <RollingMoney v={cash} className="text-bone" /></span>
+          <span>Debt {g.note.cleared ? <span className="text-moss">cleared</span> : <span id="debt-counter"><RollingMoney v={debt} ms={slowDebt} className={pr >= 2 ? 'text-danger' : 'text-ember'} /></span>}{pr > 0 && !g.note.cleared && <span className="text-danger ml-0.5">{'⚠'.repeat(pr)}</span>}</span>
+          <span>Cargo <span className="num"><CountUp v={cargoWeight(g)} digits={String(capacity(g)).length} />/{capacity(g)}</span></span>
         </button>
         <span className="flex items-center gap-1" title="Health">♥ <Meter v={g.player.health} color={g.player.health < 35 ? 'var(--c-bad)' : 'var(--c-good)'} /></span>
         <GoalChip g={g} short />

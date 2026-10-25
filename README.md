@@ -38,7 +38,7 @@ your money.
 
 - **Saves** happen after every action. **☰ → Save to slot** keeps extra copies, and **Export save file**
   makes a backup you can **Import** on another computer.
-- **⚙ Settings** has colour themes, fonts, text size, falling ash, animations, sound effects and music.
+- **⚙ Settings** has colour themes, fonts, text size, falling ash, Reduce motion, sound effects and music.
 - **On Windows**, **F11** switches full screen and **Ctrl+Plus / Ctrl+Minus** change the size of everything.
 - **Card duel (practice)** on the title screen plays the magistrate's card hearing on its own.
 - The art book: **[Art of the Red Year](docs/artbook/scathing-charter-artbook.pdf)** (PDF).

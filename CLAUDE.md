@@ -3,7 +3,7 @@
 A lore-dense, Dope Wars–style trading game set in the Elder Scrolls universe at the dawn of the
 Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-commercial fan project.
 
-> Version **0.10.9**: the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
+> Version **0.11.0**: the number lives in `package.json` only and is shown in-game via `__APP_VERSION__`;
 > bump it there and add a `CHANGELOG.md` entry for each release. To publish: write `docs/releases/v<version>.md`,
 > and push it (or push the tag `v<version>`); `.github/workflows/release.yml` creates the
 > tag, publishes the release and a Windows runner attaches the Electron Setup and Portable .exe, and a Linux runner the Android APK (full releases since 0.10.8; a line `<!-- pre-release -->` in the notes makes it a pre-release).
@@ -18,7 +18,7 @@ Fourth Era (1 Morning Star 4E 4 → 31 Evening Star 4E 6). Unofficial, non-comme
 | Install | `npm install` |
 | Dev server | `npm run dev` (`npm start` also opens the browser) |
 | Desktop app (Electron) | `npm run desktop` (build + open); `npm run package:win` → `release/electron/` Setup + Portable .exe (Windows/CI). `electron/main.cjs` + `preload.cjs`, `electron-builder.yml`. Never change `appId`/`productName`: they fix the save folder. Game-side hooks in `src/ui/desktop.ts` (no-ops in a browser). |
-| Android app (Capacitor, in progress) | `npm run android:sync` (build + copy `dist/` into `android/`), `npm run android:open` (Android Studio). `capacitor.config.ts` + `android/` (landscape only, immersive in `MainActivity.java`; phones from 640×360 to 932×430, narrow/short rules at the end of the phone CSS). Never change `appId`: it fixes the app's identity and saves on phones. Needs the Android SDK; the cloud container can't download it, so APKs come from CI (APK plan step 3). Phone UI: `src/ui/phone.ts` (`PHONE` = native app or `?phone` in a browser; sets `html.phone`, Back button via @capacitor/app, `useBack` for sheets); styles under `.phone`/`.phone-*` in index.css. The duel on the phone (since 0.10.9): full-height board with a button column (`.duel-phone`, `.duel-side`), first tap shows a card big, second tap plays it (`touch` in duelBoard). Specs: /mnt/project-files/mobile/ |
+| Android app (Capacitor, in progress) | `npm run android:sync` (build + copy `dist/` into `android/`), `npm run android:open` (Android Studio). `capacitor.config.ts` + `android/` (landscape only, immersive in `MainActivity.java`; phones from 640×360 to 932×430, narrow/short rules at the end of the phone CSS). Never change `appId`: it fixes the app's identity and saves on phones. Needs the Android SDK; the cloud container can't download it, so APKs come from CI (APK plan step 3). Phone UI: `src/ui/phone.ts` (`PHONE` = native app or `?phone` in a browser; sets `html.phone`, Back button via @capacitor/app, `useBack` for sheets); styles under `.phone`/`.phone-*` in index.css. The duel on the phone (since 0.10.9): full-height board with buttons over the scene (`.duel-phone`, `.duel-zone`), first tap shows a card big, then Play (or a second tap) plays it (`touch` in duelBoard). Specs: /mnt/project-files/mobile/ |
 | Type-check + production build (static, offline, relative paths) | `npm run build` → `dist/` |
 | Preview the build | `npm run preview` |
 | Unit tests (engine, data validation) | `npm test` (watch: `npm run test:watch`) |
@@ -50,9 +50,15 @@ src/
             in themes.test.ts). Tailwind colour names in index.css map onto those variables, so never
             hardcode hex colours in components. Settings.tsx = the in-game settings dialog.
             hints.ts (next-step strip, travel warnings), prices.ts (reads the price book) and route.ts
-            (route planner) are pure helpers over GameState. Tooltip.tsx turns every `title` into a fast themed hover tip (kept in `data-tip`; e2e tests select by it). Decorative motion goes through motion.ts
-            (Animations setting + reduced motion); fx.tsx holds coin flights and the night dip.
-            duelBoard.ts = the hearing's Pixi.js board (lazy chunk), playing back DuelState.events from the engine.
+            (route planner) are pure helpers over GameState. Tooltip.tsx turns every `title` into a fast themed hover tip (kept in `data-tip`; e2e tests select by it). All motion goes through motion.ts: EASE + four
+            durations (DUR tap/fast/base/slow, also CSS vars --ease/--dur-*) and presets pop/fade/dark/slide (useMotion());
+            Settings → Reduce motion = the `animations` setting inverted, plus prefers-reduced-motion. fx.tsx: coin flights,
+            the day-passing beat (beat(), NightDip, useHeld holds the date/cash/debt until the beat shows them).
+            widgets.tsx CountUp counts numbers without relayout. Interface sounds (tap/tab/open/close/confirm/deny) in
+            audio/feel.ts; the eruption set piece (black cut, boom, shake) is useEruption in Modals.tsx.
+            duelBoard.ts = the hearing's Pixi.js board (lazy chunk), playing back DuelState.events from the engine; its
+            pacing is the BEAT table (Sorcerer's 0.11-motion.md section 5; Speed: Normal 1, Fast 0.5, Skip 0) and its sounds
+            are duelSfx (audio/feel.ts createDuelSfx).
   audio/    Procedural Web Audio (no audio files needed): sfx.ts (effects, wind, music switch); score.js = the
             "Ash & Ebony" score (moods: calm, after Baar Dau, duel; mood set in App.tsx).
 tests/e2e/  Playwright specs; screenshots go to tests/e2e/__screenshots__/.

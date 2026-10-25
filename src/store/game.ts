@@ -4,7 +4,10 @@ import { C } from '../data';
 import { newGame, step, netWorth, type Action, type GameState, type NewGameConfig } from '../engine';
 import { DEFAULT_SETTINGS, loadGame, loadMeta, normalizeSettings, saveGame, saveMeta, type Meta, type Settings, type Slot } from '../save/storage';
 import { sfx, setMusic, setSound, setVolume } from '../audio/sfx';
-import { PHONE } from '../ui/phone';
+import { PHONE, buzz } from '../ui/phone';
+
+/** Actions that move money: a soft "done" when they go through. */
+const CONFIRM = new Set<Action['t']>(['buy', 'sell', 'deposit', 'withdraw', 'pay', 'borrow', 'deliver', 'charter', 'renew']);
 
 export type Screen = 'title' | 'new' | 'game' | 'duel';
 export type Tab = 'market' | 'map' | 'bank' | 'tavern' | 'outfitter' | 'ledger';
@@ -61,19 +64,21 @@ export const useGame = create<Store>()((set, get) => {
   return {
     screen: 'title', game: null, error: null, errorTick: 0, tab: 'market', codex: undefined, meta, settingsOpen: false, undo: [], toasts: [], tradeQty: 1, plan: null, trip: null, tick: null, ask: null,
     setScreen: screen => set({ screen }),
-    setTab: tab => { sfx.page(); set({ tab }); },
+    setTab: tab => { if (tab !== get().tab) sfx.tab(); set({ tab }); },
     start: cfg => { const g = newGame(cfg); saveGame(g); set({ game: g, screen: 'game', tab: 'market', error: null, toasts: [], plan: null, undo: [] }); },
     load: g => { const t: Toast[] = []; g = drainNotices(g, t); saveGame(g); set({ game: g, screen: 'game', tab: 'market', error: null, toasts: t, plan: null, undo: [] }); },
     continueAuto: () => { const g = loadGame('auto'); if (!g) return false; get().load(g); return true; },
     act: a => {
       const g = get().game; if (!g) return false;
       const r = step(g, a);
-      if (r.error) { sfx.bad(); set(s => ({ error: r.error!, errorTick: s.errorTick + 1 })); return false; }
+      if (r.error) { sfx.deny(); if (PHONE) buzz([15, 30, 15]); set(s => ({ error: r.error!, errorTick: s.errorTick + 1 })); return false; }
       const fresh: Toast[] = [];
       const n = drainNotices(r.state, fresh);
+      if (CONFIRM.has(a.t)) { sfx.confirm(); if (PHONE) buzz(10); } // a trade, deposit or payment went through (coin and sell play over it)
       if (a.t === 'buy') sfx.coin(); else if (a.t === 'sell') sfx.sell(); else if (a.t === 'travel') sfx.step(); else if (a.t === 'heal') sfx.heal();
       if (n.pending && !g.pending) sfx.sting();
-      if (n.inbox.some(i => i.kind === 'chronicle') && !g.inbox.some(i => i.kind === 'chronicle')) sfx.boom();
+      const chron = n.inbox.find(i => i.kind === 'chronicle');
+      if (chron && !g.inbox.some(i => i.kind === 'chronicle') && !(chron.kind === 'chronicle' && chron.eventId === 'red-year-eruption')) sfx.boom(); // the eruption's boom is timed by its set piece (Modals)
       saveGame(n); recordMeta(get, set, n);
       // Arriving somewhere new opens the Market: that is nearly always the next step.
       const arrived = n.player.location !== g.player.location && n.player.location !== 'road';
@@ -90,15 +95,15 @@ export const useGame = create<Store>()((set, get) => {
       sfx.page(); saveGame(g); set({ game: g, undo: u.slice(0, -1), error: null });
     },
     saveTo: slot => { const g = get().game; return !!g && saveGame(g, slot); },
-    openCodex: id => { sfx.page(); set({ codex: id ?? null }); },
-    closeCodex: () => set({ codex: undefined }),
+    openCodex: id => { if (get().codex === undefined) sfx.open(); set({ codex: id ?? null }); },
+    closeCodex: () => { sfx.close(); set({ codex: undefined }); },
     setSettings: p => {
       const meta = { ...get().meta, settings: normalizeSettings({ ...get().meta.settings, ...p }) };
       setSound(meta.settings.sound); setVolume(meta.settings.volume); setMusic(meta.settings.music); saveMeta(meta); set({ meta });
     },
     resetSettings: () => get().setSettings(DEFAULT_SETTINGS),
-    openSettings: () => { sfx.page(); set({ settingsOpen: true }); },
-    closeSettings: () => set({ settingsOpen: false }),
+    openSettings: () => { sfx.open(); set({ settingsOpen: true }); },
+    closeSettings: () => { sfx.close(); set({ settingsOpen: false }); },
     clearError: () => set({ error: null }),
     dismissToast: id => set(s => ({ toasts: s.toasts.filter(t => t.id !== id) })),
     setTradeQty: q => set({ tradeQty: q }),

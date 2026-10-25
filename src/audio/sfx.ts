@@ -1,6 +1,7 @@
 // Tiny procedural Web Audio effects: no audio files, works offline.
 import { createScore, type Score } from './score';
 import { createScore as createSong } from './songs';
+import { createDuelSfx, createFeelSfx } from './feel';
 let ctx: AudioContext | null = null;
 let enabled = true;
 let volume = 0.8;
@@ -82,7 +83,10 @@ export const sfx = {
   page() { noise(0.12, 0.06, 2400); },
   bad() { bell(196, 0.4, 0.06); },
   heal() { bell(523, 1.2, 0.05); bell(659, 1.2, 0.045, 0.12); bell(784, 1.6, 0.04, 0.24); bell(1568, 1.4, 0.012, 0.3); },
+  ...createFeelSfx(ac, () => volume),
 };
+/** The duel's sounds (draw, play, hit, build, win, lose). */
+export const duelSfx = createDuelSfx(ac, () => volume);
 export function startWind(intensity: number) {
   const a = ac(); if (!a) return;
   const level = 0.015 + intensity * 0.05;
@@ -98,6 +102,12 @@ export function startWind(intensity: number) {
 export function stopWind() { try { wind?.stop(); } catch { /* already stopped */ } wind = null; }
 
 /** The phone app going to the background (or coming back): silence everything, then pick up where it was. */
+/** Silences the music and the wind at once (the fall of Baar Dau), and brings the music back after. The wind comes
+ *  back with the next change of scene. */
+export function duck(on: boolean) {
+  if (on) { stopWind(); if (music) { clearTimeout(rotate); music.stop(); music = null; } }
+  else syncMusic();
+}
 export function pauseAudio(paused: boolean) {
   if (!ctx) return;
   void (paused ? ctx.suspend() : ctx.resume()).catch(() => { /* context closed */ });

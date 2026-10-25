@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { C, suggestName } from '../data';
 import { useGame } from '../store/game';
 import { DIFFICULTY, type Difficulty, type Mode } from '../engine';
@@ -21,14 +20,14 @@ export function NewGame() {
       <p className="text-parchment mb-5">Pick a character. You start in Balmora on 1 Morning Star 4E 4, owing money to the Camonna Tong.</p>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {C.backgroundList.map(b => (
-          <motion.button key={b.id} whileHover={{ y: -2 }} onClick={() => pick(b.id)} aria-pressed={bg === b.id}
+          <button key={b.id} onClick={() => pick(b.id)} aria-pressed={bg === b.id}
             className={`panel p-3 text-left transition ${bg === b.id ? 'ring-2 ring-ember' : 'hover:ring-1 hover:ring-ash-400'}`}>
             <div className="h-display text-bone">{b.name}</div>
             <div className="text-xs text-gold mb-1">{b.race}</div>
             <p className="text-sm text-parchment mb-2">{b.text}</p>
             <div className="text-sm text-moss"><span className="font-semibold">+</span> {b.perk}</div>
             <div className="text-sm text-danger"><span className="font-semibold">−</span> {b.burden}</div>
-          </motion.button>
+          </button>
         ))}
       </div>
       <div className="grid sm:grid-cols-2 gap-4 mt-5">
